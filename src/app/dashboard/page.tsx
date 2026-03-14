@@ -46,21 +46,28 @@ export default function DashboardPage() {
     }
   }, [characters, selectedCharId]);
 
-  // Fetch profile on mount
+  // Fetch profile on mount + check onboarding
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
+      if (!user) {
+        router.push("/");
+        return;
+      }
       supabase
         .from("profiles")
-        .select("display_name, avatar_url")
+        .select("display_name, avatar_url, onboarding_completed")
         .eq("id", user.id)
         .single()
         .then(({ data }) => {
-          if (data) setProfile(data);
+          if (data && !data.onboarding_completed) {
+            router.push("/onboarding");
+            return;
+          }
+          if (data) setProfile({ display_name: data.display_name, avatar_url: data.avatar_url });
         });
     });
-  }, []);
+  }, [router]);
 
   const handleLogout = async () => {
     const supabase = createClient();

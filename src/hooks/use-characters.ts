@@ -56,9 +56,13 @@ export function useCharacters(): UseCharactersReturn {
     async (data: CreateCharacterData, activeInstanceIds?: Set<number>): Promise<Character> => {
       const supabase = createClient();
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
       const { data: character, error: charError } = await supabase
         .from("characters")
         .insert({
+          user_id: user.id,
           name: data.name,
           class: data.class_name,
           class_path: data.class_path,
@@ -71,16 +75,16 @@ export function useCharacters(): UseCharactersReturn {
         throw charError ?? new Error("Failed to create character");
       }
 
-      // Fetch all active instances to create character_instances for
+      // Fetch all instances eligible for this character's level
       const { data: instances, error: instancesError } = await supabase
         .from("instances")
-        .select("id")
-        .eq("is_active", true);
+        .select("id, level_required")
+        .lte("level_required", data.level);
 
       if (instancesError) {
         console.error("Error fetching instances for character_instances:", instancesError);
       } else if (instances && instances.length > 0) {
-        const rows = instances.map((inst: { id: number }) => ({
+        const rows = instances.map((inst: { id: number; level_required: number }) => ({
           character_id: character.id,
           instance_id: inst.id,
           is_active: activeInstanceIds ? activeInstanceIds.has(inst.id) : true,
