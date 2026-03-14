@@ -1,0 +1,271 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { calculateCooldownExpiry, isAvailableDay } from "@/lib/cooldown";
+import type { Instance, CharacterInstance, InstanceCompletion, InstanceState } from "@/lib/types";
+
+interface UseInstancesReturn {
+  instances: Instance[];
+  characterInstances: CharacterInstance[];
+  completions: InstanceCompletion[];
+  loading: boolean;
+  computeStates: (now: Date) => InstanceState[];
+  markDone: (instanceId: number) => Promise<void>;
+  deleteCompletion: (completionId: string) => Promise<void>;
+  toggleActive: (instanceId: number, isActive: boolean) => Promise<void>;
+  getHistory: (instanceId: number, limit?: number) => InstanceCompletion[];
+  refetch: () => Promise<void>;
+}
+
+export function useInstances(characterId: string | null): UseInstancesReturn {
+  const [instances, setInstances] = useState<Instance[]>([]);
+  const [characterInstances, setCharacterInstances] = useState<CharacterInstance[]>([]);
+  const [completions, setCompletions] = useState<InstanceCompletion[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchAll = useCallback(async () => {
+    if (!characterId) {
+      setInstances([]);
+      setCharacterInstances([]);
+      setCompletions([]);
+      return;
+    }
+
+    const supabase = createClient();
+
+    const [instancesRes, ciRes, completionsRes] = await Promise.all([
+      supabase.from("instances").select("*").order("name", { ascending: true }),
+      supabase
+        .from("character_instances")
+        .select("*")
+        .eq("character_id", characterId),
+      supabase
+        .from("instance_completions")
+        .select("*")
+        .eq("character_id", characterId)
+        .order("completed_at", { ascending: false }),
+    ]);
+
+    if (instancesRes.error) console.error("Error fetching instances:", instancesRes.error);
+    if (ciRes.error) console.error("Error fetching character_instances:", ciRes.error);
+    if (completionsRes.error) console.error("Error fetching completions:", completionsRes.error);
+
+    setInstances(instancesRes.data ?? []);
+    setCharacterInstances(ciRes.data ?? []);
+    setCompletions(completionsRes.data ?? []);
+  }, [characterId]);
+
+  const refetch = useCallback(async () => {
+    setLoading(true);
+    await fetchAll();
+    setLoading(false);
+  }, [fetchAll]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetchAll().then(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [fetchAll]);
+
+  const computeStates = useCallback(
+    (now: Date): InstanceState[] => {
+      const ciMap = new Map<number, CharacterInstance>();
+      for (const ci of characterInstances) {
+        ciMap.set(ci.instance_id, ci);
+      }
+
+      return instances.map((instance): InstanceState => {
+        const ci = ciMap.get(instance.id);
+        const isActive = ci ? ci.is_active : true;
+        const completionCount = completions.filter((c) => c.instance_id === instance.id).length;
+        const lastCompletion = completions.find((c) => c.instance_id === instance.id) ?? null;
+
+        if (!isActive) {
+          return {
+            instance,
+            isActive: false,
+            completionCount,
+            lastCompletion,
+            cooldownExpiresAt: null,
+            status: "inactive",
+          };
+        }
+
+        // Find the latest completion across all instances in the same mutual exclusion group
+        let latestCompletion: InstanceCompletion | null = null;
+
+        if (instance.mutual_exclusion_group) {
+          const groupInstanceIds = new Set(
+            instances
+              .filter((i) => i.mutual_exclusion_group === instance.mutual_exclusion_group)
+              .map((i) => i.id)
+          );
+
+          for (const c of completions) {
+            if (groupInstanceIds.has(c.instance_id)) {
+              if (!latestCompletion || c.completed_at > latestCompletion.completed_at) {
+                latestCompletion = c;
+              }
+            }
+          }
+        } else {
+          latestCompletion = lastCompletion;
+        }
+
+        if (!latestCompletion) {
+          // Check if the day is available even without a completion (weekly with specific day)
+          const dayAvailable = isAvailableDay(instance.available_day, now);
+          if (!dayAvailable) {
+            return {
+              instance,
+              isActive: true,
+              completionCount,
+              lastCompletion,
+              cooldownExpiresAt: null,
+              status: "cooldown",
+            };
+          }
+
+          return {
+            instance,
+            isActive: true,
+            completionCount,
+            lastCompletion,
+            cooldownExpiresAt: null,
+            status: "available",
+          };
+        }
+
+        // Calculate cooldown expiry using instance's OWN cooldown type
+        const cooldownExpiresAt = calculateCooldownExpiry(
+          new Date(latestCompletion.completed_at),
+          instance.cooldown_type,
+          instance.cooldown_hours,
+          instance.available_day
+        );
+
+        if (cooldownExpiresAt > now) {
+          return {
+            instance,
+            isActive: true,
+            completionCount,
+            lastCompletion,
+            cooldownExpiresAt,
+            status: "cooldown",
+          };
+        }
+
+        // Cooldown expired — check if today is an available day
+        const dayAvailable = isAvailableDay(instance.available_day, now);
+        if (!dayAvailable) {
+          return {
+            instance,
+            isActive: true,
+            completionCount,
+            lastCompletion,
+            cooldownExpiresAt,
+            status: "cooldown",
+          };
+        }
+
+        return {
+          instance,
+          isActive: true,
+          completionCount,
+          lastCompletion,
+          cooldownExpiresAt,
+          status: "available",
+        };
+      });
+    },
+    [instances, characterInstances, completions]
+  );
+
+  const markDone = useCallback(
+    async (instanceId: number) => {
+      if (!characterId) return;
+      const supabase = createClient();
+
+      const { data, error } = await supabase
+        .from("instance_completions")
+        .insert({ character_id: characterId, instance_id: instanceId })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error marking instance done:", error);
+        throw error;
+      }
+
+      setCompletions((prev) => [data, ...prev]);
+    },
+    [characterId]
+  );
+
+  const deleteCompletion = useCallback(async (completionId: string) => {
+    const supabase = createClient();
+
+    const { error } = await supabase
+      .from("instance_completions")
+      .delete()
+      .eq("id", completionId);
+
+    if (error) {
+      console.error("Error deleting completion:", error);
+      throw error;
+    }
+
+    setCompletions((prev) => prev.filter((c) => c.id !== completionId));
+  }, []);
+
+  const toggleActive = useCallback(
+    async (instanceId: number, isActive: boolean) => {
+      if (!characterId) return;
+      const supabase = createClient();
+
+      const { error } = await supabase
+        .from("character_instances")
+        .update({ is_active: isActive })
+        .eq("character_id", characterId)
+        .eq("instance_id", instanceId);
+
+      if (error) {
+        console.error("Error toggling instance active:", error);
+        throw error;
+      }
+
+      setCharacterInstances((prev) =>
+        prev.map((ci) =>
+          ci.instance_id === instanceId ? { ...ci, is_active: isActive } : ci
+        )
+      );
+    },
+    [characterId]
+  );
+
+  const getHistory = useCallback(
+    (instanceId: number, limit = 10): InstanceCompletion[] => {
+      return completions
+        .filter((c) => c.instance_id === instanceId)
+        .slice(0, limit);
+    },
+    [completions]
+  );
+
+  return {
+    instances,
+    characterInstances,
+    completions,
+    loading,
+    computeStates,
+    markDone,
+    deleteCompletion,
+    toggleActive,
+    getHistory,
+    refetch,
+  };
+}
