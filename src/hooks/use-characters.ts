@@ -54,21 +54,14 @@ export function useCharacters(): UseCharactersReturn {
       ownerUsername: null,
     }));
 
-    // Fetch shared characters
-    const { data: sharedData } = await supabase
-      .from("character_shares")
-      .select("character_id, characters(*), profiles!character_shares_shared_with_user_id_fkey(username)")
-      .eq("shared_with_user_id", user.id);
+    // Fetch shared characters via SECURITY DEFINER function
+    const { data: sharedChars } = await supabase.rpc("get_shared_characters");
 
-    const shared: Character[] = (sharedData ?? []).map((s: Record<string, unknown>) => {
-      const char = s.characters as Record<string, unknown>;
-      // Get owner username from the character's user_id
-      return {
-        ...char,
-        isShared: true,
-        ownerUsername: null, // will be fetched below
-      } as Character;
-    });
+    const shared: Character[] = ((sharedChars ?? []) as Record<string, unknown>[]).map((c) => ({
+      ...c,
+      isShared: true,
+      ownerUsername: null,
+    } as Character));
 
     // Fetch owner usernames for shared characters
     if (shared.length > 0) {
