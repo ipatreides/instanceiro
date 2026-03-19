@@ -67,6 +67,9 @@ export function StepInstances({
   const totalEligible = eligibleInstances.length;
   const totalSelected = selected.size;
 
+  // Calculate total selected across all characters
+  const anySelected = Array.from(selectedInstances.values()).some(set => set.size > 0);
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -183,11 +186,15 @@ export function StepInstances({
         <button
           type="button"
           onClick={onNext}
-          className="px-6 py-2 rounded-md bg-blue-600 text-white font-semibold text-sm hover:bg-blue-500 transition-colors cursor-pointer"
+          disabled={!anySelected}
+          className="px-6 py-2 rounded-md bg-blue-600 text-white font-semibold text-sm hover:bg-blue-500 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Próximo →
         </button>
       </div>
+      <p className="text-xs text-gray-600 text-center mt-2">
+        Seus dados são preservados ao voltar.
+      </p>
     </div>
   );
 }

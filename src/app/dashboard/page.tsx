@@ -25,10 +25,14 @@ export default function DashboardPage() {
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [showNewChar, setShowNewChar] = useState(false);
+  const [editingChar, setEditingChar] = useState<Character | null>(null);
+  const [deletingChar, setDeletingChar] = useState<Character | null>(null);
   const [modalInstanceId, setModalInstanceId] = useState<number | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
 
-  const { characters, loading: charsLoading, createCharacter } = useCharacters();
+  const { characters, loading: charsLoading, createCharacter, updateCharacter, refetch: refetchCharacters } = useCharacters();
   const {
     loading: instancesLoading,
     computeStates,
@@ -79,6 +83,51 @@ export default function DashboardPage() {
     setSelectedCharId(character.id);
   };
 
+  const handleConfirmDelete = async () => {
+    if (!deletingChar) return;
+    const supabase = createClient();
+
+    const { error: e1 } = await supabase
+      .from("instance_completions")
+      .delete()
+      .eq("character_id", deletingChar.id);
+    if (e1) console.error("delete completions:", e1);
+
+    const { error: e2 } = await supabase
+      .from("character_instances")
+      .delete()
+      .eq("character_id", deletingChar.id);
+    if (e2) console.error("delete char_instances:", e2);
+
+    const { error: e3 } = await supabase
+      .from("characters")
+      .delete()
+      .eq("id", deletingChar.id);
+    if (e3) console.error("delete character:", e3);
+
+    if (selectedCharId === deletingChar.id) {
+      setSelectedCharId(null);
+    }
+
+    setDeletingChar(null);
+    await refetchCharacters();
+  };
+
+  const handleEditCharacter = (character: Character) => {
+    setEditingChar(character);
+  };
+
+  const handleUpdateCharacter = async (data: {
+    name: string;
+    class_name: string;
+    class_path: string[];
+    level: number;
+  }) => {
+    if (!editingChar) return;
+    await updateCharacter(editingChar.id, data);
+    setEditingChar(null);
+  };
+
   const handleCreateCharacter = async (data: {
     name: string;
     class_name: string;
@@ -120,6 +169,7 @@ export default function DashboardPage() {
       : null;
 
   const handleCardClick = (state: InstanceState) => {
+    setActionError(null);
     setModalInstanceId(state.instance.id);
   };
 
@@ -129,24 +179,56 @@ export default function DashboardPage() {
 
   const handleMarkDone = async () => {
     if (modalInstanceId === null) return;
-    await markDone(modalInstanceId);
-    setModalInstanceId(null);
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      await markDone(modalInstanceId);
+      setModalInstanceId(null);
+    } catch {
+      setActionError("Erro ao marcar instância. Tente novamente.");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleDeleteCompletion = async (completionId: string) => {
-    await deleteCompletion(completionId);
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      await deleteCompletion(completionId);
+    } catch {
+      setActionError("Erro ao remover conclusão. Tente novamente.");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleDeactivate = async () => {
     if (modalInstanceId === null) return;
-    await toggleActive(modalInstanceId, false);
-    setModalInstanceId(null);
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      await toggleActive(modalInstanceId, false);
+      setModalInstanceId(null);
+    } catch {
+      setActionError("Erro ao desativar instância. Tente novamente.");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleActivate = async () => {
     if (modalInstanceId === null) return;
-    await toggleActive(modalInstanceId, true);
-    setModalInstanceId(null);
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      await toggleActive(modalInstanceId, true);
+      setModalInstanceId(null);
+    } catch {
+      setActionError("Erro ao ativar instância. Tente novamente.");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   return (
@@ -188,35 +270,40 @@ export default function DashboardPage() {
           selectedId={selectedCharId}
           onSelect={handleSelectCharacter}
           onAddClick={() => setShowNewChar(true)}
+          onEdit={handleEditCharacter}
         />
 
-        {/* Instance search */}
-        <InstanceSearch value={search} onChange={setSearch} />
+        {characters.length > 0 ? (
+          <>
+            {/* Instance search */}
+            <InstanceSearch value={search} onChange={setSearch} />
 
-        {/* Instance groups */}
-        <div className="flex flex-col gap-8">
-          <InstanceGroup
-            title="DISPONÍVEIS"
-            states={availableStates}
-            onCardClick={handleCardClick}
-          />
-          <InstanceGroup
-            title="EM COOLDOWN"
-            states={cooldownStates}
-            onCardClick={handleCardClick}
-          />
-          <InstanceGroup
-            title="INATIVAS"
-            states={inactiveStates}
-            onCardClick={handleCardClick}
-            collapsible
-            defaultCollapsed
-            forceExpanded={search.trim().length > 0}
-          />
-        </div>
-
-        {/* Empty state */}
-        {characters.length === 0 && (
+            {/* Instance groups */}
+            <div className="flex flex-col gap-8">
+              <InstanceGroup
+                title="DISPONÍVEIS"
+                states={availableStates}
+                now={now}
+                onCardClick={handleCardClick}
+              />
+              <InstanceGroup
+                title="EM COOLDOWN"
+                states={cooldownStates}
+                now={now}
+                onCardClick={handleCardClick}
+              />
+              <InstanceGroup
+                title="INATIVAS"
+                states={inactiveStates}
+                now={now}
+                onCardClick={handleCardClick}
+                collapsible
+                defaultCollapsed
+                forceExpanded={search.trim().length > 0}
+              />
+            </div>
+          </>
+        ) : (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
             <p className="text-gray-400 text-center">
               Nenhum personagem cadastrado. Adicione um personagem para começar.
@@ -243,6 +330,8 @@ export default function DashboardPage() {
         onDeleteCompletion={handleDeleteCompletion}
         onDeactivate={handleDeactivate}
         onActivate={handleActivate}
+        actionLoading={actionLoading}
+        actionError={actionError}
       />
 
       {/* New character modal */}
@@ -255,6 +344,68 @@ export default function DashboardPage() {
           onSubmit={handleCreateCharacter}
           onCancel={() => setShowNewChar(false)}
         />
+      </Modal>
+
+      {/* Edit character modal */}
+      <Modal
+        isOpen={editingChar !== null}
+        onClose={() => setEditingChar(null)}
+        title="Editar Personagem"
+        titleAction={editingChar ? (
+          <button
+            onClick={() => { setDeletingChar(editingChar); setEditingChar(null); }}
+            className="text-gray-500 hover:text-red-400 transition-colors cursor-pointer"
+            aria-label="Excluir personagem"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+            </svg>
+          </button>
+        ) : undefined}
+      >
+        {editingChar && (
+          <CharacterForm
+            key={editingChar.id}
+            onSubmit={handleUpdateCharacter}
+            onCancel={() => setEditingChar(null)}
+            initialValues={{
+              name: editingChar.name,
+              class_name: editingChar.class,
+              class_path: editingChar.class_path,
+              level: editingChar.level,
+            }}
+            submitLabel="Salvar"
+          />
+        )}
+      </Modal>
+
+      {/* Delete confirmation modal */}
+      <Modal
+        isOpen={deletingChar !== null}
+        onClose={() => setDeletingChar(null)}
+        title="Excluir Personagem"
+      >
+        {deletingChar && (
+          <div className="flex flex-col gap-5">
+            <p className="text-gray-300 text-sm">
+              Tem certeza que deseja excluir <span className="text-white font-semibold">{deletingChar.name}</span>? Todo o histórico de instâncias será removido. Essa ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleConfirmDelete}
+                className="flex-1 py-2.5 rounded-md bg-red-600 hover:bg-red-500 text-white font-semibold text-sm transition-colors cursor-pointer"
+              >
+                Excluir
+              </button>
+              <button
+                onClick={() => setDeletingChar(null)}
+                className="flex-1 py-2.5 rounded-md bg-[#2a2a3e] border border-gray-600 text-gray-300 font-semibold text-sm hover:text-white hover:border-gray-400 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

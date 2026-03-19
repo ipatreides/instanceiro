@@ -4,6 +4,7 @@ import type { InstanceState } from "@/lib/types";
 
 interface InstanceCardProps {
   state: InstanceState;
+  now: Date;
   onClick?: () => void;
 }
 
@@ -67,10 +68,8 @@ const STATUS_DOT: Record<InstanceState["status"], string> = {
   inactive: "bg-gray-600",
 };
 
-export function InstanceCard({ state, onClick }: InstanceCardProps) {
+export function InstanceCard({ state, now, onClick }: InstanceCardProps) {
   const { instance, status, completionCount, cooldownExpiresAt } = state;
-
-  const now = new Date();
   const timeLabel =
     status === "cooldown"
       ? formatTimeRemaining(cooldownExpiresAt, instance.available_day, now)
@@ -85,6 +84,11 @@ export function InstanceCard({ state, onClick }: InstanceCardProps) {
         <div className="flex items-center gap-2 min-w-0">
           <span className={`w-2 h-2 rounded-full flex-shrink-0 ${STATUS_DOT[status]}`} />
           <span className="text-sm font-medium text-white truncate">{instance.name}</span>
+          {instance.mutual_exclusion_group && (
+            <span className="text-xs text-purple-400 flex-shrink-0" title={`Compartilha cooldown com outras instâncias do grupo "${instance.mutual_exclusion_group}"`}>
+              ⟷
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {timeLabel && (

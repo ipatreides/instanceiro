@@ -6,10 +6,11 @@ interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
+  titleAction?: React.ReactNode;
   children: React.ReactNode;
 }
 
-export function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export function Modal({ isOpen, onClose, title, titleAction, children }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -21,6 +22,15 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
     return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
@@ -29,9 +39,12 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60"
       onClick={(e) => e.target === overlayRef.current && onClose()}
     >
-      <div className="bg-[#1a1a2e] w-full sm:max-w-lg sm:rounded-lg rounded-t-2xl max-h-[85vh] overflow-y-auto">
+      <div className="bg-[#1a1a2e] w-full sm:max-w-xl sm:rounded-lg rounded-t-2xl max-h-[85vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <h2 className="text-lg font-semibold text-white">{title}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-white">{title}</h2>
+            {titleAction}
+          </div>
           <button onClick={onClose} className="text-gray-400 hover:text-white text-xl cursor-pointer">×</button>
         </div>
         <div className="p-4">{children}</div>

@@ -47,8 +47,7 @@ export function StepLastCompletion({
       <div>
         <h2 className="text-xl font-bold text-white">Último Completamento</h2>
         <p className="text-gray-400 text-sm mt-1">
-          Informe quando cada instância foi completada pela última vez.
-          Deixe em branco se ainda não completou.
+          Informe quando cada instância foi completada pela última vez. Os horários são tratados como BRT (UTC-3). Deixe em branco se ainda não completou.
         </p>
       </div>
 
@@ -93,6 +92,7 @@ export function StepLastCompletion({
                         <input
                           type={isHourly ? "datetime-local" : "date"}
                           value={value}
+                          max={isHourly ? new Date().toISOString().slice(0, 16) : new Date().toISOString().slice(0, 10)}
                           onChange={(e) => onSetCompletion(key, e.target.value)}
                           className="bg-[#2a2a3e] border border-gray-600 rounded-md px-3 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
                           style={{ colorScheme: "dark" }}
@@ -126,6 +126,9 @@ export function StepLastCompletion({
           {isSubmitting ? "Salvando…" : "Concluir"}
         </button>
       </div>
+      <p className="text-xs text-gray-600 text-center mt-2">
+        Seus dados são preservados ao voltar.
+      </p>
     </div>
   );
 }

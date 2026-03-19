@@ -1,5 +1,7 @@
 /**
- * Ragnarok Online class hierarchy tree and utilities
+ * Ragnarok Online LATAM class hierarchy tree and utilities
+ * Source: https://browiki.org/wiki/Classes
+ * No 4th classes in LATAM yet — max level 200
  */
 
 export interface ClassNode {
@@ -15,34 +17,20 @@ export const CLASS_TREE: ClassNode[] = [
         name: "Cavaleiro",
         children: [
           {
-            name: "Lord Knight",
+            name: "Lorde",
             children: [
-              {
-                name: "Rune Knight",
-                children: [
-                  {
-                    name: "Rune Knight T",
-                  },
-                ],
-              },
+              { name: "Cavaleiro Rúnico" },
             ],
           },
         ],
       },
       {
-        name: "Cruzado",
+        name: "Templário",
         children: [
           {
             name: "Paladino",
             children: [
-              {
-                name: "Royal Guard",
-                children: [
-                  {
-                    name: "Royal Guard T",
-                  },
-                ],
-              },
+              { name: "Guardião Real" },
             ],
           },
         ],
@@ -56,16 +44,9 @@ export const CLASS_TREE: ClassNode[] = [
         name: "Bruxo",
         children: [
           {
-            name: "Mestre-Bruxo",
+            name: "Arquimago",
             children: [
-              {
-                name: "Warlock",
-                children: [
-                  {
-                    name: "Warlock T",
-                  },
-                ],
-              },
+              { name: "Arcano" },
             ],
           },
         ],
@@ -76,14 +57,7 @@ export const CLASS_TREE: ClassNode[] = [
           {
             name: "Professor",
             children: [
-              {
-                name: "Sorcerer",
-                children: [
-                  {
-                    name: "Sorcerer T",
-                  },
-                ],
-              },
+              { name: "Feiticeiro" },
             ],
           },
         ],
@@ -99,14 +73,7 @@ export const CLASS_TREE: ClassNode[] = [
           {
             name: "Atirador de Elite",
             children: [
-              {
-                name: "Ranger",
-                children: [
-                  {
-                    name: "Ranger T",
-                  },
-                ],
-              },
+              { name: "Sentinela" },
             ],
           },
         ],
@@ -117,14 +84,7 @@ export const CLASS_TREE: ClassNode[] = [
           {
             name: "Menestrel",
             children: [
-              {
-                name: "Trovador",
-                children: [
-                  {
-                    name: "Trovador T",
-                  },
-                ],
-              },
+              { name: "Trovador" },
             ],
           },
         ],
@@ -135,14 +95,7 @@ export const CLASS_TREE: ClassNode[] = [
           {
             name: "Cigana",
             children: [
-              {
-                name: "Musa",
-                children: [
-                  {
-                    name: "Musa T",
-                  },
-                ],
-              },
+              { name: "Musa" },
             ],
           },
         ],
@@ -158,14 +111,7 @@ export const CLASS_TREE: ClassNode[] = [
           {
             name: "Mestre-Ferreiro",
             children: [
-              {
-                name: "Mecânico",
-                children: [
-                  {
-                    name: "Mecânico T",
-                  },
-                ],
-              },
+              { name: "Mecânico" },
             ],
           },
         ],
@@ -174,16 +120,9 @@ export const CLASS_TREE: ClassNode[] = [
         name: "Alquimista",
         children: [
           {
-            name: "Bioquímico",
+            name: "Criador",
             children: [
-              {
-                name: "Geneticista",
-                children: [
-                  {
-                    name: "Geneticista T",
-                  },
-                ],
-              },
+              { name: "Bioquímico" },
             ],
           },
         ],
@@ -194,19 +133,12 @@ export const CLASS_TREE: ClassNode[] = [
     name: "Gatuno",
     children: [
       {
-        name: "Assassino",
+        name: "Mercenário",
         children: [
           {
-            name: "Assassino Cruz",
+            name: "Algoz",
             children: [
-              {
-                name: "Guillotine Cross",
-                children: [
-                  {
-                    name: "Guillotine Cross T",
-                  },
-                ],
-              },
+              { name: "Sicário" },
             ],
           },
         ],
@@ -217,14 +149,7 @@ export const CLASS_TREE: ClassNode[] = [
           {
             name: "Desordeiro",
             children: [
-              {
-                name: "Shadow Chaser",
-                children: [
-                  {
-                    name: "Shadow Chaser T",
-                  },
-                ],
-              },
+              { name: "Renegado" },
             ],
           },
         ],
@@ -240,14 +165,7 @@ export const CLASS_TREE: ClassNode[] = [
           {
             name: "Sumo Sacerdote",
             children: [
-              {
-                name: "Arch Bishop",
-                children: [
-                  {
-                    name: "Arch Bishop T",
-                  },
-                ],
-              },
+              { name: "Arcebispo" },
             ],
           },
         ],
@@ -258,14 +176,7 @@ export const CLASS_TREE: ClassNode[] = [
           {
             name: "Mestre",
             children: [
-              {
-                name: "Shura",
-                children: [
-                  {
-                    name: "Shura T",
-                  },
-                ],
-              },
+              { name: "Shura" },
             ],
           },
         ],
@@ -276,65 +187,47 @@ export const CLASS_TREE: ClassNode[] = [
     name: "Taekwon",
     children: [
       {
-        name: "Star Gladiator",
+        name: "Mestre Taekwon",
         children: [
-          {
-            name: "Star Emperor",
-          },
+          { name: "Mestre Estelar" },
         ],
       },
       {
-        name: "Soul Linker",
+        name: "Espiritualista",
         children: [
-          {
-            name: "Soul Reaper",
-          },
+          { name: "Ceifador de Almas" },
         ],
       },
     ],
   },
   {
-    name: "Super Novice",
+    name: "Superaprendiz",
     children: [
-      {
-        name: "Super Novice Expandido",
-      },
+      { name: "Superaprendiz Expandido" },
     ],
   },
   {
-    name: "Gunslinger",
+    name: "Justiceiro",
     children: [
       {
-        name: "Rebellion",
-        children: [
-          {
-            name: "Night Watch",
-          },
-        ],
+        name: "Insurgente",
       },
     ],
   },
   {
     name: "Ninja",
     children: [
-      {
-        name: "Kagerou",
-      },
-      {
-        name: "Oboro",
-      },
+      { name: "Kagerou" },
+      { name: "Oboro" },
     ],
   },
   {
-    name: "Summoner",
+    name: "Invocador",
   },
 ];
 
 /**
  * Build full class path from root to target class
- * @param targetClass - The class name to find
- * @param tree - Optional custom tree (defaults to CLASS_TREE)
- * @returns Array of class names from root to target, or null if not found
  */
 export function buildClassPath(
   targetClass: string,
@@ -344,7 +237,6 @@ export function buildClassPath(
     if (node.name === targetClass) {
       return [node.name];
     }
-
     if (node.children) {
       const childPath = buildClassPath(targetClass, node.children);
       if (childPath) {
@@ -352,18 +244,14 @@ export function buildClassPath(
       }
     }
   }
-
   return null;
 }
 
 /**
  * Get all leaf class names from the tree
- * @param tree - Optional custom tree (defaults to CLASS_TREE)
- * @returns Array of all leaf class names
  */
 export function getLeafClasses(tree: ClassNode[] = CLASS_TREE): string[] {
   const leaves: string[] = [];
-
   function traverse(nodes: ClassNode[]) {
     for (const node of nodes) {
       if (!node.children || node.children.length === 0) {
@@ -373,7 +261,6 @@ export function getLeafClasses(tree: ClassNode[] = CLASS_TREE): string[] {
       }
     }
   }
-
   traverse(tree);
   return leaves;
 }

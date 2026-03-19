@@ -8,6 +8,7 @@ import { InstanceCard } from "./instance-card";
 interface InstanceGroupProps {
   title: string;
   states: InstanceState[];
+  now?: Date;
   onCardClick?: (state: InstanceState) => void;
   collapsible?: boolean;
   defaultCollapsed?: boolean;
@@ -34,6 +35,7 @@ function sortStates(states: InstanceState[]): InstanceState[] {
 export function InstanceGroup({
   title,
   states,
+  now,
   onCardClick,
   collapsible = false,
   defaultCollapsed = false,
@@ -81,6 +83,7 @@ export function InstanceGroup({
           <MobileTabView
             activeCooldownTypes={activeCooldownTypes}
             byType={byType}
+            now={now}
             onCardClick={onCardClick}
           />
 
@@ -91,6 +94,7 @@ export function InstanceGroup({
                 key={type}
                 cooldownType={type}
                 states={byType.get(type)!}
+                now={now}
                 onCardClick={onCardClick}
               />
             ))}
@@ -103,6 +107,7 @@ export function InstanceGroup({
                 key={type}
                 cooldownType={type}
                 states={byType.get(type)!}
+                now={now}
                 onCardClick={onCardClick}
               />
             ))}
@@ -116,10 +121,11 @@ export function InstanceGroup({
 interface MobileTabViewProps {
   activeCooldownTypes: CooldownType[];
   byType: Map<CooldownType, InstanceState[]>;
+  now?: Date;
   onCardClick?: (state: InstanceState) => void;
 }
 
-function MobileTabView({ activeCooldownTypes, byType, onCardClick }: MobileTabViewProps) {
+function MobileTabView({ activeCooldownTypes, byType, now, onCardClick }: MobileTabViewProps) {
   const [activeTab, setActiveTab] = useState<CooldownType>(activeCooldownTypes[0]);
 
   const currentTab = activeCooldownTypes.includes(activeTab) ? activeTab : activeCooldownTypes[0];
@@ -151,6 +157,7 @@ function MobileTabView({ activeCooldownTypes, byType, onCardClick }: MobileTabVi
           <InstanceCard
             key={state.instance.id}
             state={state}
+            now={now ?? new Date()}
             onClick={() => onCardClick?.(state)}
           />
         ))}

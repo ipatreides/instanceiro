@@ -55,7 +55,7 @@ export function StepCharacters({
               <div>
                 <span className="text-white font-medium">{char.name}</span>
                 <span className="text-gray-400 text-sm ml-2">
-                  {char.class_path.join(" → ")} · Nv. {char.level}
+                  {char.class_name} · Nv. {char.level}
                 </span>
               </div>
               <button

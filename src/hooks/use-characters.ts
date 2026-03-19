@@ -11,10 +11,18 @@ interface CreateCharacterData {
   level: number;
 }
 
+interface UpdateCharacterData {
+  name?: string;
+  class_name?: string;
+  class_path?: string[];
+  level?: number;
+}
+
 interface UseCharactersReturn {
   characters: Character[];
   loading: boolean;
   createCharacter: (data: CreateCharacterData, activeInstanceIds?: Set<number>) => Promise<Character>;
+  updateCharacter: (id: string, data: UpdateCharacterData) => Promise<void>;
   refetch: () => Promise<void>;
 }
 
@@ -105,5 +113,38 @@ export function useCharacters(): UseCharactersReturn {
     []
   );
 
-  return { characters, loading, createCharacter, refetch };
+  const updateCharacter = useCallback(
+    async (id: string, data: UpdateCharacterData): Promise<void> => {
+      const supabase = createClient();
+      const updatePayload: Record<string, unknown> = {};
+      if (data.name !== undefined) updatePayload.name = data.name;
+      if (data.class_name !== undefined) updatePayload.class = data.class_name;
+      if (data.class_path !== undefined) updatePayload.class_path = data.class_path;
+      if (data.level !== undefined) updatePayload.level = data.level;
+
+      const { error } = await supabase
+        .from("characters")
+        .update(updatePayload)
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setCharacters((prev) =>
+        prev.map((c) =>
+          c.id === id
+            ? {
+                ...c,
+                ...(data.name !== undefined && { name: data.name }),
+                ...(data.class_name !== undefined && { class: data.class_name }),
+                ...(data.class_path !== undefined && { class_path: data.class_path }),
+                ...(data.level !== undefined && { level: data.level }),
+              }
+            : c
+        )
+      );
+    },
+    []
+  );
+
+  return { characters, loading, createCharacter, updateCharacter, refetch };
 }

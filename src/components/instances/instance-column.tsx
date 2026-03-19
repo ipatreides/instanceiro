@@ -6,6 +6,7 @@ import { InstanceCard } from "./instance-card";
 interface InstanceColumnProps {
   cooldownType: CooldownType;
   states: InstanceState[];
+  now?: Date;
   onCardClick?: (state: InstanceState) => void;
 }
 
@@ -16,7 +17,7 @@ const COOLDOWN_LABELS: Record<CooldownType, string> = {
   hourly: "Horário",
 };
 
-export function InstanceColumn({ cooldownType, states, onCardClick }: InstanceColumnProps) {
+export function InstanceColumn({ cooldownType, states, now, onCardClick }: InstanceColumnProps) {
   if (states.length === 0) return null;
 
   return (
@@ -29,6 +30,7 @@ export function InstanceColumn({ cooldownType, states, onCardClick }: InstanceCo
           <InstanceCard
             key={state.instance.id}
             state={state}
+            now={now ?? new Date()}
             onClick={() => onCardClick?.(state)}
           />
         ))}

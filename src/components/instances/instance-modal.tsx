@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
 import type { InstanceState, InstanceCompletion } from "@/lib/types";
 
@@ -14,6 +15,8 @@ interface InstanceModalProps {
   onDeleteCompletion: (completionId: string) => void;
   onDeactivate: () => void;
   onActivate: () => void;
+  actionLoading?: boolean;
+  actionError?: string | null;
 }
 
 function formatDateTime(dateStr: string): string {
@@ -54,7 +57,18 @@ export function InstanceModal({
   onDeleteCompletion,
   onDeactivate,
   onActivate,
+  actionLoading,
+  actionError,
 }: InstanceModalProps) {
+  const [confirmingMarkDone, setConfirmingMarkDone] = useState(false);
+
+  // Reset confirmation state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setConfirmingMarkDone(false);
+    }
+  }, [isOpen]);
+
   if (!stateObj) return null;
   const { instance } = stateObj;
 
@@ -73,6 +87,11 @@ export function InstanceModal({
             <span className="text-xs text-gray-400 bg-[#2a2a3e] px-2 py-0.5 rounded">
               {instance.party_min} jogador{instance.party_min !== 1 ? "es" : ""}
             </span>
+            {instance.mutual_exclusion_group && (
+              <span className="text-xs text-purple-400 bg-purple-900/30 px-2 py-0.5 rounded">
+                Cooldown compartilhado
+              </span>
+            )}
           </div>
           {instance.reward && (
             <p className="text-sm text-gray-300">
@@ -81,14 +100,40 @@ export function InstanceModal({
           )}
         </div>
 
+        {/* Action error */}
+        {actionError && (
+          <p className="text-sm text-red-400 bg-red-900/20 rounded px-3 py-2">
+            {actionError}
+          </p>
+        )}
+
         {/* Mark done button — only if available */}
-        {isAvailable && (
+        {isAvailable && !confirmingMarkDone && (
           <button
-            onClick={onMarkDone}
-            className="w-full py-2.5 rounded-md bg-green-600 hover:bg-green-500 text-white font-semibold text-sm transition-colors cursor-pointer"
+            onClick={() => setConfirmingMarkDone(true)}
+            disabled={actionLoading}
+            className="w-full py-2.5 rounded-md bg-green-600 hover:bg-green-500 text-white font-semibold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Marcar como feita
           </button>
+        )}
+        {confirmingMarkDone && (
+          <div className="flex gap-2">
+            <button
+              onClick={onMarkDone}
+              disabled={actionLoading}
+              className="flex-1 py-2.5 rounded-md bg-green-600 hover:bg-green-500 text-white font-semibold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {actionLoading ? "Salvando..." : "Confirmar"}
+            </button>
+            <button
+              onClick={() => setConfirmingMarkDone(false)}
+              disabled={actionLoading}
+              className="flex-1 py-2.5 rounded-md bg-[#2a2a3e] border border-gray-600 text-gray-300 text-sm transition-colors cursor-pointer hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancelar
+            </button>
+          </div>
         )}
 
         {/* History */}
@@ -112,7 +157,8 @@ export function InstanceModal({
                   {index === 0 && (
                     <button
                       onClick={() => onDeleteCompletion(completion.id)}
-                      className="text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+                      disabled={actionLoading}
+                      className="text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label="Remover conclusão"
                     >
                       Remover
@@ -129,14 +175,16 @@ export function InstanceModal({
           {isInactive ? (
             <button
               onClick={onActivate}
-              className="text-sm text-blue-400 hover:text-blue-300 transition-colors cursor-pointer"
+              disabled={actionLoading}
+              className="text-sm text-blue-400 hover:text-blue-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Ativar instância
             </button>
           ) : (
             <button
               onClick={onDeactivate}
-              className="text-sm text-gray-500 hover:text-gray-300 transition-colors cursor-pointer"
+              disabled={actionLoading}
+              className="text-sm text-gray-500 hover:text-gray-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Desativar instância
             </button>

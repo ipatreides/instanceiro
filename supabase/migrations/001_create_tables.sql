@@ -79,6 +79,10 @@ CREATE POLICY "Users can update own characters"
   ON characters FOR UPDATE
   USING (auth.uid() = user_id);
 
+CREATE POLICY "Users can delete own characters"
+  ON characters FOR DELETE
+  USING (auth.uid() = user_id);
+
 CREATE TRIGGER characters_updated_at
   BEFORE UPDATE ON characters
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
@@ -136,6 +140,16 @@ CREATE POLICY "Users can insert own character_instances"
 
 CREATE POLICY "Users can update own character_instances"
   ON character_instances FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM characters
+      WHERE characters.id = character_instances.character_id
+      AND characters.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can delete own character_instances"
+  ON character_instances FOR DELETE
   USING (
     EXISTS (
       SELECT 1 FROM characters

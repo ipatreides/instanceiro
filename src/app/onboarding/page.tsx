@@ -33,6 +33,7 @@ export default function OnboardingPage() {
     new Map()
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch instances on mount
   useEffect(() => {
@@ -128,6 +129,7 @@ export default function OnboardingPage() {
   // --- Final submission ---
   async function handleFinish() {
     setIsSubmitting(true);
+    setError(null);
     try {
       const {
         data: { user },
@@ -235,12 +237,13 @@ export default function OnboardingPage() {
       router.push("/dashboard");
     } catch (err) {
       console.error("Onboarding submission failed:", err);
+      setError("Erro ao salvar. Tente novamente.");
       setIsSubmitting(false);
     }
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-4 py-10">
+    <main className="min-h-screen bg-[#0f0f17] flex flex-col items-center justify-center px-4 py-10">
       <div className="w-full max-w-xl">
         {/* Header */}
         <div className="mb-8 text-center">
@@ -304,16 +307,23 @@ export default function OnboardingPage() {
             />
           )}
           {step === 3 && (
-            <StepLastCompletion
-              characters={characters}
-              instances={instances}
-              selectedInstances={selectedInstances}
-              lastCompletions={lastCompletions}
-              onSetCompletion={handleSetCompletion}
-              onFinish={handleFinish}
-              onBack={() => setStep(2)}
-              isSubmitting={isSubmitting}
-            />
+            <>
+              <StepLastCompletion
+                characters={characters}
+                instances={instances}
+                selectedInstances={selectedInstances}
+                lastCompletions={lastCompletions}
+                onSetCompletion={handleSetCompletion}
+                onFinish={handleFinish}
+                onBack={() => setStep(2)}
+                isSubmitting={isSubmitting}
+              />
+              {error && (
+                <p className="text-red-400 text-sm text-center bg-red-900/20 border border-red-800 rounded-md px-3 py-2 mt-4">
+                  {error}
+                </p>
+              )}
+            </>
           )}
         </div>
       </div>
