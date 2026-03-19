@@ -297,6 +297,7 @@ export default function OnboardingPage() {
         <div className="bg-[#1a1230] border border-[#3D2A5C] rounded-xl p-6">
           {step === 1 && (
             <StepUsername
+              initialValue={username}
               onNext={(u) => { setUsername(u); setStep(2); }}
             />
           )}

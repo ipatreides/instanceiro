@@ -4,11 +4,12 @@ import { useState } from "react";
 import { useUsernameCheck, isValidUsername } from "@/hooks/use-username-check";
 
 interface StepUsernameProps {
+  initialValue?: string;
   onNext: (username: string) => void;
 }
 
-export function StepUsername({ onNext }: StepUsernameProps) {
-  const [value, setValue] = useState("");
+export function StepUsername({ initialValue = "", onNext }: StepUsernameProps) {
+  const [value, setValue] = useState(initialValue);
   const status = useUsernameCheck(value);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
