@@ -17,6 +17,7 @@ import type { Character, InstanceState } from "@/lib/types";
 interface Profile {
   display_name: string | null;
   avatar_url: string | null;
+  username: string | null;
 }
 
 export default function DashboardPage() {
@@ -61,7 +62,7 @@ export default function DashboardPage() {
       }
       supabase
         .from("profiles")
-        .select("display_name, avatar_url, onboarding_completed")
+        .select("display_name, avatar_url, username, onboarding_completed")
         .eq("id", user.id)
         .single()
         .then(({ data }) => {
@@ -69,7 +70,7 @@ export default function DashboardPage() {
             router.push("/onboarding");
             return;
           }
-          if (data) setProfile({ display_name: data.display_name, avatar_url: data.avatar_url });
+          if (data) setProfile({ display_name: data.display_name, avatar_url: data.avatar_url, username: data.username });
         });
     });
   }, [router]);
@@ -273,10 +274,13 @@ export default function DashboardPage() {
                 className="w-7 h-7 rounded-full object-cover"
               />
             )}
-            {profile?.display_name && (
-              <span className="text-sm text-[#A89BC2] hidden sm:inline">
-                {profile.display_name}
-              </span>
+            {profile?.username && (
+              <a
+                href="/profile"
+                className="text-sm text-[#9B6DFF] hover:text-white transition-colors hidden sm:inline"
+              >
+                @{profile.username}
+              </a>
             )}
             <button
               onClick={handleLogout}

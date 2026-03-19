@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Instance } from "@/lib/types";
+import { StepUsername } from "@/components/onboarding/step-username";
 import { StepCharacters } from "@/components/onboarding/step-characters";
 import { StepInstances } from "@/components/onboarding/step-instances";
 import { StepLastCompletion } from "@/components/onboarding/step-last-completion";
@@ -15,7 +16,7 @@ interface LocalCharacter {
   level: number;
 }
 
-const STEP_LABELS = ["Personagens", "Instâncias", "Histórico"];
+const STEP_LABELS = ["Username", "Personagens", "Instâncias", "Histórico"];
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -32,6 +33,7 @@ export default function OnboardingPage() {
   const [lastCompletions, setLastCompletions] = useState<Map<string, string>>(
     new Map()
   );
+  const [username, setUsername] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -135,6 +137,13 @@ export default function OnboardingPage() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
+
+      // 0. Save username
+      const { error: usernameError } = await supabase
+        .from("profiles")
+        .update({ username })
+        .eq("id", user.id);
+      if (usernameError) throw usernameError;
 
       // 1. Create characters, get back IDs
       const { data: createdChars, error: charError } = await supabase
@@ -287,14 +296,19 @@ export default function OnboardingPage() {
         {/* Step content */}
         <div className="bg-[#1a1230] border border-[#3D2A5C] rounded-xl p-6">
           {step === 1 && (
+            <StepUsername
+              onNext={(u) => { setUsername(u); setStep(2); }}
+            />
+          )}
+          {step === 2 && (
             <StepCharacters
               characters={characters}
               onAddCharacter={handleAddCharacter}
               onRemoveCharacter={handleRemoveCharacter}
-              onNext={() => setStep(2)}
+              onNext={() => setStep(3)}
             />
           )}
-          {step === 2 && (
+          {step === 3 && (
             <StepInstances
               characters={characters}
               instances={instances}
@@ -302,11 +316,11 @@ export default function OnboardingPage() {
               onToggle={handleToggle}
               onSelectAll={handleSelectAll}
               onDeselectAll={handleDeselectAll}
-              onNext={() => setStep(3)}
-              onBack={() => setStep(1)}
+              onNext={() => setStep(4)}
+              onBack={() => setStep(2)}
             />
           )}
-          {step === 3 && (
+          {step === 4 && (
             <>
               <StepLastCompletion
                 characters={characters}
@@ -315,7 +329,7 @@ export default function OnboardingPage() {
                 lastCompletions={lastCompletions}
                 onSetCompletion={handleSetCompletion}
                 onFinish={handleFinish}
-                onBack={() => setStep(2)}
+                onBack={() => setStep(3)}
                 isSubmitting={isSubmitting}
               />
               {error && (
