@@ -15,23 +15,38 @@ export function CharacterBar({ characters, selectedId, onSelect, onAddClick, onE
     <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
       {characters.map((character) => {
         const isSelected = character.id === selectedId;
+        const isShared = character.isShared ?? false;
+
+        // Shared chars: gold theme. Own chars: purple theme.
+        const selectedClass = isShared
+          ? "bg-[#D4A843] border-[#D4A843] text-white"
+          : "bg-[#7C3AED] border-[#9B6DFF] text-white";
+        const unselectedClass = isShared
+          ? "bg-[#1a1230] border-[#D4A843]/40 text-[#D4A843] hover:border-[#D4A843] hover:text-white"
+          : "bg-[#1a1230] border-[#3D2A5C] text-[#A89BC2] hover:border-[#6D28D9] hover:text-white";
+        const subTextSelected = isShared ? "text-[#1a1230]/70" : "text-[#C49AFF]";
+        const subTextUnselected = isShared ? "text-[#D4A843]/60" : "text-[#6B5A8A]";
+
         return (
           <button
             key={character.id}
-            onClick={() => isSelected && onEdit ? onEdit(character) : onSelect(character)}
+            onClick={() => isSelected && onEdit && !isShared ? onEdit(character) : onSelect(character)}
             className={`flex-shrink-0 flex flex-col items-start px-4 py-2.5 rounded-lg border transition-colors cursor-pointer min-w-[120px] text-left ${
-              isSelected
-                ? "bg-[#7C3AED] border-[#9B6DFF] text-white"
-                : "bg-[#1a1230] border-[#3D2A5C] text-[#A89BC2] hover:border-[#6D28D9] hover:text-white"
+              isSelected ? selectedClass : unselectedClass
             }`}
           >
-            <span className={`text-xs font-medium truncate max-w-full ${isSelected ? "text-[#C49AFF]" : "text-[#A89BC2]"}`}>
+            <span className={`text-xs font-medium truncate max-w-full ${isSelected ? subTextSelected : "text-[#A89BC2]"}`}>
               {character.class}
             </span>
             <span className="text-sm font-semibold truncate max-w-full">{character.name}</span>
-            <span className={`text-xs ${isSelected ? "text-[#C49AFF]" : "text-[#6B5A8A]"}`}>
+            <span className={`text-xs ${isSelected ? subTextSelected : subTextUnselected}`}>
               Nv. {character.level}
             </span>
+            {isShared && character.ownerUsername && (
+              <span className={`text-xs ${isSelected ? subTextSelected : "text-[#D4A843]/50"}`}>
+                @{character.ownerUsername}
+              </span>
+            )}
           </button>
         );
       })}

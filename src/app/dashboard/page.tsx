@@ -8,6 +8,7 @@ import { useInstances } from "@/hooks/use-instances";
 import { useCooldownTimer } from "@/hooks/use-cooldown-timer";
 import { CharacterBar } from "@/components/characters/character-bar";
 import { CharacterForm } from "@/components/characters/character-form";
+import { CharacterShareTab } from "@/components/characters/character-share-tab";
 import { InstanceGroup } from "@/components/instances/instance-group";
 import { InstanceSearch } from "@/components/instances/instance-search";
 import { InstanceModal } from "@/components/instances/instance-modal";
@@ -28,6 +29,7 @@ export default function DashboardPage() {
   const [searchFilters, setSearchFilters] = useState<import("@/components/instances/instance-search").SearchFilter[]>([]);
   const [showNewChar, setShowNewChar] = useState(false);
   const [editingChar, setEditingChar] = useState<Character | null>(null);
+  const [editTab, setEditTab] = useState<"data" | "share">("data");
   const [deletingChar, setDeletingChar] = useState<Character | null>(null);
   const [modalInstanceId, setModalInstanceId] = useState<number | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -118,6 +120,7 @@ export default function DashboardPage() {
 
   const handleEditCharacter = (character: Character) => {
     setEditingChar(character);
+    setEditTab("data");
   };
 
   const handleUpdateCharacter = async (data: {
@@ -420,18 +423,50 @@ export default function DashboardPage() {
         ) : undefined}
       >
         {editingChar && (
-          <CharacterForm
-            key={editingChar.id}
-            onSubmit={handleUpdateCharacter}
-            onCancel={() => setEditingChar(null)}
-            initialValues={{
-              name: editingChar.name,
-              class_name: editingChar.class,
-              class_path: editingChar.class_path,
-              level: editingChar.level,
-            }}
-            submitLabel="Salvar"
-          />
+          <div className="flex flex-col gap-4">
+            {/* Tabs */}
+            <div className="flex gap-1 border-b border-[#3D2A5C]">
+              <button
+                onClick={() => setEditTab("data")}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+                  editTab === "data"
+                    ? "border-[#7C3AED] text-white"
+                    : "border-transparent text-[#A89BC2] hover:text-white"
+                }`}
+              >
+                Dados
+              </button>
+              <button
+                onClick={() => setEditTab("share")}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+                  editTab === "share"
+                    ? "border-[#7C3AED] text-white"
+                    : "border-transparent text-[#A89BC2] hover:text-white"
+                }`}
+              >
+                Compartilhamento
+              </button>
+            </div>
+
+            {/* Tab content */}
+            {editTab === "data" && (
+              <CharacterForm
+                key={editingChar.id}
+                onSubmit={handleUpdateCharacter}
+                onCancel={() => setEditingChar(null)}
+                initialValues={{
+                  name: editingChar.name,
+                  class_name: editingChar.class,
+                  class_path: editingChar.class_path,
+                  level: editingChar.level,
+                }}
+                submitLabel="Salvar"
+              />
+            )}
+            {editTab === "share" && (
+              <CharacterShareTab characterId={editingChar.id} />
+            )}
+          </div>
         )}
       </Modal>
 
