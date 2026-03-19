@@ -56,8 +56,6 @@ export function InstanceGroup({
 
   const activeCooldownTypes = COOLDOWN_ORDER.filter((t) => byType.has(t));
 
-  if (states.length === 0) return null;
-
   return (
     <div className="flex flex-col gap-3">
       {/* Group header */}
@@ -79,34 +77,34 @@ export function InstanceGroup({
 
       {!isCollapsed && (
         <>
-          {/* Mobile: horizontal tabs per cooldown type */}
+          {/* Mobile: horizontal tabs, all 4 types */}
           <MobileTabView
-            activeCooldownTypes={activeCooldownTypes}
+            activeCooldownTypes={COOLDOWN_ORDER}
             byType={byType}
             now={now}
             onCardClick={onCardClick}
           />
 
-          {/* Tablet: 2 columns */}
+          {/* Tablet: 2 columns, all 4 types */}
           <div className="hidden md:grid lg:hidden grid-cols-2 gap-4">
-            {activeCooldownTypes.map((type) => (
+            {COOLDOWN_ORDER.map((type) => (
               <InstanceColumn
                 key={type}
                 cooldownType={type}
-                states={byType.get(type)!}
+                states={byType.get(type) ?? []}
                 now={now}
                 onCardClick={onCardClick}
               />
             ))}
           </div>
 
-          {/* Desktop: up to 4 columns */}
-          <div className={`hidden lg:grid gap-4`} style={{ gridTemplateColumns: `repeat(${Math.min(activeCooldownTypes.length, 4)}, minmax(0, 1fr))` }}>
-            {activeCooldownTypes.map((type) => (
+          {/* Desktop: always 4 columns */}
+          <div className="hidden lg:grid grid-cols-4 gap-4">
+            {COOLDOWN_ORDER.map((type) => (
               <InstanceColumn
                 key={type}
                 cooldownType={type}
-                states={byType.get(type)!}
+                states={byType.get(type) ?? []}
                 now={now}
                 onCardClick={onCardClick}
               />
@@ -131,37 +129,37 @@ function MobileTabView({ activeCooldownTypes, byType, now, onCardClick }: Mobile
   const currentTab = activeCooldownTypes.includes(activeTab) ? activeTab : activeCooldownTypes[0];
   const currentStates = byType.get(currentTab) ?? [];
 
-  if (activeCooldownTypes.length === 0) return null;
-
   return (
     <div className="md:hidden flex flex-col gap-3">
-      {activeCooldownTypes.length > 1 && (
-        <div className="flex gap-1 overflow-x-auto pb-1">
-          {activeCooldownTypes.map((type) => (
-            <button
-              key={type}
-              onClick={() => setActiveTab(type)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-                currentTab === type
-                  ? "bg-[#7C3AED] text-white"
-                  : "bg-[#2a1f40] text-[#A89BC2] hover:text-white"
-              }`}
-            >
-              {COOLDOWN_LABELS[type]}
-            </button>
+      <div className="flex gap-1 overflow-x-auto pb-1">
+        {activeCooldownTypes.map((type) => (
+          <button
+            key={type}
+            onClick={() => setActiveTab(type)}
+            className={`flex-shrink-0 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+              currentTab === type
+                ? "bg-[#7C3AED] text-white"
+                : "bg-[#2a1f40] text-[#A89BC2] hover:text-white"
+            }`}
+          >
+            {COOLDOWN_LABELS[type]}
+          </button>
+        ))}
+      </div>
+      {currentStates.length === 0 ? (
+        <p className="text-xs text-[#6B5A8A] italic px-1 py-4">Nenhuma instância</p>
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          {currentStates.map((state) => (
+            <InstanceCard
+              key={state.instance.id}
+              state={state}
+              now={now ?? new Date()}
+              onClick={() => onCardClick?.(state)}
+            />
           ))}
         </div>
       )}
-      <div className="flex flex-col gap-1.5">
-        {currentStates.map((state) => (
-          <InstanceCard
-            key={state.instance.id}
-            state={state}
-            now={now ?? new Date()}
-            onClick={() => onCardClick?.(state)}
-          />
-        ))}
-      </div>
     </div>
   );
 }
