@@ -97,21 +97,21 @@ export function InstanceModal({
                 Liga {instance.liga_tier} — {instance.liga_coins} moedas
               </span>
             )}
+            {instance.wiki_url && (
+              <a
+                href={instance.wiki_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-blue-400 bg-blue-900/30 px-2 py-0.5 rounded hover:bg-blue-900/50 transition-colors"
+              >
+                bROWiki ↗
+              </a>
+            )}
           </div>
           {instance.reward && (
             <p className="text-sm text-gray-300">
               <span className="text-gray-500">Recompensa:</span> {instance.reward}
             </p>
-          )}
-          {instance.wiki_url && (
-            <a
-              href={instance.wiki_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-            >
-              Ver no bROWiki →
-            </a>
           )}
         </div>
 
