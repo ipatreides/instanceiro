@@ -11,7 +11,8 @@ interface UseInstancesReturn {
   completions: InstanceCompletion[];
   loading: boolean;
   computeStates: (now: Date) => InstanceState[];
-  markDone: (instanceId: number) => Promise<void>;
+  markDone: (instanceId: number, completedAt?: string) => Promise<void>;
+  updateCompletion: (completionId: string, completedAt: string) => Promise<void>;
   deleteCompletion: (completionId: string) => Promise<void>;
   toggleActive: (instanceId: number, isActive: boolean) => Promise<void>;
   getHistory: (instanceId: number, limit?: number) => InstanceCompletion[];
@@ -187,13 +188,19 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
   );
 
   const markDone = useCallback(
-    async (instanceId: number) => {
+    async (instanceId: number, completedAt?: string) => {
       if (!characterId) return;
       const supabase = createClient();
 
+      const insertData: { character_id: string; instance_id: number; completed_at?: string } = {
+        character_id: characterId,
+        instance_id: instanceId,
+      };
+      if (completedAt) insertData.completed_at = completedAt;
+
       const { data, error } = await supabase
         .from("instance_completions")
-        .insert({ character_id: characterId, instance_id: instanceId })
+        .insert(insertData)
         .select()
         .single();
 
@@ -202,10 +209,33 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
         throw error;
       }
 
-      setCompletions((prev) => [data, ...prev]);
+      setCompletions((prev) => [data, ...prev].sort((a, b) =>
+        b.completed_at.localeCompare(a.completed_at)
+      ));
     },
     [characterId]
   );
+
+  const updateCompletion = useCallback(async (completionId: string, completedAt: string) => {
+    const supabase = createClient();
+
+    const { data, error } = await supabase
+      .from("instance_completions")
+      .update({ completed_at: completedAt })
+      .eq("id", completionId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating completion:", error);
+      throw error;
+    }
+
+    setCompletions((prev) =>
+      prev.map((c) => c.id === completionId ? data : c)
+        .sort((a, b) => b.completed_at.localeCompare(a.completed_at))
+    );
+  }, []);
 
   const deleteCompletion = useCallback(async (completionId: string) => {
     const supabase = createClient();
@@ -264,6 +294,7 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
     loading,
     computeStates,
     markDone,
+    updateCompletion,
     deleteCompletion,
     toggleActive,
     getHistory,

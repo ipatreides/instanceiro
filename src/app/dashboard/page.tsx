@@ -39,6 +39,7 @@ export default function DashboardPage() {
     loading: instancesLoading,
     computeStates,
     markDone,
+    updateCompletion,
     deleteCompletion,
     toggleActive,
     getHistory,
@@ -204,15 +205,27 @@ export default function DashboardPage() {
     setModalInstanceId(null);
   };
 
-  const handleMarkDone = async () => {
+  const handleMarkDone = async (completedAt?: string) => {
     if (modalInstanceId === null) return;
     setActionLoading(true);
     setActionError(null);
     try {
-      await markDone(modalInstanceId);
+      await markDone(modalInstanceId, completedAt);
       setModalInstanceId(null);
     } catch {
       setActionError("Erro ao marcar instância. Tente novamente.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUpdateCompletion = async (completionId: string, completedAt: string) => {
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      await updateCompletion(completionId, completedAt);
+    } catch {
+      setActionError("Erro ao atualizar horário. Tente novamente.");
     } finally {
       setActionLoading(false);
     }
@@ -364,6 +377,7 @@ export default function DashboardPage() {
         isAvailable={modalState?.status === "available"}
         isInactive={modalState?.status === "inactive"}
         onMarkDone={handleMarkDone}
+        onUpdateCompletion={handleUpdateCompletion}
         onDeleteCompletion={handleDeleteCompletion}
         onDeactivate={handleDeactivate}
         onActivate={handleActivate}

@@ -11,12 +11,24 @@ interface InstanceModalProps {
   history: InstanceCompletion[];
   isAvailable: boolean;
   isInactive: boolean;
-  onMarkDone: () => void;
+  onMarkDone: (completedAt?: string) => void;
+  onUpdateCompletion: (completionId: string, completedAt: string) => void;
   onDeleteCompletion: (completionId: string) => void;
   onDeactivate: () => void;
   onActivate: () => void;
   actionLoading?: boolean;
   actionError?: string | null;
+}
+
+function toBrtDatetimeLocal(date: Date): string {
+  // Convert to BRT (UTC-3)
+  const brt = new Date(date.getTime() - 3 * 60 * 60 * 1000);
+  return brt.toISOString().slice(0, 16);
+}
+
+function fromBrtDatetimeLocal(value: string): string {
+  // value is "YYYY-MM-DDTHH:mm" in BRT, convert to ISO with -03:00
+  return `${value}:00-03:00`;
 }
 
 function formatDateTime(dateStr: string): string {
@@ -38,12 +50,16 @@ function DifficultyBadge({ difficulty }: { difficulty: string | null }) {
     hard: "bg-orange-900 text-orange-300",
     extreme: "bg-red-900 text-red-300",
   };
-  const colorClass = colors[difficulty.toLowerCase()] ?? "bg-gray-800 text-gray-300";
+  const colorClass = colors[difficulty.toLowerCase()] ?? "bg-gray-800 text-[#A89BC2]";
   return (
     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${colorClass}`}>
       {difficulty}
     </span>
   );
+}
+
+function nowBrtMax(): string {
+  return toBrtDatetimeLocal(new Date());
 }
 
 export function InstanceModal({
@@ -54,6 +70,7 @@ export function InstanceModal({
   isAvailable,
   isInactive,
   onMarkDone,
+  onUpdateCompletion,
   onDeleteCompletion,
   onDeactivate,
   onActivate,
@@ -61,16 +78,46 @@ export function InstanceModal({
   actionError,
 }: InstanceModalProps) {
   const [confirmingMarkDone, setConfirmingMarkDone] = useState(false);
+  const [markDoneTime, setMarkDoneTime] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTime, setEditingTime] = useState("");
 
-  // Reset confirmation state when modal closes
+  // Reset states when modal closes
   useEffect(() => {
     if (!isOpen) {
       setConfirmingMarkDone(false);
+      setMarkDoneTime("");
+      setEditingId(null);
+      setEditingTime("");
     }
   }, [isOpen]);
 
+  // Set default time when confirming
+  useEffect(() => {
+    if (confirmingMarkDone) {
+      setMarkDoneTime(nowBrtMax());
+    }
+  }, [confirmingMarkDone]);
+
   if (!stateObj) return null;
   const { instance } = stateObj;
+
+  function handleConfirmMarkDone() {
+    const completedAt = markDoneTime ? fromBrtDatetimeLocal(markDoneTime) : undefined;
+    onMarkDone(completedAt);
+  }
+
+  function handleStartEdit(completion: InstanceCompletion) {
+    setEditingId(completion.id);
+    setEditingTime(toBrtDatetimeLocal(new Date(completion.completed_at)));
+  }
+
+  function handleSaveEdit() {
+    if (!editingId || !editingTime) return;
+    onUpdateCompletion(editingId, fromBrtDatetimeLocal(editingTime));
+    setEditingId(null);
+    setEditingTime("");
+  }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={instance.name}>
@@ -138,21 +185,34 @@ export function InstanceModal({
           </button>
         )}
         {confirmingMarkDone && (
-          <div className="flex gap-2">
-            <button
-              onClick={onMarkDone}
-              disabled={actionLoading}
-              className="flex-1 py-2.5 rounded-md bg-green-600 hover:bg-green-500 text-white font-semibold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {actionLoading ? "Salvando..." : "Confirmar"}
-            </button>
-            <button
-              onClick={() => setConfirmingMarkDone(false)}
-              disabled={actionLoading}
-              className="flex-1 py-2.5 rounded-md bg-[#2a1f40] border border-[#3D2A5C] text-[#A89BC2] text-sm transition-colors cursor-pointer hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Cancelar
-            </button>
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-[#6B5A8A]">Horário de entrada</label>
+              <input
+                type="datetime-local"
+                value={markDoneTime}
+                max={nowBrtMax()}
+                onChange={(e) => setMarkDoneTime(e.target.value)}
+                className="bg-[#2a1f40] border border-[#3D2A5C] rounded-md px-3 py-1.5 text-white text-sm focus:outline-none focus:border-[#7C3AED] transition-colors"
+                style={{ colorScheme: "dark" }}
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleConfirmMarkDone}
+                disabled={actionLoading}
+                className="flex-1 py-2.5 rounded-md bg-green-600 hover:bg-green-500 text-white font-semibold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {actionLoading ? "Salvando..." : "Confirmar"}
+              </button>
+              <button
+                onClick={() => setConfirmingMarkDone(false)}
+                disabled={actionLoading}
+                className="flex-1 py-2.5 rounded-md bg-[#2a1f40] border border-[#3D2A5C] text-[#A89BC2] text-sm transition-colors cursor-pointer hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         )}
 
@@ -170,19 +230,50 @@ export function InstanceModal({
                   key={completion.id}
                   className="flex items-center justify-between bg-[#2a1f40] rounded px-3 py-2"
                 >
-                  <span className="text-sm text-[#A89BC2]">
-                    {formatDateTime(completion.completed_at)}
-                  </span>
-                  {/* Only allow deleting the most recent completion */}
-                  {index === 0 && (
-                    <button
-                      onClick={() => onDeleteCompletion(completion.id)}
-                      disabled={actionLoading}
-                      className="text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                      aria-label="Remover conclusão"
-                    >
-                      Remover
-                    </button>
+                  {editingId === completion.id ? (
+                    <div className="flex items-center gap-2 flex-1">
+                      <input
+                        type="datetime-local"
+                        value={editingTime}
+                        max={nowBrtMax()}
+                        onChange={(e) => setEditingTime(e.target.value)}
+                        className="bg-[#1a1230] border border-[#3D2A5C] rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-[#7C3AED] transition-colors flex-1"
+                        style={{ colorScheme: "dark" }}
+                      />
+                      <button
+                        onClick={handleSaveEdit}
+                        disabled={actionLoading}
+                        className="text-xs text-green-400 hover:text-green-300 cursor-pointer disabled:opacity-50"
+                      >
+                        Salvar
+                      </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="text-xs text-[#6B5A8A] hover:text-[#A89BC2] cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleStartEdit(completion)}
+                        className="text-sm text-[#A89BC2] hover:text-white transition-colors cursor-pointer"
+                        title="Clique para editar horário"
+                      >
+                        {formatDateTime(completion.completed_at)}
+                      </button>
+                      {index === 0 && (
+                        <button
+                          onClick={() => onDeleteCompletion(completion.id)}
+                          disabled={actionLoading}
+                          className="text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          aria-label="Remover conclusão"
+                        >
+                          Remover
+                        </button>
+                      )}
+                    </>
                   )}
                 </li>
               ))}
