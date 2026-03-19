@@ -78,9 +78,10 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
         ciMap.set(ci.instance_id, ci);
       }
 
-      return instances.map((instance): InstanceState => {
-        const ci = ciMap.get(instance.id);
-        const isActive = ci ? ci.is_active : true;
+      // Only show instances that have a character_instances row
+      return instances.filter((instance) => ciMap.has(instance.id)).map((instance): InstanceState => {
+        const ci = ciMap.get(instance.id)!;
+        const isActive = ci.is_active;
         const completionCount = completions.filter((c) => c.instance_id === instance.id).length;
         const lastCompletion = completions.find((c) => c.instance_id === instance.id) ?? null;
 
