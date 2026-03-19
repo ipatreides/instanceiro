@@ -42,11 +42,9 @@ export function CharacterBar({ characters, selectedId, onSelect, onAddClick, onE
             <span className={`text-xs ${isSelected ? subTextSelected : subTextUnselected}`}>
               Nv. {character.level}
             </span>
-            {isShared && character.ownerUsername && (
-              <span className={`text-xs ${isSelected ? subTextSelected : "text-[#D4A843]/50"}`}>
-                @{character.ownerUsername}
-              </span>
-            )}
+            <span className={`text-xs h-4 ${isShared && character.ownerUsername ? (isSelected ? subTextSelected : "text-[#D4A843]/50") : "invisible"}`}>
+              {isShared && character.ownerUsername ? `@${character.ownerUsername}` : "\u00A0"}
+            </span>
           </button>
         );
       })}
