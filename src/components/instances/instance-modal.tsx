@@ -92,6 +92,11 @@ export function InstanceModal({
                 Cooldown compartilhado
               </span>
             )}
+            {instance.liga_tier && (
+              <span className="text-xs text-amber-400 bg-amber-900/30 px-2 py-0.5 rounded">
+                Liga {instance.liga_tier} — {instance.liga_coins} moedas
+              </span>
+            )}
           </div>
           {instance.reward && (
             <p className="text-sm text-gray-300">

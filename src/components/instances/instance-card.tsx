@@ -97,6 +97,11 @@ export function InstanceCard({ state, now, onClick }: InstanceCardProps) {
           {completionCount > 0 && (
             <span className="text-xs text-gray-400">×{completionCount}</span>
           )}
+          {instance.liga_tier && (
+            <span className="text-xs text-amber-400 font-medium">
+              {instance.liga_tier}·{instance.liga_coins}
+            </span>
+          )}
         </div>
       </div>
     </button>
