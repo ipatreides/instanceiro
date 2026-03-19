@@ -32,9 +32,14 @@ export function useCharacters(): UseCharactersReturn {
 
   const fetchCharacters = useCallback(async () => {
     const supabase = createClient();
-    const { data, error } = await supabase
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Fetch own characters
+    const { data: ownChars, error } = await supabase
       .from("characters")
       .select("*")
+      .eq("user_id", user.id)
       .eq("is_active", true)
       .order("created_at", { ascending: true });
 
@@ -43,7 +48,43 @@ export function useCharacters(): UseCharactersReturn {
       return;
     }
 
-    setCharacters(data ?? []);
+    const own: Character[] = (ownChars ?? []).map((c) => ({
+      ...c,
+      isShared: false,
+      ownerUsername: null,
+    }));
+
+    // Fetch shared characters
+    const { data: sharedData } = await supabase
+      .from("character_shares")
+      .select("character_id, characters(*), profiles!character_shares_shared_with_user_id_fkey(username)")
+      .eq("shared_with_user_id", user.id);
+
+    const shared: Character[] = (sharedData ?? []).map((s: Record<string, unknown>) => {
+      const char = s.characters as Record<string, unknown>;
+      // Get owner username from the character's user_id
+      return {
+        ...char,
+        isShared: true,
+        ownerUsername: null, // will be fetched below
+      } as Character;
+    });
+
+    // Fetch owner usernames for shared characters
+    if (shared.length > 0) {
+      const ownerIds = [...new Set(shared.map((c) => c.user_id))];
+      const { data: ownerProfiles } = await supabase
+        .from("profiles")
+        .select("id, username")
+        .in("id", ownerIds);
+
+      const usernameMap = new Map((ownerProfiles ?? []).map((p: { id: string; username: string }) => [p.id, p.username]));
+      for (const c of shared) {
+        c.ownerUsername = usernameMap.get(c.user_id) ?? null;
+      }
+    }
+
+    setCharacters([...own, ...shared]);
   }, []);
 
   const refetch = useCallback(async () => {
