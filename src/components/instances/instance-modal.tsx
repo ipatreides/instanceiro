@@ -87,6 +87,11 @@ export function InstanceModal({
             <span className="text-xs text-[#A89BC2] bg-[#2a1f40] px-2 py-0.5 rounded">
               {instance.party_min} jogador{instance.party_min !== 1 ? "es" : ""}
             </span>
+            {instance.start_map && (
+              <span className="text-xs text-[#D4A843] bg-[#2a1f40] px-2 py-0.5 rounded">
+                {instance.start_map}
+              </span>
+            )}
             {instance.mutual_exclusion_group && (
               <span className="text-xs text-purple-400 bg-purple-900/30 px-2 py-0.5 rounded">
                 Cooldown compartilhado

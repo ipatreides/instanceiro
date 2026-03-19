@@ -34,6 +34,7 @@ export interface Instance {
   mutual_exclusion_group: string | null;
   level_max: number | null;
   wiki_url: string | null;
+  start_map: string | null;
   liga_tier: 'A' | 'B' | 'C' | null;
   liga_coins: number | null;
 }
