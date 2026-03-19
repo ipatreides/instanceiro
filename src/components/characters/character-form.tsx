@@ -143,7 +143,7 @@ export function CharacterForm({ onSubmit, onCancel, initialValues, submitLabel }
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       {/* Name */}
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-gray-300">
+        <label className="text-sm font-medium text-[#A89BC2]">
           Nome do Personagem
         </label>
         <input
@@ -152,14 +152,14 @@ export function CharacterForm({ onSubmit, onCancel, initialValues, submitLabel }
           onChange={(e) => setName(e.target.value)}
           placeholder="Nome do personagem"
           maxLength={24}
-          className="bg-[#2a2a3e] border border-gray-600 rounded-md px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+          className="bg-[#2a1f40] border border-[#3D2A5C] rounded-md px-3 py-2 text-white placeholder-[#6B5A8A] focus:outline-none focus:border-[#7C3AED] transition-colors"
         />
       </div>
 
       {/* Level */}
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-gray-300">
-          Nível <span className="text-gray-500 font-normal">(1–200)</span>
+        <label className="text-sm font-medium text-[#A89BC2]">
+          Nível <span className="text-[#6B5A8A] font-normal">(1–200)</span>
         </label>
         <input
           type="number"
@@ -170,7 +170,7 @@ export function CharacterForm({ onSubmit, onCancel, initialValues, submitLabel }
             const v = parseInt(e.target.value, 10);
             if (!isNaN(v)) handleLevelChange(Math.min(200, Math.max(1, v)));
           }}
-          className="bg-[#2a2a3e] border border-gray-600 rounded-md px-3 py-2 text-white w-28 focus:outline-none focus:border-blue-500 transition-colors"
+          className="bg-[#2a1f40] border border-[#3D2A5C] rounded-md px-3 py-2 text-white w-28 focus:outline-none focus:border-[#7C3AED] transition-colors"
         />
       </div>
 
@@ -178,7 +178,7 @@ export function CharacterForm({ onSubmit, onCancel, initialValues, submitLabel }
       <div className="flex flex-col gap-3">
         {/* Step 1: Base class */}
         <div className="flex flex-col gap-2">
-          <span className="text-xs text-gray-500 uppercase tracking-wide">Classe Base</span>
+          <span className="text-xs text-[#6B5A8A] uppercase tracking-wide">Classe Base</span>
           <div className="grid grid-cols-5 gap-2">
             {CLASS_TREE.map((node) => (
               <button
@@ -187,8 +187,8 @@ export function CharacterForm({ onSubmit, onCancel, initialValues, submitLabel }
                 onClick={() => handleSelectBase(node)}
                 className={`px-2 py-1.5 rounded-md text-xs font-medium border transition-colors cursor-pointer text-center ${
                   selectedBase === node.name
-                    ? "bg-blue-600 border-blue-500 text-white"
-                    : "bg-[#2a2a3e] border-gray-600 text-gray-300 hover:border-gray-400 hover:text-white"
+                    ? "bg-[#7C3AED] border-[#6D28D9] text-white"
+                    : "bg-[#2a1f40] border-[#3D2A5C] text-[#A89BC2] hover:border-[#6D28D9] hover:text-white"
                 }`}
               >
                 {node.name}
@@ -200,7 +200,7 @@ export function CharacterForm({ onSubmit, onCancel, initialValues, submitLabel }
         {/* Step 2: Final class based on level */}
         {selectedBase && availableClasses.length > 1 && (
           <div className="flex flex-col gap-1">
-            <span className="text-xs text-gray-500 uppercase tracking-wide">
+            <span className="text-xs text-[#6B5A8A] uppercase tracking-wide">
               {getTierLabel(level)}
             </span>
             <div className="flex flex-wrap gap-2">
@@ -211,8 +211,8 @@ export function CharacterForm({ onSubmit, onCancel, initialValues, submitLabel }
                   onClick={() => handleSelectClass(node)}
                   className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors cursor-pointer ${
                     finalClass === node.name
-                      ? "bg-blue-600 border-blue-500 text-white"
-                      : "bg-[#2a2a3e] border-gray-600 text-gray-300 hover:border-gray-400 hover:text-white"
+                      ? "bg-[#7C3AED] border-[#6D28D9] text-white"
+                      : "bg-[#2a1f40] border-[#3D2A5C] text-[#A89BC2] hover:border-[#6D28D9] hover:text-white"
                   }`}
                 >
                   {node.name}
@@ -230,7 +230,7 @@ export function CharacterForm({ onSubmit, onCancel, initialValues, submitLabel }
         <button
           type="submit"
           disabled={!isFormValid || submitting}
-          className="flex-1 py-2 rounded-md bg-blue-600 text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-500 transition-colors cursor-pointer"
+          className="flex-1 py-2 rounded-md bg-[#7C3AED] text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#6D28D9] transition-colors cursor-pointer"
         >
           {submitting ? "Salvando..." : (submitLabel ?? "Criar Personagem")}
         </button>
@@ -238,7 +238,7 @@ export function CharacterForm({ onSubmit, onCancel, initialValues, submitLabel }
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 rounded-md bg-[#2a2a3e] border border-gray-600 text-gray-300 text-sm font-medium hover:text-white hover:border-gray-400 transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-md bg-[#2a1f40] border border-[#3D2A5C] text-[#A89BC2] text-sm font-medium hover:text-white hover:border-[#6D28D9] transition-colors cursor-pointer"
           >
             Cancelar
           </button>

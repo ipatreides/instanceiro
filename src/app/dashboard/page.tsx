@@ -143,8 +143,8 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0f0f1a] flex items-center justify-center">
-        <p className="text-gray-400">Carregando...</p>
+      <div className="min-h-screen bg-[#0f0a1a] flex items-center justify-center">
+        <p className="text-[#A89BC2]">Carregando...</p>
       </div>
     );
   }
@@ -232,9 +232,9 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a] text-white">
+    <div className="min-h-screen bg-[#0f0a1a] text-white">
       {/* Header */}
-      <header className="bg-[#1a1a2e] border-b border-gray-800 sticky top-0 z-40">
+      <header className="bg-[#1a1230] border-b border-[#3D2A5C] sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-5 py-3 flex items-center justify-between">
           <span className="text-base font-semibold text-white tracking-tight">
             Instanceiro
@@ -248,13 +248,13 @@ export default function DashboardPage() {
               />
             )}
             {profile?.display_name && (
-              <span className="text-sm text-gray-300 hidden sm:inline">
+              <span className="text-sm text-[#A89BC2] hidden sm:inline">
                 {profile.display_name}
               </span>
             )}
             <button
               onClick={handleLogout}
-              className="text-sm text-gray-400 hover:text-white transition-colors cursor-pointer"
+              className="text-sm text-[#A89BC2] hover:text-white transition-colors cursor-pointer"
             >
               Sair
             </button>
@@ -305,12 +305,12 @@ export default function DashboardPage() {
           </>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
-            <p className="text-gray-400 text-center">
+            <p className="text-[#A89BC2] text-center">
               Nenhum personagem cadastrado. Adicione um personagem para começar.
             </p>
             <button
               onClick={() => setShowNewChar(true)}
-              className="px-5 py-2.5 rounded-md bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition-colors cursor-pointer"
+              className="px-5 py-2.5 rounded-md bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold text-sm transition-colors cursor-pointer"
             >
               Adicionar Personagem
             </button>
@@ -387,7 +387,7 @@ export default function DashboardPage() {
       >
         {deletingChar && (
           <div className="flex flex-col gap-5">
-            <p className="text-gray-300 text-sm">
+            <p className="text-[#A89BC2] text-sm">
               Tem certeza que deseja excluir <span className="text-white font-semibold">{deletingChar.name}</span>? Todo o histórico de instâncias será removido. Essa ação não pode ser desfeita.
             </p>
             <div className="flex gap-3">
@@ -399,7 +399,7 @@ export default function DashboardPage() {
               </button>
               <button
                 onClick={() => setDeletingChar(null)}
-                className="flex-1 py-2.5 rounded-md bg-[#2a2a3e] border border-gray-600 text-gray-300 font-semibold text-sm hover:text-white hover:border-gray-400 transition-colors cursor-pointer"
+                className="flex-1 py-2.5 rounded-md bg-[#2a1f40] border border-[#3D2A5C] text-[#A89BC2] font-semibold text-sm hover:text-white hover:border-[#6B5A8A] transition-colors cursor-pointer"
               >
                 Cancelar
               </button>

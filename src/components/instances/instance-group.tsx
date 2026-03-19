@@ -63,13 +63,13 @@ export function InstanceGroup({
       {/* Group header */}
       <div className="flex items-center gap-2">
         <h2 className="text-base font-semibold text-gray-200">{title}</h2>
-        <span className="text-xs text-gray-500 bg-[#2a2a3e] px-2 py-0.5 rounded-full">
+        <span className="text-xs text-[#6B5A8A] bg-[#2a1f40] px-2 py-0.5 rounded-full">
           {states.length}
         </span>
         {collapsible && !forceExpanded && (
           <button
             onClick={() => setCollapsed((c) => !c)}
-            className="ml-auto text-xs text-gray-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1"
+            className="ml-auto text-xs text-[#A89BC2] hover:text-white transition-colors cursor-pointer flex items-center gap-1"
           >
             {collapsed ? "Mostrar" : "Ocultar"}
             <span className={`transition-transform ${collapsed ? "" : "rotate-180"}`}>▾</span>
@@ -143,8 +143,8 @@ function MobileTabView({ activeCooldownTypes, byType, now, onCardClick }: Mobile
               onClick={() => setActiveTab(type)}
               className={`flex-shrink-0 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
                 currentTab === type
-                  ? "bg-blue-600 text-white"
-                  : "bg-[#2a2a3e] text-gray-400 hover:text-white"
+                  ? "bg-[#7C3AED] text-white"
+                  : "bg-[#2a1f40] text-[#A89BC2] hover:text-white"
               }`}
             >
               {COOLDOWN_LABELS[type]}

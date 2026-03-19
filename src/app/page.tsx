@@ -2,17 +2,17 @@ import { LoginButton } from "@/components/auth/login-button";
 
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
-    <div className="bg-[#1a1a2e] border border-gray-700 rounded-xl p-5 text-left">
-      <div className="text-blue-400 mb-3">{icon}</div>
+    <div className="bg-[#1a1230] border border-[#3D2A5C] rounded-xl p-5 text-left">
+      <div className="text-[#D4A843] mb-3">{icon}</div>
       <h3 className="text-white font-semibold text-sm mb-1">{title}</h3>
-      <p className="text-gray-400 text-sm leading-relaxed">{description}</p>
+      <p className="text-[#A89BC2] text-sm leading-relaxed">{description}</p>
     </div>
   );
 }
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#0f0f17] flex flex-col">
+    <div className="min-h-screen bg-[#0f0a1a] flex flex-col">
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-16">
         <div className="max-w-2xl w-full text-center space-y-10">
           {/* Hero */}
@@ -20,7 +20,7 @@ export default function LandingPage() {
             <h1 className="text-4xl sm:text-5xl font-bold text-white tracking-tight">
               Instanceiro
             </h1>
-            <p className="text-gray-400 text-lg max-w-md mx-auto leading-relaxed">
+            <p className="text-[#A89BC2] text-lg max-w-md mx-auto leading-relaxed">
               Acompanhe suas instâncias de Ragnarok Online.
               Gerencie cooldowns, histórico e progresso de todos os seus personagens em um só lugar.
             </p>
@@ -52,7 +52,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="py-6 text-center">
-        <p className="text-gray-600 text-sm">
+        <p className="text-[#6B5A8A] text-sm">
           Feito para jogadores de Ragnarok Online LATAM
         </p>
       </footer>

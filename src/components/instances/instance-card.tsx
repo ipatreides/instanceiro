@@ -78,7 +78,7 @@ export function InstanceCard({ state, now, onClick }: InstanceCardProps) {
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left bg-[#1a1a2e] border border-gray-700 border-l-4 ${STATUS_BORDER[status]} rounded-md px-3 py-2.5 hover:bg-[#1e1e38] transition-colors cursor-pointer`}
+      className={`w-full text-left bg-[#1a1230] border border-[#3D2A5C] border-l-4 ${STATUS_BORDER[status]} rounded-md px-3 py-2.5 hover:bg-[#221840] transition-colors cursor-pointer`}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
@@ -95,7 +95,7 @@ export function InstanceCard({ state, now, onClick }: InstanceCardProps) {
             <span className="text-xs text-orange-400 font-medium">{timeLabel}</span>
           )}
           {completionCount > 0 && (
-            <span className="text-xs text-gray-400">×{completionCount}</span>
+            <span className="text-xs text-[#A89BC2]">×{completionCount}</span>
           )}
           {instance.liga_tier && (
             <span className="text-xs text-amber-400 font-medium">

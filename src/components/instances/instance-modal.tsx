@@ -78,13 +78,13 @@ export function InstanceModal({
         {/* Instance info */}
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap gap-2 items-center">
-            <span className="text-xs text-gray-400 bg-[#2a2a3e] px-2 py-0.5 rounded">
+            <span className="text-xs text-[#A89BC2] bg-[#2a1f40] px-2 py-0.5 rounded">
               Nível {instance.level_required}{instance.level_max ? `–${instance.level_max}` : '+'}
             </span>
             {instance.difficulty && (
               <DifficultyBadge difficulty={instance.difficulty} />
             )}
-            <span className="text-xs text-gray-400 bg-[#2a2a3e] px-2 py-0.5 rounded">
+            <span className="text-xs text-[#A89BC2] bg-[#2a1f40] px-2 py-0.5 rounded">
               {instance.party_min} jogador{instance.party_min !== 1 ? "es" : ""}
             </span>
             {instance.mutual_exclusion_group && (
@@ -109,8 +109,8 @@ export function InstanceModal({
             )}
           </div>
           {instance.reward && (
-            <p className="text-sm text-gray-300">
-              <span className="text-gray-500">Recompensa:</span> {instance.reward}
+            <p className="text-sm text-[#A89BC2]">
+              <span className="text-[#6B5A8A]">Recompensa:</span> {instance.reward}
             </p>
           )}
         </div>
@@ -144,7 +144,7 @@ export function InstanceModal({
             <button
               onClick={() => setConfirmingMarkDone(false)}
               disabled={actionLoading}
-              className="flex-1 py-2.5 rounded-md bg-[#2a2a3e] border border-gray-600 text-gray-300 text-sm transition-colors cursor-pointer hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-2.5 rounded-md bg-[#2a1f40] border border-[#3D2A5C] text-[#A89BC2] text-sm transition-colors cursor-pointer hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancelar
             </button>
@@ -153,19 +153,19 @@ export function InstanceModal({
 
         {/* History */}
         <div className="flex flex-col gap-2">
-          <h3 className="text-sm font-semibold text-gray-300">
+          <h3 className="text-sm font-semibold text-[#A89BC2]">
             Histórico{history.length > 0 && ` (${history.length})`}
           </h3>
           {history.length === 0 ? (
-            <p className="text-sm text-gray-500 italic">Nenhuma conclusão registrada.</p>
+            <p className="text-sm text-[#6B5A8A] italic">Nenhuma conclusão registrada.</p>
           ) : (
             <ul className="flex flex-col gap-1">
               {history.map((completion, index) => (
                 <li
                   key={completion.id}
-                  className="flex items-center justify-between bg-[#2a2a3e] rounded px-3 py-2"
+                  className="flex items-center justify-between bg-[#2a1f40] rounded px-3 py-2"
                 >
-                  <span className="text-sm text-gray-300">
+                  <span className="text-sm text-[#A89BC2]">
                     {formatDateTime(completion.completed_at)}
                   </span>
                   {/* Only allow deleting the most recent completion */}
@@ -186,7 +186,7 @@ export function InstanceModal({
         </div>
 
         {/* Activate / Deactivate */}
-        <div className="border-t border-gray-700 pt-4">
+        <div className="border-t border-[#3D2A5C] pt-4">
           {isInactive ? (
             <button
               onClick={onActivate}
@@ -199,7 +199,7 @@ export function InstanceModal({
             <button
               onClick={onDeactivate}
               disabled={actionLoading}
-              className="text-sm text-gray-500 hover:text-gray-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-sm text-[#6B5A8A] hover:text-[#A89BC2] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Desativar instância
             </button>

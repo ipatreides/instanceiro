@@ -46,13 +46,13 @@ export function StepLastCompletion({
     <div className="flex flex-col gap-6">
       <div>
         <h2 className="text-xl font-bold text-white">Último Completamento</h2>
-        <p className="text-gray-400 text-sm mt-1">
+        <p className="text-[#A89BC2] text-sm mt-1">
           Informe quando cada instância foi completada pela última vez. Os horários são tratados como BRT (UTC-3). Deixe em branco se ainda não completou.
         </p>
       </div>
 
       {activeEntries.length === 0 ? (
-        <p className="text-gray-500 text-sm text-center py-8">
+        <p className="text-[#6B5A8A] text-sm text-center py-8">
           Nenhuma instância selecionada.
         </p>
       ) : (
@@ -66,7 +66,7 @@ export function StepLastCompletion({
             return (
               <div key={charIdx}>
                 {characters.length > 1 && (
-                  <h3 className="text-sm font-semibold text-blue-400 mb-2">
+                  <h3 className="text-sm font-semibold text-[#9B6DFF] mb-2">
                     {char.name}
                   </h3>
                 )}
@@ -79,13 +79,13 @@ export function StepLastCompletion({
                     return (
                       <div
                         key={key}
-                        className="flex items-center gap-3 bg-[#1a1a2e] border border-gray-700 rounded-md px-4 py-3"
+                        className="flex items-center gap-3 bg-[#1a1230] border border-[#3D2A5C] rounded-md px-4 py-3"
                       >
                         <div className="flex-1 min-w-0">
                           <span className="text-white text-sm font-medium block truncate">
                             {instance.name}
                           </span>
-                          <span className="text-gray-500 text-xs">
+                          <span className="text-[#6B5A8A] text-xs">
                             {isHourly ? "Horário" : instance.cooldown_type === "daily" ? "Diário" : instance.cooldown_type === "three_day" ? "3 Dias" : "Semanal"}
                           </span>
                         </div>
@@ -94,7 +94,7 @@ export function StepLastCompletion({
                           value={value}
                           max={isHourly ? new Date().toISOString().slice(0, 16) : new Date().toISOString().slice(0, 10)}
                           onChange={(e) => onSetCompletion(key, e.target.value)}
-                          className="bg-[#2a2a3e] border border-gray-600 rounded-md px-3 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
+                          className="bg-[#2a1f40] border border-[#3D2A5C] rounded-md px-3 py-1.5 text-white text-sm focus:outline-none focus:border-[#7C3AED] transition-colors cursor-pointer"
                           style={{ colorScheme: "dark" }}
                         />
                       </div>
@@ -113,7 +113,7 @@ export function StepLastCompletion({
           type="button"
           onClick={onBack}
           disabled={isSubmitting}
-          className="px-6 py-2 rounded-md bg-[#2a2a3e] border border-gray-600 text-gray-300 font-semibold text-sm hover:text-white hover:border-gray-400 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          className="px-6 py-2 rounded-md bg-[#2a1f40] border border-[#3D2A5C] text-[#A89BC2] font-semibold text-sm hover:text-white hover:border-[#6D28D9] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
         >
           ← Voltar
         </button>
@@ -126,7 +126,7 @@ export function StepLastCompletion({
           {isSubmitting ? "Salvando…" : "Concluir"}
         </button>
       </div>
-      <p className="text-xs text-gray-600 text-center mt-2">
+      <p className="text-xs text-[#6B5A8A] text-center mt-2">
         Seus dados são preservados ao voltar.
       </p>
     </div>

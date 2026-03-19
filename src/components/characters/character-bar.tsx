@@ -21,15 +21,15 @@ export function CharacterBar({ characters, selectedId, onSelect, onAddClick, onE
             onClick={() => isSelected && onEdit ? onEdit(character) : onSelect(character)}
             className={`flex-shrink-0 flex flex-col items-start px-4 py-2.5 rounded-lg border transition-colors cursor-pointer min-w-[120px] text-left ${
               isSelected
-                ? "bg-blue-600 border-blue-400 text-white"
-                : "bg-[#1a1a2e] border-gray-700 text-gray-300 hover:border-gray-500 hover:text-white"
+                ? "bg-[#7C3AED] border-[#9B6DFF] text-white"
+                : "bg-[#1a1230] border-[#3D2A5C] text-[#A89BC2] hover:border-[#6D28D9] hover:text-white"
             }`}
           >
-            <span className={`text-xs font-medium truncate max-w-full ${isSelected ? "text-blue-200" : "text-gray-400"}`}>
+            <span className={`text-xs font-medium truncate max-w-full ${isSelected ? "text-[#C49AFF]" : "text-[#A89BC2]"}`}>
               {character.class}
             </span>
             <span className="text-sm font-semibold truncate max-w-full">{character.name}</span>
-            <span className={`text-xs ${isSelected ? "text-blue-200" : "text-gray-500"}`}>
+            <span className={`text-xs ${isSelected ? "text-[#C49AFF]" : "text-[#6B5A8A]"}`}>
               Nv. {character.level}
             </span>
           </button>
@@ -39,7 +39,7 @@ export function CharacterBar({ characters, selectedId, onSelect, onAddClick, onE
       {/* Add button */}
       <button
         onClick={onAddClick}
-        className="flex-shrink-0 flex items-center justify-center w-12 h-[68px] rounded-lg border-2 border-dashed border-gray-600 text-gray-500 hover:border-gray-400 hover:text-gray-300 transition-colors cursor-pointer"
+        className="flex-shrink-0 flex items-center justify-center w-12 h-[68px] rounded-lg border-2 border-dashed border-[#3D2A5C] text-[#6B5A8A] hover:border-[#6D28D9] hover:text-[#A89BC2] transition-colors cursor-pointer"
         aria-label="Adicionar personagem"
       >
         <span className="text-xl leading-none">+</span>

@@ -243,14 +243,14 @@ export default function OnboardingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0f0f17] flex flex-col items-center justify-center px-4 py-10">
+    <main className="min-h-screen bg-[#0f0a1a] flex flex-col items-center justify-center px-4 py-10">
       <div className="w-full max-w-xl">
         {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold text-white mb-1">
             Configuração Inicial
           </h1>
-          <p className="text-gray-400 text-sm">
+          <p className="text-[#A89BC2] text-sm">
             Passo {step} de {STEP_LABELS.length}
           </p>
         </div>
@@ -266,15 +266,15 @@ export default function OnboardingPage() {
                 <div
                   className={`h-1.5 rounded-full transition-colors ${
                     isCompleted
-                      ? "bg-blue-500"
+                      ? "bg-[#7C3AED]"
                       : isActive
-                      ? "bg-blue-500"
-                      : "bg-gray-700"
+                      ? "bg-[#7C3AED]"
+                      : "bg-[#3D2A5C]"
                   }`}
                 />
                 <span
                   className={`text-xs text-center ${
-                    isActive ? "text-blue-400" : isCompleted ? "text-gray-400" : "text-gray-600"
+                    isActive ? "text-[#9B6DFF]" : isCompleted ? "text-[#A89BC2]" : "text-[#6B5A8A]"
                   }`}
                 >
                   {label}
@@ -285,7 +285,7 @@ export default function OnboardingPage() {
         </div>
 
         {/* Step content */}
-        <div className="bg-[#1a1a2e] border border-gray-700 rounded-xl p-6">
+        <div className="bg-[#1a1230] border border-[#3D2A5C] rounded-xl p-6">
           {step === 1 && (
             <StepCharacters
               characters={characters}

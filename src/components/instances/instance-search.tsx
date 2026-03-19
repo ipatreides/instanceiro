@@ -11,7 +11,7 @@ export function InstanceSearch({ value, onChange, placeholder = "Buscar instânc
     <div className="relative flex items-center">
       {/* Search icon */}
       <svg
-        className="absolute left-3 w-4 h-4 text-gray-400 pointer-events-none"
+        className="absolute left-3 w-4 h-4 text-[#A89BC2] pointer-events-none"
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
         viewBox="0 0 24 24"
@@ -30,14 +30,14 @@ export function InstanceSearch({ value, onChange, placeholder = "Buscar instânc
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-[#1a1a2e] border border-gray-700 rounded-md pl-9 pr-9 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+        className="w-full bg-[#1a1230] border border-[#3D2A5C] rounded-md pl-9 pr-9 py-2 text-sm text-white placeholder-[#6B5A8A] focus:outline-none focus:border-[#7C3AED] transition-colors"
       />
 
       {/* Clear button */}
       {value.length > 0 && (
         <button
           onClick={() => onChange("")}
-          className="absolute right-2.5 text-gray-400 hover:text-white transition-colors cursor-pointer leading-none"
+          className="absolute right-2.5 text-[#A89BC2] hover:text-white transition-colors cursor-pointer leading-none"
           aria-label="Limpar busca"
         >
           <svg

@@ -22,7 +22,7 @@ export function InstanceColumn({ cooldownType, states, now, onCardClick }: Insta
 
   return (
     <div className="flex flex-col gap-2">
-      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">
+      <h3 className="text-xs font-semibold text-[#A89BC2] uppercase tracking-wider px-1">
         {COOLDOWN_LABELS[cooldownType]}
       </h3>
       <div className="flex flex-col gap-1.5">

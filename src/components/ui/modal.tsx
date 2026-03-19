@@ -39,13 +39,13 @@ export function Modal({ isOpen, onClose, title, titleAction, children }: ModalPr
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60"
       onClick={(e) => e.target === overlayRef.current && onClose()}
     >
-      <div className="bg-[#1a1a2e] w-full sm:max-w-xl sm:rounded-lg rounded-t-2xl max-h-[85vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+      <div className="bg-[#1a1230] w-full sm:max-w-xl sm:rounded-lg rounded-t-2xl max-h-[85vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b border-[#3D2A5C]">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold text-white">{title}</h2>
             {titleAction}
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white text-xl cursor-pointer">×</button>
+          <button onClick={onClose} className="text-[#A89BC2] hover:text-white text-xl cursor-pointer">×</button>
         </div>
         <div className="p-4">{children}</div>
       </div>

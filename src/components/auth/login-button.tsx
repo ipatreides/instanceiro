@@ -16,7 +16,7 @@ export function LoginButton() {
   return (
     <button
       onClick={handleLogin}
-      className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-lg transition-colors text-lg cursor-pointer"
+      className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-medium py-3 px-8 rounded-lg transition-colors text-lg cursor-pointer"
     >
       Entrar com Google
     </button>
