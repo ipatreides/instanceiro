@@ -15,6 +15,7 @@ interface StepCharactersProps {
   onAddCharacter: (data: LocalCharacter) => void;
   onRemoveCharacter: (index: number) => void;
   onNext: () => void;
+  onBack?: () => void;
 }
 
 export function StepCharacters({
@@ -22,6 +23,7 @@ export function StepCharacters({
   onAddCharacter,
   onRemoveCharacter,
   onNext,
+  onBack,
 }: StepCharactersProps) {
   const [showForm, setShowForm] = useState(false);
 
@@ -88,8 +90,17 @@ export function StepCharacters({
         </button>
       )}
 
-      {/* Next button */}
-      <div className="flex justify-end pt-2">
+      {/* Navigation */}
+      <div className="flex justify-between pt-2">
+        {onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className="px-6 py-2 rounded-md bg-[#2a1f40] border border-[#3D2A5C] text-[#A89BC2] font-semibold text-sm hover:text-white hover:border-[#6D28D9] transition-colors cursor-pointer"
+          >
+            ← Voltar
+          </button>
+        ) : <div />}
         <button
           type="button"
           onClick={onNext}

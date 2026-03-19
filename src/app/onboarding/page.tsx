@@ -306,6 +306,7 @@ export default function OnboardingPage() {
               onAddCharacter={handleAddCharacter}
               onRemoveCharacter={handleRemoveCharacter}
               onNext={() => setStep(3)}
+              onBack={() => setStep(1)}
             />
           )}
           {step === 3 && (
