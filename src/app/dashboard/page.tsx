@@ -237,7 +237,7 @@ export default function DashboardPage() {
       <header className="bg-[#1a1a2e] border-b border-gray-800 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-5 py-3 flex items-center justify-between">
           <span className="text-base font-semibold text-white tracking-tight">
-            RO Instance Tracker
+            Instanceiro
           </span>
           <div className="flex items-center gap-3">
             {profile?.avatar_url && (

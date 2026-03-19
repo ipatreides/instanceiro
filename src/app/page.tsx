@@ -18,7 +18,7 @@ export default function LandingPage() {
           {/* Hero */}
           <div className="space-y-4">
             <h1 className="text-4xl sm:text-5xl font-bold text-white tracking-tight">
-              RO Instance Tracker
+              Instanceiro
             </h1>
             <p className="text-gray-400 text-lg max-w-md mx-auto leading-relaxed">
               Acompanhe suas instâncias de Ragnarok Online.

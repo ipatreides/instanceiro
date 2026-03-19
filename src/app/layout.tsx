@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "RO Instance Tracker",
+  title: "Instanceiro",
   description: "Gerencie suas instâncias de Ragnarok Online",
 };
 
