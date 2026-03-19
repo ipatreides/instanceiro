@@ -32,6 +32,7 @@ export interface Instance {
   difficulty: string | null;
   reward: string;
   mutual_exclusion_group: string | null;
+  level_max: number | null;
   liga_tier: 'A' | 'B' | 'C' | null;
   liga_coins: number | null;
 }

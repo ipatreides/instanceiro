@@ -45,4 +45,8 @@ UPDATE instances SET liga_tier = 'C', liga_coins = 7  WHERE name = 'Memorial COR
 UPDATE instances SET liga_tier = 'C', liga_coins = 7  WHERE name = 'Fortaleza Voadora';
 UPDATE instances SET liga_tier = 'C', liga_coins = 7  WHERE name = 'Caverna de Mors';
 
+-- Add level_max for instances with upper level cap
+ALTER TABLE instances ADD COLUMN level_max INTEGER;
+UPDATE instances SET level_max = 60 WHERE name = 'Vila dos Porings';
+
 -- Expected: 30 instances with liga data (2 new + 28 existing updated)

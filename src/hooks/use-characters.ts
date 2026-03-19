@@ -86,13 +86,16 @@ export function useCharacters(): UseCharactersReturn {
       // Fetch all instances eligible for this character's level
       const { data: instances, error: instancesError } = await supabase
         .from("instances")
-        .select("id, level_required")
+        .select("id, level_required, level_max")
         .lte("level_required", data.level);
 
       if (instancesError) {
         console.error("Error fetching instances for character_instances:", instancesError);
       } else if (instances && instances.length > 0) {
-        const rows = instances.map((inst: { id: number; level_required: number }) => ({
+        const eligible = instances.filter((inst: { id: number; level_required: number; level_max: number | null }) =>
+          !inst.level_max || data.level <= inst.level_max
+        );
+        const rows = eligible.map((inst: { id: number; level_required: number; level_max: number | null }) => ({
           character_id: character.id,
           instance_id: inst.id,
           is_active: activeInstanceIds ? activeInstanceIds.has(inst.id) : true,

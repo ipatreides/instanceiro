@@ -96,7 +96,7 @@ export default function OnboardingPage() {
   function handleSelectAll(charIndex: number) {
     const char = characters[charIndex];
     const eligible = instances
-      .filter((i) => i.level_required <= char.level)
+      .filter((i) => i.level_required <= char.level && (!i.level_max || char.level <= i.level_max))
       .map((i) => i.id);
     setSelectedInstances((prev) => {
       const next = new Map(prev);
@@ -166,7 +166,7 @@ export default function OnboardingPage() {
         const charId = createdChars[charIdx].id;
         const selected = selectedInstances.get(charIdx) ?? new Set<number>();
         const eligible = instances.filter(
-          (i) => i.level_required <= char.level
+          (i) => i.level_required <= char.level && (!i.level_max || char.level <= i.level_max)
         );
 
         for (const inst of eligible) {

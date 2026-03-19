@@ -49,7 +49,7 @@ export function StepInstances({
 
   const char = characters[activeCharIdx];
   const eligibleInstances = instances.filter(
-    (inst) => inst.level_required <= char.level
+    (inst) => inst.level_required <= char.level && (!inst.level_max || char.level <= inst.level_max)
   );
 
   // Group by cooldown type, sorted by COOLDOWN_ORDER

@@ -79,7 +79,7 @@ export function InstanceModal({
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap gap-2 items-center">
             <span className="text-xs text-gray-400 bg-[#2a2a3e] px-2 py-0.5 rounded">
-              Nível {instance.level_required}+
+              Nível {instance.level_required}{instance.level_max ? `–${instance.level_max}` : '+'}
             </span>
             {instance.difficulty && (
               <DifficultyBadge difficulty={instance.difficulty} />
