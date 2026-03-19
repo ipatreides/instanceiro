@@ -103,6 +103,16 @@ export function InstanceModal({
               <span className="text-gray-500">Recompensa:</span> {instance.reward}
             </p>
           )}
+          {instance.wiki_url && (
+            <a
+              href={instance.wiki_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              Ver no bROWiki →
+            </a>
+          )}
         </div>
 
         {/* Action error */}

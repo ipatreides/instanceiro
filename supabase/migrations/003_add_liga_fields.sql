@@ -49,4 +49,11 @@ UPDATE instances SET liga_tier = 'C', liga_coins = 7  WHERE name = 'Caverna de M
 ALTER TABLE instances ADD COLUMN level_max INTEGER;
 UPDATE instances SET level_max = 60 WHERE name = 'Vila dos Porings';
 
+-- Add wiki URLs for all instances
+ALTER TABLE instances ADD COLUMN wiki_url TEXT;
+UPDATE instances SET wiki_url = 'https://browiki.org/wiki/' || REPLACE(name, ' ', '_');
+-- Fix instances with non-standard wiki page names
+UPDATE instances SET wiki_url = 'https://browiki.org/wiki/Quarto_Crescente' WHERE name = 'Edda do Quarto Crescente';
+UPDATE instances SET wiki_url = 'https://browiki.org/wiki/Queda_de_Glastheim' WHERE name LIKE 'Queda de Glastheim%';
+
 -- Expected: 30 instances with liga data (2 new + 28 existing updated)

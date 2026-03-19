@@ -33,6 +33,7 @@ export interface Instance {
   reward: string;
   mutual_exclusion_group: string | null;
   level_max: number | null;
+  wiki_url: string | null;
   liga_tier: 'A' | 'B' | 'C' | null;
   liga_coins: number | null;
 }
