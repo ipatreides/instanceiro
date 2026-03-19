@@ -174,8 +174,8 @@ export function InstanceModal({
           </p>
         )}
 
-        {/* Mark done button — only if available */}
-        {isAvailable && !confirmingMarkDone && (
+        {/* Mark done button — available or inactive instances */}
+        {(isAvailable || isInactive) && !confirmingMarkDone && (
           <button
             onClick={() => setConfirmingMarkDone(true)}
             disabled={actionLoading}
@@ -281,17 +281,9 @@ export function InstanceModal({
           )}
         </div>
 
-        {/* Activate / Deactivate */}
-        <div className="border-t border-[#3D2A5C] pt-4">
-          {isInactive ? (
-            <button
-              onClick={onActivate}
-              disabled={actionLoading}
-              className="text-sm text-blue-400 hover:text-blue-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Ativar instância
-            </button>
-          ) : (
+        {/* Deactivate — only for active instances */}
+        {!isInactive && (
+          <div className="border-t border-[#3D2A5C] pt-4">
             <button
               onClick={onDeactivate}
               disabled={actionLoading}
@@ -299,8 +291,8 @@ export function InstanceModal({
             >
               Desativar instância
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </Modal>
   );

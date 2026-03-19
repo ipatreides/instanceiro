@@ -210,6 +210,11 @@ export default function DashboardPage() {
     setActionLoading(true);
     setActionError(null);
     try {
+      // If instance is inactive, activate it first
+      const state = allStates.find((s) => s.instance.id === modalInstanceId);
+      if (state?.status === "inactive") {
+        await toggleActive(modalInstanceId, true);
+      }
       await markDone(modalInstanceId, completedAt);
       setModalInstanceId(null);
     } catch {
