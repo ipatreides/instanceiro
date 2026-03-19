@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { InstanceState, CooldownType } from "@/lib/types";
 import { InstanceColumn } from "./instance-column";
 import { InstanceCard } from "./instance-card";
+import { EMPTY_MESSAGES } from "@/lib/empty-messages";
 
 interface InstanceGroupProps {
   title: string;
@@ -125,6 +126,11 @@ interface MobileTabViewProps {
 
 function MobileTabView({ activeCooldownTypes, byType, now, onCardClick }: MobileTabViewProps) {
   const [activeTab, setActiveTab] = useState<CooldownType>(activeCooldownTypes[0]);
+  const emptyMsg = useMemo(
+    () => EMPTY_MESSAGES[Math.floor(Math.random() * EMPTY_MESSAGES.length)],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeTab]
+  );
 
   const currentTab = activeCooldownTypes.includes(activeTab) ? activeTab : activeCooldownTypes[0];
   const currentStates = byType.get(currentTab) ?? [];
@@ -147,7 +153,7 @@ function MobileTabView({ activeCooldownTypes, byType, now, onCardClick }: Mobile
         ))}
       </div>
       {currentStates.length === 0 ? (
-        <p className="text-xs text-[#6B5A8A] italic px-1 py-4">Nenhuma instância</p>
+        <p className="text-xs text-[#6B5A8A] italic px-1 py-4">{emptyMsg}</p>
       ) : (
         <div className="flex flex-col gap-1.5">
           {currentStates.map((state) => (
