@@ -20,6 +20,15 @@ export interface Character {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  isShared?: boolean;
+  ownerUsername?: string | null;
+}
+
+export interface CharacterShare {
+  character_id: string;
+  shared_with_user_id: string;
+  created_at: string;
+  username?: string;
 }
 
 export interface Instance {
