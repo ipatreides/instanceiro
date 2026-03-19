@@ -151,11 +151,29 @@ export default function DashboardPage() {
 
   const allStates = computeStates(now);
 
-  // Filter by search
+  // Build suggestions for search autocomplete
+  const searchSuggestions = [
+    ...[...new Set(allStates.map((s) => s.instance.start_map).filter(Boolean))]
+      .sort((a, b) => (a as string).localeCompare(b as string, "pt-BR"))
+      .map((m) => ({ label: m as string, value: `map:${m}`, type: "map" as const })),
+    ...["A", "B", "C"].map((t) => ({ label: `Liga ${t}`, value: `liga:${t}`, type: "liga" as const })),
+  ];
+
+  // Filter by search (name, map, liga tier, difficulty, cooldown type)
   const filteredStates = search.trim()
-    ? allStates.filter((s) =>
-        s.instance.name.toLowerCase().includes(search.toLowerCase())
-      )
+    ? search.startsWith("map:")
+      ? allStates.filter((s) => s.instance.start_map === search.slice(4))
+      : search.startsWith("liga:")
+        ? allStates.filter((s) => s.instance.liga_tier === search.slice(5))
+        : allStates.filter((s) => {
+            const q = search.toLowerCase();
+            return (
+              s.instance.name.toLowerCase().includes(q) ||
+              (s.instance.start_map?.toLowerCase().includes(q) ?? false) ||
+              (s.instance.liga_tier?.toLowerCase().includes(q) ?? false) ||
+              (s.instance.difficulty?.toLowerCase().includes(q) ?? false)
+            );
+          })
     : allStates;
 
   const availableStates = filteredStates.filter((s) => s.status === "available");
@@ -276,7 +294,7 @@ export default function DashboardPage() {
         {characters.length > 0 ? (
           <>
             {/* Instance search */}
-            <InstanceSearch value={search} onChange={setSearch} />
+            <InstanceSearch value={search} onChange={setSearch} suggestions={searchSuggestions} />
 
             {/* Instance groups */}
             <div className="flex flex-col gap-8">
