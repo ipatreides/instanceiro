@@ -23,7 +23,8 @@ export default function DashboardPage() {
   const router = useRouter();
 
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [searchText, setSearchText] = useState("");
+  const [searchFilters, setSearchFilters] = useState<import("@/components/instances/instance-search").SearchFilter[]>([]);
   const [showNewChar, setShowNewChar] = useState(false);
   const [editingChar, setEditingChar] = useState<Character | null>(null);
   const [deletingChar, setDeletingChar] = useState<Character | null>(null);
@@ -159,22 +160,29 @@ export default function DashboardPage() {
     ...["A", "B", "C"].map((t) => ({ label: `Liga ${t}`, value: `liga:${t}`, type: "liga" as const })),
   ];
 
-  // Filter by search (name, map, liga tier, difficulty, cooldown type)
-  const filteredStates = search.trim()
-    ? search.startsWith("map:")
-      ? allStates.filter((s) => s.instance.start_map === search.slice(4))
-      : search.startsWith("liga:")
-        ? allStates.filter((s) => s.instance.liga_tier === search.slice(5))
-        : allStates.filter((s) => {
-            const q = search.toLowerCase();
-            return (
-              s.instance.name.toLowerCase().includes(q) ||
-              (s.instance.start_map?.toLowerCase().includes(q) ?? false) ||
-              (s.instance.liga_tier?.toLowerCase().includes(q) ?? false) ||
-              (s.instance.difficulty?.toLowerCase().includes(q) ?? false)
-            );
-          })
-    : allStates;
+  // Filter by search: tags are AND across types, OR within same type
+  const filteredStates = allStates.filter((s) => {
+    // Group filters by type
+    const mapFilters = searchFilters.filter((f) => f.type === "map");
+    const ligaFilters = searchFilters.filter((f) => f.type === "liga");
+
+    // Same type = OR, different types = AND
+    if (mapFilters.length > 0 && !mapFilters.some((f) => s.instance.start_map === f.value)) return false;
+    if (ligaFilters.length > 0 && !ligaFilters.some((f) => s.instance.liga_tier === f.value)) return false;
+
+    // Free text search
+    if (searchText.trim()) {
+      const q = searchText.toLowerCase();
+      if (
+        !s.instance.name.toLowerCase().includes(q) &&
+        !(s.instance.start_map?.toLowerCase().includes(q) ?? false) &&
+        !(s.instance.liga_tier?.toLowerCase().includes(q) ?? false) &&
+        !(s.instance.difficulty?.toLowerCase().includes(q) ?? false)
+      ) return false;
+    }
+
+    return true;
+  });
 
   const availableStates = filteredStates.filter((s) => s.status === "available");
   const cooldownStates = filteredStates.filter((s) => s.status === "cooldown");
@@ -294,7 +302,14 @@ export default function DashboardPage() {
         {characters.length > 0 ? (
           <>
             {/* Instance search */}
-            <InstanceSearch value={search} onChange={setSearch} suggestions={searchSuggestions} />
+            <InstanceSearch
+              text={searchText}
+              filters={searchFilters}
+              onTextChange={setSearchText}
+              onAddFilter={(f) => setSearchFilters((prev) => [...prev, f])}
+              onRemoveFilter={(i) => setSearchFilters((prev) => prev.filter((_, idx) => idx !== i))}
+              suggestions={searchSuggestions}
+            />
 
             {/* Instance groups */}
             <div className="flex flex-col gap-8">
@@ -317,7 +332,7 @@ export default function DashboardPage() {
                 onCardClick={handleCardClick}
                 collapsible
                 defaultCollapsed
-                forceExpanded={search.trim().length > 0}
+                forceExpanded={searchText.trim().length > 0 || searchFilters.length > 0}
               />
             </div>
           </>
