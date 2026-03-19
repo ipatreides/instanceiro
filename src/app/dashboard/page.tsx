@@ -156,8 +156,8 @@ export default function DashboardPage() {
   const searchSuggestions = [
     ...[...new Set(allStates.map((s) => s.instance.start_map).filter(Boolean))]
       .sort((a, b) => (a as string).localeCompare(b as string, "pt-BR"))
-      .map((m) => ({ label: m as string, value: `map:${m}`, type: "map" as const })),
-    ...["A", "B", "C"].map((t) => ({ label: `Liga ${t}`, value: `liga:${t}`, type: "liga" as const })),
+      .map((m) => ({ label: m as string, value: m as string, type: "map" as const })),
+    ...["A", "B", "C"].map((t) => ({ label: `Liga ${t}`, value: t, type: "liga" as const })),
   ];
 
   // Filter by search: tags are AND across types, OR within same type
