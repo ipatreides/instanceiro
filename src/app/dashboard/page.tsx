@@ -68,6 +68,13 @@ export default function DashboardPage() {
   } = useSchedules();
   const now = useCooldownTimer();
 
+  // Close schedule modal if the schedule was completed/expired (realtime update)
+  useEffect(() => {
+    if (selectedSchedule && !schedules.some((s) => s.id === selectedSchedule.id)) {
+      setSelectedSchedule(null);
+    }
+  }, [schedules, selectedSchedule]);
+
   // Auto-select first character
   useEffect(() => {
     if (characters.length > 0 && selectedCharId === null) {
