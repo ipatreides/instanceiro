@@ -66,15 +66,15 @@ export default function SignupPage() {
     setSubmitting(true);
     try {
       const supabase = createClient();
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { username } },
+      });
 
       if (error) {
         setErrorMessage(error.message);
-      } else if (data.user) {
-        await supabase
-          .from("profiles")
-          .update({ username })
-          .eq("id", data.user.id);
+      } else {
         setSuccess(true);
       }
     } catch {
