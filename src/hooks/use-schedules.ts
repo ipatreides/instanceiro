@@ -185,25 +185,45 @@ export function useSchedules(): UseSchedulesReturn {
   const getParticipants = useCallback(async (scheduleId: string): Promise<ScheduleParticipant[]> => {
     const supabase = createClient();
 
+    // Fetch schedule to get creator info
+    const { data: schedule } = await supabase
+      .from("instance_schedules")
+      .select("created_by, character_id, created_at")
+      .eq("id", scheduleId)
+      .single();
+
+    // Fetch participants
     const { data } = await supabase
       .from("schedule_participants")
       .select("*")
       .eq("schedule_id", scheduleId);
 
-    if (!data || data.length === 0) return [];
+    // Build combined list: creator first + participants
+    const allParticipants = [
+      ...(schedule ? [{
+        schedule_id: scheduleId,
+        character_id: schedule.character_id,
+        user_id: schedule.created_by,
+        message: null,
+        created_at: schedule.created_at,
+      }] : []),
+      ...(data ?? []),
+    ];
 
-    const userIds = [...new Set(data.map((p) => p.user_id))];
-    const charIds = [...new Set(data.map((p) => p.character_id))];
+    if (allParticipants.length === 0) return [];
+
+    const userIds = [...new Set(allParticipants.map((p) => p.user_id))];
+    const charIds = [...new Set(allParticipants.map((p) => p.character_id))];
 
     const [profilesRes, charsRes] = await Promise.all([
       supabase.from("profiles").select("id, username, avatar_url").in("id", userIds),
-      supabase.from("characters").select("id, name").in("id", charIds),
+      supabase.rpc("get_character_names", { char_ids: charIds }),
     ]);
 
     const profileMap = new Map((profilesRes.data ?? []).map((p: { id: string; username: string; avatar_url: string | null }) => [p.id, p]));
-    const charMap = new Map((charsRes.data ?? []).map((c: { id: string; name: string }) => [c.id, c]));
+    const charMap = new Map(((charsRes.data ?? []) as { id: string; name: string }[]).map((c) => [c.id, c]));
 
-    return data.map((p) => ({
+    return allParticipants.map((p) => ({
       ...p,
       username: profileMap.get(p.user_id)?.username ?? "???",
       avatar_url: profileMap.get(p.user_id)?.avatar_url ?? null,
