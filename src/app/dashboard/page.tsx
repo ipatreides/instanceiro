@@ -45,6 +45,7 @@ export default function DashboardPage() {
   const [selectedSchedule, setSelectedSchedule] = useState<InstanceSchedule | null>(null);
   const [scheduleParticipants, setScheduleParticipants] = useState<ScheduleParticipant[]>([]);
   const [schedulingInstanceId, setSchedulingInstanceId] = useState<number | null>(null);
+  const [pendingScheduleId, setPendingScheduleId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
   const { characters, loading: charsLoading, createCharacter, updateCharacter, refetch: refetchCharacters } = useCharacters();
@@ -77,6 +78,17 @@ export default function DashboardPage() {
       setSelectedSchedule(null);
     }
   }, [schedules, selectedSchedule]);
+
+  // Auto-open schedule modal after creation
+  useEffect(() => {
+    if (!pendingScheduleId) return;
+    const found = schedules.find((s) => s.id === pendingScheduleId);
+    if (found) {
+      setSelectedSchedule(found);
+      getParticipants(found.id).then(setScheduleParticipants);
+      setPendingScheduleId(null);
+    }
+  }, [schedules, pendingScheduleId, getParticipants]);
 
   // Refresh participants when modal is open (realtime)
   useEffect(() => {
@@ -633,8 +645,9 @@ export default function DashboardPage() {
         <ScheduleForm
           onSubmit={async (scheduledAt, message) => {
             if (!schedulingInstanceId || !selectedCharId) return;
-            await createSchedule(schedulingInstanceId, selectedCharId, scheduledAt, message ?? undefined);
+            const scheduleId = await createSchedule(schedulingInstanceId, selectedCharId, scheduledAt, message ?? undefined);
             setSchedulingInstanceId(null);
+            setPendingScheduleId(scheduleId);
           }}
           onCancel={() => setSchedulingInstanceId(null)}
         />

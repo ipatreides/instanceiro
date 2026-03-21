@@ -19,7 +19,7 @@ export interface EligibleFriend {
 interface UseSchedulesReturn {
   schedules: InstanceSchedule[];
   loading: boolean;
-  createSchedule: (instanceId: number, characterId: string, scheduledAt: string, message?: string) => Promise<void>;
+  createSchedule: (instanceId: number, characterId: string, scheduledAt: string, message?: string) => Promise<string>;
   joinSchedule: (scheduleId: string, characterId: string, message?: string) => Promise<void>;
   leaveSchedule: (scheduleId: string, characterId: string) => Promise<void>;
   removeParticipant: (scheduleId: string, characterId: string) => Promise<void>;
@@ -107,7 +107,7 @@ export function useSchedules(): UseSchedulesReturn {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Not authenticated");
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("instance_schedules")
       .insert({
         instance_id: instanceId,
@@ -115,10 +115,13 @@ export function useSchedules(): UseSchedulesReturn {
         created_by: user.id,
         scheduled_at: scheduledAt,
         message: message || null,
-      });
+      })
+      .select("id")
+      .single();
 
     if (error) throw error;
     await fetchAll();
+    return data.id;
   }, [fetchAll]);
 
   const joinSchedule = useCallback(async (scheduleId: string, characterId: string, message?: string) => {
