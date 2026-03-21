@@ -87,6 +87,7 @@ export interface Instance {
   start_map: string | null;
   liga_tier: 'A' | 'B' | 'C' | null;
   liga_coins: number | null;
+  is_solo: boolean;
 }
 
 export interface CharacterInstance {

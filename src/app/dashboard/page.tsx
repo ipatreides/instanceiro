@@ -436,7 +436,7 @@ export default function DashboardPage() {
         onDeleteCompletion={handleDeleteCompletion}
         onDeactivate={handleDeactivate}
         onActivate={handleActivate}
-        onSchedule={modalState && modalState.instance.party_min > 1 ? () => {
+        onSchedule={modalState && !modalState.instance.is_solo ? () => {
           setSchedulingInstanceId(modalState.instance.id);
           setModalInstanceId(null);
         } : undefined}
