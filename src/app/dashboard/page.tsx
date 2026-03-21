@@ -134,9 +134,23 @@ export default function DashboardPage() {
         .single()
         .then(({ data }) => {
           if (data) {
-            setProfile({ display_name: data.display_name, avatar_url: data.avatar_url, username: data.username });
-            if (!data.username) {
-              setNeedsUsername(true);
+            // Check if we have a pending username from signup
+            const pendingUsername = typeof window !== "undefined" ? localStorage.getItem("pending_username") : null;
+            if (!data.username && pendingUsername) {
+              // Auto-save the pending username
+              supabase
+                .from("profiles")
+                .update({ username: pendingUsername, onboarding_completed: true })
+                .eq("id", user.id)
+                .then(() => {
+                  localStorage.removeItem("pending_username");
+                  setProfile({ display_name: data.display_name, avatar_url: data.avatar_url, username: pendingUsername });
+                });
+            } else {
+              setProfile({ display_name: data.display_name, avatar_url: data.avatar_url, username: data.username });
+              if (!data.username) {
+                setNeedsUsername(true);
+              }
             }
           }
         });

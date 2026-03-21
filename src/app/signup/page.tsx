@@ -66,15 +66,13 @@ export default function SignupPage() {
     setSubmitting(true);
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { username } },
-      });
+      const { error } = await supabase.auth.signUp({ email, password });
 
       if (error) {
         setErrorMessage(error.message);
       } else {
+        // Store username for after email confirmation + login
+        localStorage.setItem("pending_username", username);
         setSuccess(true);
       }
     } catch {
