@@ -155,7 +155,7 @@ export function ScheduleModal({
     setActionLoading(true);
     try {
       await onInvite(friend.character_id, friend.user_id);
-      setEligibleFriends((prev) => prev.filter((f) => f.user_id !== friend.user_id));
+      setEligibleFriends((prev) => prev.filter((f) => f.character_id !== friend.character_id));
     } finally {
       setActionLoading(false);
     }
