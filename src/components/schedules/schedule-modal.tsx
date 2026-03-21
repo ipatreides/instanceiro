@@ -277,7 +277,7 @@ export function ScheduleModal({
                           disabled={busy}
                           className="text-xs text-red-400 hover:text-red-300 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                         >
-                          ×
+                          {p.user_id === currentUserId ? "Desinscrever" : "Remover"}
                         </button>
                       )}
                     </div>
