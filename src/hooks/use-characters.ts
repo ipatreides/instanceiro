@@ -132,7 +132,7 @@ export function useCharacters(): UseCharactersReturn {
         const rows = eligible.map((inst: { id: number; level_required: number; level_max: number | null }) => ({
           character_id: character.id,
           instance_id: inst.id,
-          is_active: activeInstanceIds ? activeInstanceIds.has(inst.id) : true,
+          is_active: activeInstanceIds ? activeInstanceIds.has(inst.id) : false,
         }));
 
         const { error: ciError } = await supabase

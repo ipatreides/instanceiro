@@ -1,21 +1,39 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import { useUsernameCheck, isValidUsername } from "@/hooks/use-username-check";
 import Link from "next/link";
 import { useState } from "react";
 
 export default function SignupPage() {
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [errors, setErrors] = useState<{ email?: string; password?: string; confirmPassword?: string }>({});
+  const [errors, setErrors] = useState<{ username?: string; email?: string; password?: string; confirmPassword?: string }>({});
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [success, setSuccess] = useState(false);
 
+  const usernameStatus = useUsernameCheck(username);
+
+  function handleUsernameChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ""));
+  }
+
   const validate = () => {
     const newErrors: typeof errors = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!username) {
+      newErrors.username = "Username é obrigatório";
+    } else if (!isValidUsername(username)) {
+      newErrors.username = username.length < 3 ? "Mínimo 3 caracteres" : "Apenas letras minúsculas e números";
+    } else if (usernameStatus === "taken") {
+      newErrors.username = "Já em uso";
+    } else if (usernameStatus !== "available") {
+      newErrors.username = "Aguarde a verificação do username";
+    }
 
     if (!email) {
       newErrors.email = "Email é obrigatório";
@@ -48,11 +66,15 @@ export default function SignupPage() {
     setSubmitting(true);
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({ email, password });
 
       if (error) {
         setErrorMessage(error.message);
-      } else {
+      } else if (data.user) {
+        await supabase
+          .from("profiles")
+          .update({ username })
+          .eq("id", data.user.id);
         setSuccess(true);
       }
     } catch {
@@ -71,6 +93,8 @@ export default function SignupPage() {
       },
     });
   };
+
+  const canSubmit = usernameStatus === "available";
 
   if (success) {
     return (
@@ -109,6 +133,57 @@ export default function SignupPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Username field */}
+            <div>
+              <label htmlFor="username" className="block text-[#A89BC2] text-sm font-medium mb-1">
+                Username
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B5A8A] text-sm font-medium">@</span>
+                <input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={handleUsernameChange}
+                  maxLength={20}
+                  placeholder="username"
+                  className="w-full bg-[#2a1f40] border border-[#3D2A5C] text-white placeholder-[#6B5A8A] rounded-lg pl-8 pr-10 py-2.5 focus:border-[#7C3AED] focus:outline-none transition-colors"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">
+                  {usernameStatus === "checking" && (
+                    <span className="text-[#A89BC2] animate-pulse">...</span>
+                  )}
+                  {usernameStatus === "available" && (
+                    <span className="text-green-400">✓</span>
+                  )}
+                  {usernameStatus === "taken" && (
+                    <span className="text-red-400">✗</span>
+                  )}
+                  {usernameStatus === "invalid" && username.length > 0 && (
+                    <span className="text-red-400">✗</span>
+                  )}
+                </span>
+              </div>
+              <div className="h-5">
+                {usernameStatus === "taken" && (
+                  <p className="mt-1 text-red-400 text-xs">Já em uso</p>
+                )}
+                {usernameStatus === "invalid" && username.length > 0 && (
+                  <p className="mt-1 text-red-400 text-xs">
+                    {username.length < 3
+                      ? "Mínimo 3 caracteres"
+                      : "Apenas letras minúsculas e números"}
+                  </p>
+                )}
+                {usernameStatus === "available" && (
+                  <p className="mt-1 text-green-400 text-xs">Disponível!</p>
+                )}
+              </div>
+              {errors.username && usernameStatus === "idle" && (
+                <p className="mt-1 text-red-400 text-sm">{errors.username}</p>
+              )}
+            </div>
+
             <div>
               <label htmlFor="email" className="block text-[#A89BC2] text-sm font-medium mb-1">
                 Email
@@ -162,7 +237,7 @@ export default function SignupPage() {
 
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !canSubmit}
               className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors cursor-pointer"
             >
               {submitting ? "Criando..." : "Criar Conta"}

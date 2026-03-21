@@ -8,11 +8,10 @@ test.describe("Auth Redirects", () => {
     await expect(page.locator("h1")).toContainText("Instanceiro");
   });
 
-  test("onboarding page loads without crash when not logged in", async ({ page }) => {
-    await page.goto("/onboarding");
-    // Onboarding is a client page — without auth it shows the onboarding UI
-    // but any Supabase calls will fail gracefully
-    await expect(page.locator("text=Configuração Inicial")).toBeVisible({ timeout: 5000 });
+  test("onboarding page no longer exists (removed)", async ({ page }) => {
+    const response = await page.goto("/onboarding");
+    // Should return 404 since onboarding was removed
+    expect(response?.status()).toBe(404);
   });
 
   test("profile redirects to landing when not logged in", async ({ page }) => {

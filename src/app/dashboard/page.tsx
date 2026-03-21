@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useUsernameCheck } from "@/hooks/use-username-check";
 import { useCharacters } from "@/hooks/use-characters";
 import { useInstances } from "@/hooks/use-instances";
 import { useCooldownTimer } from "@/hooks/use-cooldown-timer";
@@ -47,6 +48,10 @@ export default function DashboardPage() {
   const [schedulingInstanceId, setSchedulingInstanceId] = useState<number | null>(null);
   const [pendingScheduleId, setPendingScheduleId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [needsUsername, setNeedsUsername] = useState(false);
+  const [usernameInput, setUsernameInput] = useState("");
+  const [usernameSaving, setUsernameSaving] = useState(false);
+  const usernameStatus = useUsernameCheck(usernameInput);
 
   const { characters, loading: charsLoading, createCharacter, updateCharacter, refetch: refetchCharacters } = useCharacters();
   const {
@@ -113,7 +118,7 @@ export default function DashboardPage() {
     }
   }, [characters, selectedCharId]);
 
-  // Fetch profile on mount + check onboarding
+  // Fetch profile on mount + check if username is missing
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -128,14 +133,33 @@ export default function DashboardPage() {
         .eq("id", user.id)
         .single()
         .then(({ data }) => {
-          if (data && !data.onboarding_completed) {
-            router.push("/onboarding");
-            return;
+          if (data) {
+            setProfile({ display_name: data.display_name, avatar_url: data.avatar_url, username: data.username });
+            if (!data.username) {
+              setNeedsUsername(true);
+            }
           }
-          if (data) setProfile({ display_name: data.display_name, avatar_url: data.avatar_url, username: data.username });
         });
     });
   }, [router]);
+
+  const handleSaveUsername = useCallback(async () => {
+    if (!userId || usernameStatus !== "available") return;
+    setUsernameSaving(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("profiles")
+        .update({ username: usernameInput, onboarding_completed: true })
+        .eq("id", userId);
+      if (!error) {
+        setProfile((prev) => prev ? { ...prev, username: usernameInput } : prev);
+        setNeedsUsername(false);
+      }
+    } finally {
+      setUsernameSaving(false);
+    }
+  }, [userId, usernameInput, usernameStatus]);
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -652,6 +676,77 @@ export default function DashboardPage() {
           onCancel={() => setSchedulingInstanceId(null)}
         />
       </Modal>
+
+      {/* Username prompt modal (non-closable) */}
+      {needsUsername && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60">
+          <div className="bg-[#1a1230] w-full sm:max-w-md sm:rounded-lg rounded-t-2xl max-h-[85vh] overflow-y-auto">
+            <div className="p-4 border-b border-[#3D2A5C]">
+              <h2 className="text-lg font-semibold text-white">Escolha seu @username</h2>
+            </div>
+            <div className="p-4 flex flex-col gap-4">
+              <p className="text-[#A89BC2] text-sm">
+                Esse será seu identificador público no Instanceiro.
+              </p>
+
+              <div className="flex flex-col gap-2">
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B5A8A] text-sm font-medium">@</span>
+                  <input
+                    type="text"
+                    value={usernameInput}
+                    onChange={(e) => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ""))}
+                    maxLength={20}
+                    placeholder="username"
+                    className="w-full bg-[#2a1f40] border border-[#3D2A5C] rounded-md pl-8 pr-10 py-2.5 text-white text-sm placeholder-[#6B5A8A] focus:outline-none focus:border-[#7C3AED] transition-colors"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">
+                    {usernameStatus === "checking" && (
+                      <span className="text-[#A89BC2] animate-pulse">...</span>
+                    )}
+                    {usernameStatus === "available" && (
+                      <span className="text-green-400">&#10003;</span>
+                    )}
+                    {usernameStatus === "taken" && (
+                      <span className="text-red-400">&#10007;</span>
+                    )}
+                    {usernameStatus === "invalid" && usernameInput.length > 0 && (
+                      <span className="text-red-400">&#10007;</span>
+                    )}
+                  </span>
+                </div>
+
+                <div className="h-5">
+                  {usernameStatus === "taken" && (
+                    <p className="text-xs text-red-400">Esse username já está em uso.</p>
+                  )}
+                  {usernameStatus === "invalid" && usernameInput.length > 0 && (
+                    <p className="text-xs text-red-400">
+                      {usernameInput.length < 3
+                        ? "Mínimo 3 caracteres."
+                        : "Apenas letras minúsculas e números."}
+                    </p>
+                  )}
+                  {usernameStatus === "available" && (
+                    <p className="text-xs text-green-400">Disponível!</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={handleSaveUsername}
+                  disabled={usernameStatus !== "available" || usernameSaving}
+                  className="px-6 py-2 rounded-md bg-[#7C3AED] text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#6D28D9] transition-colors cursor-pointer"
+                >
+                  {usernameSaving ? "Salvando..." : "Confirmar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
