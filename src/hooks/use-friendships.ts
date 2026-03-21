@@ -65,7 +65,22 @@ export function useFriendships(): UseFriendshipsReturn {
   useEffect(() => {
     let cancelled = false;
     fetchAll().then(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+
+    // Subscribe to realtime changes on friendships
+    const supabase = createClient();
+    const channel = supabase
+      .channel("friendships-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "friendships" },
+        () => { fetchAll(); }
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
   }, [fetchAll]);
 
   const friends = friendships.filter((f) => f.status === "accepted");
