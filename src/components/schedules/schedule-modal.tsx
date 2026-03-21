@@ -125,13 +125,13 @@ export function ScheduleModal({
     setActionLoading(true);
     try {
       const friends = await getEligibleFriends(schedule.instance_id);
-      // Filter: not already a participant, cooldown available at scheduled time
+      // Filter: character not already a participant, cooldown available at scheduled time
       const scheduledAt = new Date(schedule.scheduled_at);
-      const alreadyIn = new Set(participants.map((p) => p.user_id));
-      alreadyIn.add(schedule.created_by);
+      const alreadyInCharIds = new Set(participants.map((p) => p.character_id));
+      alreadyInCharIds.add(schedule.character_id); // creator's character
 
       const available = friends.filter((f) => {
-        if (alreadyIn.has(f.user_id)) return false;
+        if (alreadyInCharIds.has(f.character_id)) return false;
         if (!f.is_active) return false;
         if (!f.last_completed_at) return true; // never done = available
         if (!instanceCooldownType) return true;
