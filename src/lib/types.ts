@@ -31,6 +31,17 @@ export interface CharacterShare {
   username?: string;
 }
 
+export interface Friendship {
+  id: string;
+  requester_id: string;
+  addressee_id: string;
+  status: 'pending' | 'accepted';
+  created_at: string;
+  username?: string;
+  display_name?: string | null;
+  avatar_url?: string | null;
+}
+
 export interface Instance {
   id: number;
   name: string;
