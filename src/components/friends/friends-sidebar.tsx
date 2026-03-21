@@ -23,6 +23,7 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
   const [username, setUsername] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
 
   async function handleSend() {
     if (!username.trim()) return;
@@ -117,22 +118,41 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
                 <p className="text-xs text-[#6B5A8A] italic">Nenhum amigo ainda</p>
               ) : (
                 friends.map((f) => (
-                  <div key={f.id} className="group flex items-center gap-2 bg-[#2a1f40] rounded px-3 py-2">
-                    {f.avatar_url && (
-                      <img src={f.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <span className="text-xs text-white block truncate">@{f.username}</span>
-                      {f.display_name && (
-                        <span className="text-xs text-[#6B5A8A] block truncate">{f.display_name}</span>
+                  <div key={f.id} className="flex flex-col gap-1">
+                    <div className="group flex items-center gap-2 bg-[#2a1f40] rounded px-3 py-2">
+                      {f.avatar_url && (
+                        <img src={f.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
                       )}
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs text-white block truncate">@{f.username}</span>
+                        {f.display_name && (
+                          <span className="text-xs text-[#6B5A8A] block truncate">{f.display_name}</span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => setConfirmRemoveId(f.id)}
+                        className="text-xs text-red-400 hover:text-red-300 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        ×
+                      </button>
                     </div>
-                    <button
-                      onClick={() => removeFriend(f.id)}
-                      className="text-xs text-red-400 hover:text-red-300 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      ×
-                    </button>
+                    {confirmRemoveId === f.id && (
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-red-900/20 rounded text-xs">
+                        <span className="text-red-400 flex-1">Remover @{f.username}?</span>
+                        <button
+                          onClick={() => { removeFriend(f.id); setConfirmRemoveId(null); }}
+                          className="text-red-400 hover:text-red-300 font-semibold cursor-pointer"
+                        >
+                          Sim
+                        </button>
+                        <button
+                          onClick={() => setConfirmRemoveId(null)}
+                          className="text-[#A89BC2] hover:text-white cursor-pointer"
+                        >
+                          Não
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))
               )}
