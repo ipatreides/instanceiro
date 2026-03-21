@@ -76,6 +76,22 @@ export default function DashboardPage() {
     }
   }, [schedules, selectedSchedule]);
 
+  // Refresh participants when modal is open (realtime)
+  useEffect(() => {
+    if (!selectedSchedule) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel("schedule-participants-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "schedule_participants" }, async () => {
+        if (selectedSchedule) {
+          const p = await getParticipants(selectedSchedule.id);
+          setScheduleParticipants(p);
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [selectedSchedule, getParticipants]);
+
   // Auto-select first character
   useEffect(() => {
     if (characters.length > 0 && selectedCharId === null) {
