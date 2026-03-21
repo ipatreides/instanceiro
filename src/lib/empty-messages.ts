@@ -101,4 +101,5 @@ export const EMPTY_MESSAGES = [
   "O Taekwon tá correndo em outro mapa",
   "Até o Lord Knight parou de Spiral Pierce",
   "A manutenção levou as instâncias embora",
+  "O Whitesmith tá polindo a bigorna vazia",
 ];
