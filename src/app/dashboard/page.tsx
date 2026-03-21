@@ -63,6 +63,8 @@ export default function DashboardPage() {
     joinSchedule,
     leaveSchedule,
     removeParticipant,
+    inviteFriend,
+    getEligibleFriends,
     completeSchedule,
     expireSchedule,
     getParticipants,
@@ -600,6 +602,16 @@ export default function DashboardPage() {
           const p = await getParticipants(selectedSchedule.id);
           setScheduleParticipants(p);
         }}
+        onInvite={async (characterId, targetUserId) => {
+          if (!selectedSchedule) return;
+          await inviteFriend(selectedSchedule.id, characterId, targetUserId);
+          const p = await getParticipants(selectedSchedule.id);
+          setScheduleParticipants(p);
+        }}
+        getEligibleFriends={getEligibleFriends}
+        instanceCooldownType={selectedSchedule ? allStates.find((s) => s.instance.id === selectedSchedule.instance_id)?.instance.cooldown_type : undefined}
+        instanceCooldownHours={selectedSchedule ? allStates.find((s) => s.instance.id === selectedSchedule.instance_id)?.instance.cooldown_hours : undefined}
+        instanceAvailableDay={selectedSchedule ? allStates.find((s) => s.instance.id === selectedSchedule.instance_id)?.instance.available_day : undefined}
         onComplete={async (confirmed) => {
           if (!selectedSchedule) return;
           await completeSchedule(selectedSchedule.id, confirmed);

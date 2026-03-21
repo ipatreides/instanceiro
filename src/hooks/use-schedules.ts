@@ -4,6 +4,17 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { InstanceSchedule, ScheduleParticipant } from "@/lib/types";
 
+export interface EligibleFriend {
+  user_id: string;
+  username: string;
+  avatar_url: string | null;
+  character_id: string;
+  character_name: string;
+  character_level: number;
+  is_active: boolean;
+  last_completed_at: string | null;
+}
+
 interface UseSchedulesReturn {
   schedules: InstanceSchedule[];
   loading: boolean;
@@ -11,6 +22,8 @@ interface UseSchedulesReturn {
   joinSchedule: (scheduleId: string, characterId: string, message?: string) => Promise<void>;
   leaveSchedule: (scheduleId: string) => Promise<void>;
   removeParticipant: (scheduleId: string, targetUserId: string) => Promise<void>;
+  inviteFriend: (scheduleId: string, characterId: string, userId: string) => Promise<void>;
+  getEligibleFriends: (instanceId: number) => Promise<EligibleFriend[]>;
   completeSchedule: (scheduleId: string, confirmedParticipants: { userId: string; characterId: string }[]) => Promise<void>;
   expireSchedule: (scheduleId: string) => Promise<void>;
   getParticipants: (scheduleId: string) => Promise<ScheduleParticipant[]>;
@@ -240,6 +253,24 @@ export function useSchedules(): UseSchedulesReturn {
     }));
   }, []);
 
+  const getEligibleFriends = useCallback(async (instanceId: number): Promise<EligibleFriend[]> => {
+    const supabase = createClient();
+    const { data } = await supabase.rpc("get_friends_instance_status", { p_instance_id: instanceId });
+    return (data ?? []) as EligibleFriend[];
+  }, []);
+
+  const inviteFriend = useCallback(async (scheduleId: string, characterId: string, targetUserId: string) => {
+    const supabase = createClient();
+    // Insert as if the friend joined (creator can do this via RLS delete policy, but insert needs the user_id)
+    // We need a SECURITY DEFINER function for this
+    const { error } = await supabase.rpc("invite_to_schedule", {
+      p_schedule_id: scheduleId,
+      p_character_id: characterId,
+      p_user_id: targetUserId,
+    });
+    if (error) throw error;
+  }, []);
+
   return {
     schedules,
     loading,
@@ -247,6 +278,8 @@ export function useSchedules(): UseSchedulesReturn {
     joinSchedule,
     leaveSchedule,
     removeParticipant,
+    inviteFriend,
+    getEligibleFriends,
     completeSchedule,
     expireSchedule,
     getParticipants,

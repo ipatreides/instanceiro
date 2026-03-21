@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
 import type { InstanceSchedule, ScheduleParticipant, Character } from "@/lib/types";
+import type { EligibleFriend } from "@/hooks/use-schedules";
+import { calculateCooldownExpiry, isAvailableDay } from "@/lib/cooldown";
 
 interface ScheduleModalProps {
   isOpen: boolean;
@@ -14,8 +16,13 @@ interface ScheduleModalProps {
   onJoin: (characterId: string, message?: string) => Promise<void>;
   onLeave: () => Promise<void>;
   onRemoveParticipant: (userId: string) => Promise<void>;
+  onInvite: (characterId: string, userId: string) => Promise<void>;
+  getEligibleFriends: (instanceId: number) => Promise<EligibleFriend[]>;
   onComplete: (confirmedParticipants: { userId: string; characterId: string }[]) => Promise<void>;
   onExpire: () => Promise<void>;
+  instanceCooldownType?: string;
+  instanceCooldownHours?: number | null;
+  instanceAvailableDay?: string | null;
   loading?: boolean;
 }
 
@@ -41,15 +48,21 @@ export function ScheduleModal({
   onJoin,
   onLeave,
   onRemoveParticipant,
+  onInvite,
+  getEligibleFriends,
   onComplete,
   onExpire,
+  instanceCooldownType,
+  instanceCooldownHours,
+  instanceAvailableDay,
   loading,
 }: ScheduleModalProps) {
-  const [mode, setMode] = useState<"view" | "joining" | "completing">("view");
+  const [mode, setMode] = useState<"view" | "joining" | "completing" | "inviting">("view");
   const [selectedCharacterId, setSelectedCharacterId] = useState("");
   const [joinMessage, setJoinMessage] = useState("");
   const [checkedParticipants, setCheckedParticipants] = useState<Record<string, boolean>>({});
   const [actionLoading, setActionLoading] = useState(false);
+  const [eligibleFriends, setEligibleFriends] = useState<EligibleFriend[]>([]);
 
   if (!schedule) return null;
 
@@ -112,6 +125,47 @@ export function ScheduleModal({
     }
   };
 
+  const handleInviteClick = async () => {
+    if (!schedule) return;
+    setActionLoading(true);
+    try {
+      const friends = await getEligibleFriends(schedule.instance_id);
+      // Filter: not already a participant, cooldown available at scheduled time
+      const scheduledAt = new Date(schedule.scheduled_at);
+      const alreadyIn = new Set(participants.map((p) => p.user_id));
+      alreadyIn.add(schedule.created_by);
+
+      const available = friends.filter((f) => {
+        if (alreadyIn.has(f.user_id)) return false;
+        if (!f.is_active) return false;
+        if (!f.last_completed_at) return true; // never done = available
+        if (!instanceCooldownType) return true;
+        const expiry = calculateCooldownExpiry(
+          new Date(f.last_completed_at),
+          instanceCooldownType as "hourly" | "daily" | "three_day" | "weekly",
+          instanceCooldownHours ?? null,
+          instanceAvailableDay ?? null
+        );
+        return expiry <= scheduledAt;
+      });
+
+      setEligibleFriends(available);
+      setMode("inviting");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleConfirmInvite = async (friend: EligibleFriend) => {
+    setActionLoading(true);
+    try {
+      await onInvite(friend.character_id, friend.user_id);
+      setEligibleFriends((prev) => prev.filter((f) => f.user_id !== friend.user_id));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleExpire = async () => {
     setActionLoading(true);
     try {
@@ -160,7 +214,48 @@ export function ScheduleModal({
         )}
 
         {/* Completing mode: attendance checklist */}
-        {mode === "completing" ? (
+        {/* Inviting mode */}
+        {mode === "inviting" ? (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-[#A89BC2] font-medium">Convidar amigos:</p>
+            {eligibleFriends.length === 0 ? (
+              <p className="text-xs text-[#6B5A8A] italic">Nenhum amigo disponível para esta instância.</p>
+            ) : (
+              <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
+                {eligibleFriends.map((f) => (
+                  <div
+                    key={f.user_id}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#2a1f40] border border-[#3D2A5C]"
+                  >
+                    {f.avatar_url ? (
+                      <img src={f.avatar_url} alt="" className="w-6 h-6 rounded-full" />
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-[#3D2A5C] flex items-center justify-center text-xs text-[#A89BC2]">?</div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm text-white truncate block">@{f.username}</span>
+                      <span className="text-xs text-[#6B5A8A]">{f.character_name} Lv.{f.character_level}</span>
+                    </div>
+                    <button
+                      onClick={() => handleConfirmInvite(f)}
+                      disabled={busy}
+                      className="text-xs text-[#7C3AED] hover:text-white cursor-pointer disabled:opacity-50"
+                    >
+                      Convidar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setMode("view")}
+              className="px-4 py-2 text-sm text-[#A89BC2] bg-[#2a1f40] border border-[#3D2A5C] rounded-lg hover:bg-[#3D2A5C] transition-colors cursor-pointer self-end"
+            >
+              Voltar
+            </button>
+          </div>
+        ) : mode === "completing" ? (
           <div className="flex flex-col gap-3">
             <p className="text-sm text-[#A89BC2] font-medium">Confirmar presenca:</p>
             <div className="flex flex-col gap-2">
@@ -355,11 +450,19 @@ export function ScheduleModal({
                   <>
                     <button
                       type="button"
+                      onClick={handleInviteClick}
+                      disabled={busy}
+                      className="px-4 py-2 text-sm text-[#D4A843] bg-[#2a1f40] border border-[#D4A843]/30 rounded-lg hover:border-[#D4A843] transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {busy ? "..." : "Convidar"}
+                    </button>
+                    <button
+                      type="button"
                       onClick={handleExpire}
                       disabled={busy}
                       className="px-4 py-2 text-sm text-red-400 bg-[#2a1f40] border border-red-900/50 rounded-lg hover:bg-red-900/20 transition-colors cursor-pointer disabled:opacity-50"
                     >
-                      {busy ? "Cancelando..." : "Cancelar agendamento"}
+                      {busy ? "Cancelando..." : "Cancelar"}
                     </button>
                     <button
                       type="button"
