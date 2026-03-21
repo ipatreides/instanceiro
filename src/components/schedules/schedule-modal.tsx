@@ -63,6 +63,7 @@ export function ScheduleModal({
   const [checkedParticipants, setCheckedParticipants] = useState<Record<string, boolean>>({});
   const [actionLoading, setActionLoading] = useState(false);
   const [eligibleFriends, setEligibleFriends] = useState<EligibleFriend[]>([]);
+  const [inviteSearch, setInviteSearch] = useState("");
 
   if (!schedule) return null;
 
@@ -218,38 +219,68 @@ export function ScheduleModal({
         {mode === "inviting" ? (
           <div className="flex flex-col gap-3">
             <p className="text-sm text-[#A89BC2] font-medium">Convidar amigos:</p>
-            {eligibleFriends.length === 0 ? (
-              <p className="text-xs text-[#6B5A8A] italic">Nenhum amigo disponível para esta instância.</p>
-            ) : (
-              <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
-                {eligibleFriends.map((f) => (
-                  <div
-                    key={f.user_id}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#2a1f40] border border-[#3D2A5C]"
-                  >
-                    {f.avatar_url ? (
-                      <img src={f.avatar_url} alt="" className="w-6 h-6 rounded-full" />
-                    ) : (
-                      <div className="w-6 h-6 rounded-full bg-[#3D2A5C] flex items-center justify-center text-xs text-[#A89BC2]">?</div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm text-white truncate block">@{f.username}</span>
-                      <span className="text-xs text-[#6B5A8A]">{f.character_name} Lv.{f.character_level}</span>
-                    </div>
-                    <button
-                      onClick={() => handleConfirmInvite(f)}
-                      disabled={busy}
-                      className="text-xs text-[#7C3AED] hover:text-white cursor-pointer disabled:opacity-50"
+
+            {/* Search */}
+            <input
+              type="text"
+              value={inviteSearch}
+              onChange={(e) => setInviteSearch(e.target.value)}
+              placeholder="Buscar por personagem, classe ou @username..."
+              className="bg-[#1a1230] border border-[#3D2A5C] rounded-lg px-3 py-2 text-sm text-white placeholder-[#6B5A8A] focus:outline-none focus:border-[#7C3AED] transition-colors"
+            />
+
+            {(() => {
+              const q = inviteSearch.toLowerCase();
+              const filtered = eligibleFriends.filter((f) =>
+                !q ||
+                f.character_name.toLowerCase().includes(q) ||
+                f.character_class.toLowerCase().includes(q) ||
+                f.username.toLowerCase().includes(q)
+              );
+              return filtered.length === 0 ? (
+                <p className="text-xs text-[#6B5A8A] italic">
+                  {eligibleFriends.length === 0
+                    ? "Nenhum amigo disponível para esta instância."
+                    : "Nenhum resultado encontrado."}
+                </p>
+              ) : (
+                <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
+                  {filtered.map((f) => (
+                    <div
+                      key={`${f.user_id}-${f.character_id}`}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#2a1f40] border border-[#3D2A5C]"
                     >
-                      Convidar
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+                      {f.avatar_url ? (
+                        <img src={f.avatar_url} alt="" className="w-7 h-7 rounded-full" />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-[#3D2A5C] flex items-center justify-center text-xs text-[#A89BC2]">?</div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-white font-medium truncate">{f.character_name}</span>
+                          <span className="text-xs text-[#6B5A8A]">Lv.{f.character_level}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-[#A89BC2]">{f.character_class}</span>
+                          <span className="text-xs text-[#6B5A8A]">· @{f.username}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleConfirmInvite(f)}
+                        disabled={busy}
+                        className="text-xs text-[#7C3AED] hover:text-white cursor-pointer disabled:opacity-50 font-medium"
+                      >
+                        Convidar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
             <button
               type="button"
-              onClick={() => setMode("view")}
+              onClick={() => { setMode("view"); setInviteSearch(""); }}
               className="px-4 py-2 text-sm text-[#A89BC2] bg-[#2a1f40] border border-[#3D2A5C] rounded-lg hover:bg-[#3D2A5C] transition-colors cursor-pointer self-end"
             >
               Voltar

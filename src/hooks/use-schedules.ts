@@ -10,6 +10,7 @@ export interface EligibleFriend {
   avatar_url: string | null;
   character_id: string;
   character_name: string;
+  character_class: string;
   character_level: number;
   is_active: boolean;
   last_completed_at: string | null;
