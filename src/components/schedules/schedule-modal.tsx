@@ -125,26 +125,45 @@ export function ScheduleModal({
     setActionLoading(true);
     try {
       const friends = await getEligibleFriends(schedule.instance_id);
-      // Filter: character not already a participant, cooldown available at scheduled time
       const scheduledAt = new Date(schedule.scheduled_at);
       const alreadyInCharIds = new Set(participants.map((p) => p.character_id));
-      alreadyInCharIds.add(schedule.character_id); // creator's character
+      alreadyInCharIds.add(schedule.character_id); // creator's original character
 
-      const available = friends.filter((f) => {
-        if (alreadyInCharIds.has(f.character_id)) return false;
-        if (!f.is_active) return false;
-        if (!f.last_completed_at) return true; // never done = available
+      const cooldownFilter = (lastCompleted: string | null) => {
+        if (!lastCompleted) return true;
         if (!instanceCooldownType) return true;
         const expiry = calculateCooldownExpiry(
-          new Date(f.last_completed_at),
+          new Date(lastCompleted),
           instanceCooldownType as "hourly" | "daily" | "three_day" | "weekly",
           instanceCooldownHours ?? null,
           instanceAvailableDay ?? null
         );
         return expiry <= scheduledAt;
+      };
+
+      // Friends' characters
+      const friendEntries = friends.filter((f) => {
+        if (alreadyInCharIds.has(f.character_id)) return false;
+        if (!f.is_active) return false;
+        return cooldownFilter(f.last_completed_at);
       });
 
-      setEligibleFriends(available);
+      // Own characters (not already in schedule)
+      const ownEntries: EligibleFriend[] = characters
+        .filter((c) => !c.isShared && !alreadyInCharIds.has(c.id))
+        .map((c) => ({
+          user_id: currentUserId!,
+          username: schedule.creatorUsername ?? "???",
+          avatar_url: schedule.creatorAvatar ?? null,
+          character_id: c.id,
+          character_name: c.name,
+          character_class: c.class,
+          character_level: c.level,
+          is_active: true,
+          last_completed_at: null, // we don't have this easily, assume available
+        }));
+
+      setEligibleFriends([...ownEntries, ...friendEntries]);
       setMode("inviting");
     } finally {
       setActionLoading(false);
