@@ -69,7 +69,19 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
     fetchAll().then(() => {
       if (!cancelled) setLoading(false);
     });
-    return () => { cancelled = true; };
+
+    // Subscribe to realtime changes on completions and character_instances
+    const supabase = createClient();
+    const channel = supabase
+      .channel("instances-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "instance_completions" }, () => fetchAll())
+      .on("postgres_changes", { event: "*", schema: "public", table: "character_instances" }, () => fetchAll())
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
   }, [fetchAll]);
 
   const computeStates = useCallback(
