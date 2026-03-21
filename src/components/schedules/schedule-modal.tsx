@@ -68,7 +68,8 @@ export function ScheduleModal({
   if (!schedule) return null;
 
   const isCreator = currentUserId === schedule.created_by;
-  const isJoined = participants.some((p) => p.user_id === currentUserId);
+  const joinedCharIds = new Set(participants.filter((p) => p.user_id === currentUserId).map((p) => p.character_id));
+  const availableCharsToJoin = characters.filter((c) => !joinedCharIds.has(c.id));
   const isLate = schedule.status === "open" && new Date(schedule.scheduled_at) < new Date();
 
   // Sort participants: creator first
@@ -79,7 +80,7 @@ export function ScheduleModal({
   });
 
   const handleJoinClick = () => {
-    setSelectedCharacterId(characters[0]?.id ?? "");
+    setSelectedCharacterId(availableCharsToJoin[0]?.id ?? "");
     setJoinMessage("");
     setMode("joining");
   };
@@ -417,7 +418,7 @@ export function ScheduleModal({
                     className="bg-[#2a1f40] border border-[#3D2A5C] rounded-lg px-3 py-2 text-sm text-[#A89BC2] focus:outline-none focus:border-[#7C3AED]"
                     style={{ colorScheme: "dark" }}
                   >
-                    {characters.map((c) => (
+                    {availableCharsToJoin.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name} — {c.class} Lv.{c.level}
                       </option>
@@ -460,7 +461,7 @@ export function ScheduleModal({
             {/* Action buttons */}
             {mode === "view" && schedule.status === "open" && (
               <div className="flex flex-wrap gap-2 justify-end pt-2 border-t border-[#3D2A5C]">
-                {!isJoined && !isCreator && characters.length > 0 && (
+                {!isCreator && availableCharsToJoin.length > 0 && (
                   <button
                     type="button"
                     onClick={handleJoinClick}
