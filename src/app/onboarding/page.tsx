@@ -244,9 +244,11 @@ export default function OnboardingPage() {
 
       // 5. Redirect to dashboard
       router.push("/dashboard");
-    } catch (err) {
-      console.error("Onboarding submission failed:", err);
-      setError("Erro ao salvar. Tente novamente.");
+    } catch (err: unknown) {
+      const e = err as { message?: string; details?: string; code?: string };
+      console.error("Onboarding submission failed:", e.message, e.details, e.code, err);
+      setError(`Erro ao salvar: ${e.message || "Tente novamente."}`);
+
       setIsSubmitting(false);
     }
   }
