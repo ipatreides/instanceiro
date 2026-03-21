@@ -62,6 +62,7 @@ export default function DashboardPage() {
     createSchedule,
     joinSchedule,
     leaveSchedule,
+    removeParticipant,
     completeSchedule,
     expireSchedule,
     getParticipants,
@@ -574,6 +575,12 @@ export default function DashboardPage() {
         onLeave={async () => {
           if (!selectedSchedule) return;
           await leaveSchedule(selectedSchedule.id);
+          const p = await getParticipants(selectedSchedule.id);
+          setScheduleParticipants(p);
+        }}
+        onRemoveParticipant={async (targetUserId) => {
+          if (!selectedSchedule) return;
+          await removeParticipant(selectedSchedule.id, targetUserId);
           const p = await getParticipants(selectedSchedule.id);
           setScheduleParticipants(p);
         }}

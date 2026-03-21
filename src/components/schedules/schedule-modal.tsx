@@ -13,6 +13,7 @@ interface ScheduleModalProps {
   characters: Character[];
   onJoin: (characterId: string, message?: string) => Promise<void>;
   onLeave: () => Promise<void>;
+  onRemoveParticipant: (userId: string) => Promise<void>;
   onComplete: (confirmedParticipants: { userId: string; characterId: string }[]) => Promise<void>;
   onExpire: () => Promise<void>;
   loading?: boolean;
@@ -39,6 +40,7 @@ export function ScheduleModal({
   characters,
   onJoin,
   onLeave,
+  onRemoveParticipant,
   onComplete,
   onExpire,
   loading,
@@ -222,46 +224,65 @@ export function ScheduleModal({
               {sortedParticipants.length === 0 ? (
                 <p className="text-sm text-[#6B5A8A] italic">Nenhum participante ainda.</p>
               ) : (
-                sortedParticipants.map((p) => (
-                  <div
-                    key={p.user_id}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#2a1f40] border border-[#3D2A5C]"
-                  >
-                    {p.avatar_url ? (
-                      <img
-                        src={p.avatar_url}
-                        alt=""
-                        className="w-7 h-7 rounded-full"
-                      />
-                    ) : (
-                      <div className="w-7 h-7 rounded-full bg-[#3D2A5C] flex items-center justify-center text-xs text-[#A89BC2]">
-                        ?
-                      </div>
-                    )}
-                    <div className="flex flex-col flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-white truncate">
-                          @{p.username ?? "???"}
-                        </span>
-                        {p.user_id === schedule.created_by && (
-                          <span className="text-[10px] text-[#D4A843] font-medium">
-                            (organizador)
+                sortedParticipants.map((p) => {
+                  const isParticipantCreator = p.user_id === schedule.created_by;
+                  const canRemove = !isParticipantCreator && (isCreator || p.user_id === currentUserId);
+                  return (
+                    <div
+                      key={p.user_id}
+                      className="group flex items-center gap-3 px-3 py-2 rounded-lg bg-[#2a1f40] border border-[#3D2A5C]"
+                    >
+                      {p.avatar_url ? (
+                        <img
+                          src={p.avatar_url}
+                          alt=""
+                          className="w-7 h-7 rounded-full"
+                        />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-[#3D2A5C] flex items-center justify-center text-xs text-[#A89BC2]">
+                          ?
+                        </div>
+                      )}
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-white truncate">
+                            @{p.username ?? "???"}
                           </span>
-                        )}
+                          {isParticipantCreator && (
+                            <span className="text-[10px] text-[#D4A843] font-medium">
+                              (organizador)
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {p.characterName && (
+                            <span className="text-xs text-[#6B5A8A]">{p.characterName}</span>
+                          )}
+                          {p.message && (
+                            <span className="text-xs text-[#6B5A8A] italic truncate">
+                              — {p.message}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {p.characterName && (
-                          <span className="text-xs text-[#6B5A8A]">{p.characterName}</span>
-                        )}
-                        {p.message && (
-                          <span className="text-xs text-[#6B5A8A] italic truncate">
-                            — {p.message}
-                          </span>
-                        )}
-                      </div>
+                      {canRemove && schedule.status === "open" && (
+                        <button
+                          onClick={() => {
+                            if (p.user_id === currentUserId) {
+                              onLeave();
+                            } else {
+                              onRemoveParticipant(p.user_id);
+                            }
+                          }}
+                          disabled={busy}
+                          className="text-xs text-red-400 hover:text-red-300 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                        >
+                          ×
+                        </button>
+                      )}
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
@@ -328,16 +349,6 @@ export function ScheduleModal({
                     className="px-4 py-2 text-sm text-white bg-[#7C3AED] rounded-lg hover:bg-[#6D31D4] transition-colors cursor-pointer disabled:opacity-50"
                   >
                     Participar
-                  </button>
-                )}
-                {isJoined && !isCreator && (
-                  <button
-                    type="button"
-                    onClick={handleLeave}
-                    disabled={busy}
-                    className="px-4 py-2 text-sm text-[#A89BC2] bg-[#2a1f40] border border-[#3D2A5C] rounded-lg hover:bg-[#3D2A5C] transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    {busy ? "Saindo..." : "Sair"}
                   </button>
                 )}
                 {isCreator && (

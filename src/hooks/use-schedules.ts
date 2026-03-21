@@ -10,6 +10,7 @@ interface UseSchedulesReturn {
   createSchedule: (instanceId: number, characterId: string, scheduledAt: string, message?: string) => Promise<void>;
   joinSchedule: (scheduleId: string, characterId: string, message?: string) => Promise<void>;
   leaveSchedule: (scheduleId: string) => Promise<void>;
+  removeParticipant: (scheduleId: string, targetUserId: string) => Promise<void>;
   completeSchedule: (scheduleId: string, confirmedParticipants: { userId: string; characterId: string }[]) => Promise<void>;
   expireSchedule: (scheduleId: string) => Promise<void>;
   getParticipants: (scheduleId: string) => Promise<ScheduleParticipant[]>;
@@ -135,6 +136,15 @@ export function useSchedules(): UseSchedulesReturn {
       .eq("user_id", user.id);
   }, []);
 
+  const removeParticipant = useCallback(async (scheduleId: string, targetUserId: string) => {
+    const supabase = createClient();
+    await supabase
+      .from("schedule_participants")
+      .delete()
+      .eq("schedule_id", scheduleId)
+      .eq("user_id", targetUserId);
+  }, []);
+
   const completeSchedule = useCallback(async (scheduleId: string, confirmedParticipants: { userId: string; characterId: string }[]) => {
     const supabase = createClient();
 
@@ -236,6 +246,7 @@ export function useSchedules(): UseSchedulesReturn {
     createSchedule,
     joinSchedule,
     leaveSchedule,
+    removeParticipant,
     completeSchedule,
     expireSchedule,
     getParticipants,
