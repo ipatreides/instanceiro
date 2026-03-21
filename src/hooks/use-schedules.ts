@@ -147,19 +147,18 @@ export function useSchedules(): UseSchedulesReturn {
 
     if (!schedule) throw new Error("Schedule not found");
 
-    // Create completions for creator + confirmed participants
-    const completionRows = [
-      { character_id: schedule.character_id, instance_id: schedule.instance_id, completed_at: schedule.scheduled_at },
-      ...confirmedParticipants.map((p) => ({
-        character_id: p.characterId,
-        instance_id: schedule.instance_id,
-        completed_at: schedule.scheduled_at,
-      })),
+    // Collect all character IDs (creator + confirmed participants)
+    const allCharIds = [
+      schedule.character_id,
+      ...confirmedParticipants.map((p) => p.characterId),
     ];
 
-    const { error: compError } = await supabase
-      .from("instance_completions")
-      .insert(completionRows);
+    // Use SECURITY DEFINER function to insert completions for all
+    const { error: compError } = await supabase.rpc("complete_schedule_for_all", {
+      p_instance_id: schedule.instance_id,
+      p_completed_at: schedule.scheduled_at,
+      p_character_ids: allCharIds,
+    });
 
     if (compError) throw compError;
 
