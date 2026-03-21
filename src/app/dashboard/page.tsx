@@ -13,6 +13,11 @@ import { FriendsSidebar } from "@/components/friends/friends-sidebar";
 import { InstanceGroup } from "@/components/instances/instance-group";
 import { InstanceSearch } from "@/components/instances/instance-search";
 import { InstanceModal } from "@/components/instances/instance-modal";
+import { ScheduleSection } from "@/components/schedules/schedule-section";
+import { ScheduleModal } from "@/components/schedules/schedule-modal";
+import { ScheduleForm } from "@/components/schedules/schedule-form";
+import { useSchedules } from "@/hooks/use-schedules";
+import type { InstanceSchedule, ScheduleParticipant } from "@/lib/types";
 import { Modal } from "@/components/ui/modal";
 import type { Character, InstanceState } from "@/lib/types";
 
@@ -37,6 +42,10 @@ export default function DashboardPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [selectedSchedule, setSelectedSchedule] = useState<InstanceSchedule | null>(null);
+  const [scheduleParticipants, setScheduleParticipants] = useState<ScheduleParticipant[]>([]);
+  const [schedulingInstanceId, setSchedulingInstanceId] = useState<number | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const { characters, loading: charsLoading, createCharacter, updateCharacter, refetch: refetchCharacters } = useCharacters();
   const {
@@ -48,6 +57,15 @@ export default function DashboardPage() {
     toggleActive,
     getHistory,
   } = useInstances(selectedCharId);
+  const {
+    schedules,
+    createSchedule,
+    joinSchedule,
+    leaveSchedule,
+    completeSchedule,
+    expireSchedule,
+    getParticipants,
+  } = useSchedules();
   const now = useCooldownTimer();
 
   // Auto-select first character
@@ -65,6 +83,7 @@ export default function DashboardPage() {
         router.push("/");
         return;
       }
+      setUserId(user.id);
       supabase
         .from("profiles")
         .select("display_name, avatar_url, username, onboarding_completed")
@@ -338,6 +357,18 @@ export default function DashboardPage() {
 
         {characters.length > 0 ? (
           <>
+            {/* Scheduled instances */}
+            {schedules.length > 0 && (
+              <ScheduleSection
+                schedules={schedules}
+                onCardClick={async (s) => {
+                  setSelectedSchedule(s);
+                  const p = await getParticipants(s.id);
+                  setScheduleParticipants(p);
+                }}
+              />
+            )}
+
             {/* Instance search */}
             <InstanceSearch
               text={searchText}
@@ -405,6 +436,10 @@ export default function DashboardPage() {
         onDeleteCompletion={handleDeleteCompletion}
         onDeactivate={handleDeactivate}
         onActivate={handleActivate}
+        onSchedule={modalState && modalState.instance.party_min > 1 ? () => {
+          setSchedulingInstanceId(modalState.instance.id);
+          setModalInstanceId(null);
+        } : undefined}
         actionLoading={actionLoading}
         actionError={actionError}
       />
@@ -513,6 +548,54 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Schedule detail modal */}
+      <ScheduleModal
+        isOpen={selectedSchedule !== null}
+        onClose={() => setSelectedSchedule(null)}
+        schedule={selectedSchedule}
+        participants={scheduleParticipants}
+        currentUserId={userId}
+        characters={characters.filter((c) => !c.isShared)}
+        onJoin={async (characterId, message) => {
+          if (!selectedSchedule) return;
+          await joinSchedule(selectedSchedule.id, characterId, message);
+          const p = await getParticipants(selectedSchedule.id);
+          setScheduleParticipants(p);
+        }}
+        onLeave={async () => {
+          if (!selectedSchedule) return;
+          await leaveSchedule(selectedSchedule.id);
+          const p = await getParticipants(selectedSchedule.id);
+          setScheduleParticipants(p);
+        }}
+        onComplete={async (confirmed) => {
+          if (!selectedSchedule) return;
+          await completeSchedule(selectedSchedule.id, confirmed);
+          setSelectedSchedule(null);
+        }}
+        onExpire={async () => {
+          if (!selectedSchedule) return;
+          await expireSchedule(selectedSchedule.id);
+          setSelectedSchedule(null);
+        }}
+      />
+
+      {/* Schedule creation modal */}
+      <Modal
+        isOpen={schedulingInstanceId !== null}
+        onClose={() => setSchedulingInstanceId(null)}
+        title="Agendar Instância"
+      >
+        <ScheduleForm
+          onSubmit={async (scheduledAt, message) => {
+            if (!schedulingInstanceId || !selectedCharId) return;
+            await createSchedule(schedulingInstanceId, selectedCharId, scheduledAt, message ?? undefined);
+            setSchedulingInstanceId(null);
+          }}
+          onCancel={() => setSchedulingInstanceId(null)}
+        />
       </Modal>
     </div>
   );

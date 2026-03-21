@@ -16,6 +16,7 @@ interface InstanceModalProps {
   onDeleteCompletion: (completionId: string) => void;
   onDeactivate: () => void;
   onActivate: () => void;
+  onSchedule?: () => void;
   actionLoading?: boolean;
   actionError?: string | null;
 }
@@ -74,6 +75,7 @@ export function InstanceModal({
   onDeleteCompletion,
   onDeactivate,
   onActivate,
+  onSchedule,
   actionLoading,
   actionError,
 }: InstanceModalProps) {
@@ -214,6 +216,16 @@ export function InstanceModal({
               </button>
             </div>
           </div>
+        )}
+
+        {/* Schedule button */}
+        {onSchedule && !confirmingMarkDone && (
+          <button
+            onClick={onSchedule}
+            className="w-full py-2.5 rounded-md bg-[#2a1f40] border border-[#3D2A5C] text-[#D4A843] font-semibold text-sm hover:border-[#D4A843] transition-colors cursor-pointer"
+          >
+            Agendar com amigos
+          </button>
         )}
 
         {/* History */}
