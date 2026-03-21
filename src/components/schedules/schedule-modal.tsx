@@ -101,7 +101,7 @@ export function ScheduleModal({
   const handleCompleteClick = () => {
     const initial: Record<string, boolean> = {};
     for (const p of participants) {
-      initial[p.user_id] = true;
+      initial[p.character_id] = true;
     }
     setCheckedParticipants(initial);
     setMode("completing");
@@ -109,7 +109,7 @@ export function ScheduleModal({
 
   const handleConfirmComplete = async () => {
     const confirmed = participants
-      .filter((p) => checkedParticipants[p.user_id])
+      .filter((p) => checkedParticipants[p.character_id])
       .map((p) => ({ userId: p.user_id, characterId: p.character_id }));
     setActionLoading(true);
     try {
@@ -189,8 +189,8 @@ export function ScheduleModal({
     }
   };
 
-  const toggleParticipant = (userId: string) => {
-    setCheckedParticipants((prev) => ({ ...prev, [userId]: !prev[userId] }));
+  const toggleParticipant = (characterId: string) => {
+    setCheckedParticipants((prev) => ({ ...prev, [characterId]: !prev[characterId] }));
   };
 
   const busy = loading || actionLoading;
@@ -305,13 +305,13 @@ export function ScheduleModal({
             <div className="flex flex-col gap-2">
               {sortedParticipants.map((p) => (
                 <label
-                  key={p.user_id}
+                  key={p.character_id}
                   className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#2a1f40] border border-[#3D2A5C] cursor-pointer hover:border-[#7C3AED] transition-colors"
                 >
                   <input
                     type="checkbox"
-                    checked={checkedParticipants[p.user_id] ?? false}
-                    onChange={() => toggleParticipant(p.user_id)}
+                    checked={checkedParticipants[p.character_id] ?? false}
+                    onChange={() => toggleParticipant(p.character_id)}
                     className="accent-[#7C3AED] w-4 h-4"
                   />
                   <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -369,7 +369,7 @@ export function ScheduleModal({
                   const canRemove = !isParticipantCreator && (isCreator || p.user_id === currentUserId);
                   return (
                     <div
-                      key={p.user_id}
+                      key={p.character_id}
                       className="group flex items-center gap-3 px-3 py-2 rounded-lg bg-[#2a1f40] border border-[#3D2A5C]"
                     >
                       {p.avatar_url ? (
