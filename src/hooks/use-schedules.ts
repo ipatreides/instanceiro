@@ -147,11 +147,11 @@ export function useSchedules(): UseSchedulesReturn {
 
     if (!schedule) throw new Error("Schedule not found");
 
-    // Collect all character IDs (creator + confirmed participants)
-    const allCharIds = [
+    // Collect unique character IDs (creator already included in confirmed list)
+    const allCharIds = [...new Set([
       schedule.character_id,
       ...confirmedParticipants.map((p) => p.characterId),
-    ];
+    ])];
 
     // Use SECURITY DEFINER function to insert completions for all
     const { error: compError } = await supabase.rpc("complete_schedule_for_all", {
