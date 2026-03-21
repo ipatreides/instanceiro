@@ -42,6 +42,35 @@ export interface Friendship {
   avatar_url?: string | null;
 }
 
+export interface InstanceSchedule {
+  id: string;
+  instance_id: number;
+  character_id: string;
+  created_by: string;
+  scheduled_at: string;
+  status: 'open' | 'completed' | 'expired';
+  message: string | null;
+  created_at: string;
+  // Joined
+  instanceName?: string;
+  instanceStartMap?: string | null;
+  instanceLigaTier?: string | null;
+  creatorUsername?: string;
+  creatorAvatar?: string | null;
+  participantCount?: number;
+}
+
+export interface ScheduleParticipant {
+  schedule_id: string;
+  character_id: string;
+  user_id: string;
+  message: string | null;
+  created_at: string;
+  username?: string;
+  avatar_url?: string | null;
+  characterName?: string;
+}
+
 export interface Instance {
   id: number;
   name: string;
