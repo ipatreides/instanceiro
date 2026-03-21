@@ -45,27 +45,8 @@ export default function LandingPage() {
             />
           </div>
 
-          {/* CTA */}
-          <div className="flex flex-col items-center gap-4">
-            <LoginButton />
-            <div className="flex items-center gap-3 w-full max-w-xs">
-              <div className="flex-1 h-px bg-[#3D2A5C]" />
-              <span className="text-xs text-[#6B5A8A]">ou</span>
-              <div className="flex-1 h-px bg-[#3D2A5C]" />
-            </div>
-            <a
-              href="/signup"
-              className="w-full max-w-xs text-center bg-[#1a1230] border border-[#3D2A5C] hover:border-[#7C3AED] text-white font-medium py-3 px-8 rounded-lg transition-colors text-lg"
-            >
-              Criar conta
-            </a>
-            <a
-              href="/login"
-              className="text-sm text-[#A89BC2] hover:text-white transition-colors"
-            >
-              Já tem conta? Entrar
-            </a>
-          </div>
+          {/* CTA — Social Login */}
+          <LoginButton />
         </div>
       </main>
 
