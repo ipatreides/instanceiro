@@ -242,13 +242,15 @@ export function useSchedules(): UseSchedulesReturn {
     ]);
 
     const profileMap = new Map((profilesRes.data ?? []).map((p: { id: string; username: string; avatar_url: string | null }) => [p.id, p]));
-    const charMap = new Map(((charsRes.data ?? []) as { id: string; name: string }[]).map((c) => [c.id, c]));
+    const charMap = new Map(((charsRes.data ?? []) as { id: string; name: string; class: string; level: number }[]).map((c) => [c.id, c]));
 
     return allParticipants.map((p) => ({
       ...p,
       username: profileMap.get(p.user_id)?.username ?? "???",
       avatar_url: profileMap.get(p.user_id)?.avatar_url ?? null,
       characterName: charMap.get(p.character_id)?.name ?? "???",
+      characterClass: charMap.get(p.character_id)?.class ?? "???",
+      characterLevel: charMap.get(p.character_id)?.level ?? 0,
     }));
   }, []);
 

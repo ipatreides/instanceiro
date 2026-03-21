@@ -303,14 +303,15 @@ export function ScheduleModal({
                         className="w-6 h-6 rounded-full"
                       />
                     )}
-                    <span className="text-sm text-white truncate">
+                    <span className="text-sm text-white font-medium truncate">
+                      {p.characterName ?? "???"}
+                    </span>
+                    <span className="text-xs text-[#6B5A8A]">
+                      {p.characterClass} Lv.{p.characterLevel}
+                    </span>
+                    <span className="text-xs text-[#A89BC2]">
                       @{p.username ?? "???"}
                     </span>
-                    {p.characterName && (
-                      <span className="text-xs text-[#6B5A8A] truncate">
-                        {p.characterName}
-                      </span>
-                    )}
                   </div>
                 </label>
               ))}
@@ -365,8 +366,11 @@ export function ScheduleModal({
                       )}
                       <div className="flex flex-col flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm text-white truncate">
-                            @{p.username ?? "???"}
+                          <span className="text-sm text-white font-medium truncate">
+                            {p.characterName ?? "???"}
+                          </span>
+                          <span className="text-xs text-[#6B5A8A]">
+                            {p.characterClass} Lv.{p.characterLevel}
                           </span>
                           {isParticipantCreator && (
                             <span className="text-[10px] text-[#D4A843] font-medium">
@@ -375,9 +379,7 @@ export function ScheduleModal({
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          {p.characterName && (
-                            <span className="text-xs text-[#6B5A8A]">{p.characterName}</span>
-                          )}
+                          <span className="text-xs text-[#A89BC2]">@{p.username ?? "???"}</span>
                           {p.message && (
                             <span className="text-xs text-[#6B5A8A] italic truncate">
                               — {p.message}

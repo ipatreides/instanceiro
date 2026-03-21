@@ -69,6 +69,8 @@ export interface ScheduleParticipant {
   username?: string;
   avatar_url?: string | null;
   characterName?: string;
+  characterClass?: string;
+  characterLevel?: number;
 }
 
 export interface Instance {
