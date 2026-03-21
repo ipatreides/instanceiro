@@ -590,15 +590,15 @@ export default function DashboardPage() {
           const p = await getParticipants(selectedSchedule.id);
           setScheduleParticipants(p);
         }}
-        onLeave={async () => {
+        onLeave={async (characterId) => {
           if (!selectedSchedule) return;
-          await leaveSchedule(selectedSchedule.id);
+          await leaveSchedule(selectedSchedule.id, characterId);
           const p = await getParticipants(selectedSchedule.id);
           setScheduleParticipants(p);
         }}
-        onRemoveParticipant={async (targetUserId) => {
+        onRemoveParticipant={async (characterId) => {
           if (!selectedSchedule) return;
-          await removeParticipant(selectedSchedule.id, targetUserId);
+          await removeParticipant(selectedSchedule.id, characterId);
           const p = await getParticipants(selectedSchedule.id);
           setScheduleParticipants(p);
         }}

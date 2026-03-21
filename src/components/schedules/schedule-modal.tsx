@@ -14,8 +14,8 @@ interface ScheduleModalProps {
   currentUserId: string | null;
   characters: Character[];
   onJoin: (characterId: string, message?: string) => Promise<void>;
-  onLeave: () => Promise<void>;
-  onRemoveParticipant: (userId: string) => Promise<void>;
+  onLeave: (characterId: string) => Promise<void>;
+  onRemoveParticipant: (characterId: string) => Promise<void>;
   onInvite: (characterId: string, userId: string) => Promise<void>;
   getEligibleFriends: (instanceId: number) => Promise<EligibleFriend[]>;
   onComplete: (confirmedParticipants: { userId: string; characterId: string }[]) => Promise<void>;
@@ -95,14 +95,7 @@ export function ScheduleModal({
     }
   };
 
-  const handleLeave = async () => {
-    setActionLoading(true);
-    try {
-      await onLeave();
-    } finally {
-      setActionLoading(false);
-    }
-  };
+
 
   const handleCompleteClick = () => {
     const initial: Record<string, boolean> = {};
@@ -395,9 +388,9 @@ export function ScheduleModal({
                         <button
                           onClick={() => {
                             if (p.user_id === currentUserId) {
-                              onLeave();
+                              onLeave(p.character_id);
                             } else {
-                              onRemoveParticipant(p.user_id);
+                              onRemoveParticipant(p.character_id);
                             }
                           }}
                           disabled={busy}

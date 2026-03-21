@@ -21,8 +21,8 @@ interface UseSchedulesReturn {
   loading: boolean;
   createSchedule: (instanceId: number, characterId: string, scheduledAt: string, message?: string) => Promise<void>;
   joinSchedule: (scheduleId: string, characterId: string, message?: string) => Promise<void>;
-  leaveSchedule: (scheduleId: string) => Promise<void>;
-  removeParticipant: (scheduleId: string, targetUserId: string) => Promise<void>;
+  leaveSchedule: (scheduleId: string, characterId: string) => Promise<void>;
+  removeParticipant: (scheduleId: string, characterId: string) => Promise<void>;
   inviteFriend: (scheduleId: string, characterId: string, userId: string) => Promise<void>;
   getEligibleFriends: (instanceId: number) => Promise<EligibleFriend[]>;
   completeSchedule: (scheduleId: string, confirmedParticipants: { userId: string; characterId: string }[]) => Promise<void>;
@@ -138,25 +138,23 @@ export function useSchedules(): UseSchedulesReturn {
     if (error) throw error;
   }, []);
 
-  const leaveSchedule = useCallback(async (scheduleId: string) => {
+  const leaveSchedule = useCallback(async (scheduleId: string, characterId: string) => {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
 
     await supabase
       .from("schedule_participants")
       .delete()
       .eq("schedule_id", scheduleId)
-      .eq("user_id", user.id);
+      .eq("character_id", characterId);
   }, []);
 
-  const removeParticipant = useCallback(async (scheduleId: string, targetUserId: string) => {
+  const removeParticipant = useCallback(async (scheduleId: string, characterId: string) => {
     const supabase = createClient();
     await supabase
       .from("schedule_participants")
       .delete()
       .eq("schedule_id", scheduleId)
-      .eq("user_id", targetUserId);
+      .eq("character_id", characterId);
   }, []);
 
   const completeSchedule = useCallback(async (scheduleId: string, confirmedParticipants: { userId: string; characterId: string }[]) => {
