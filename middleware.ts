@@ -1,7 +1,16 @@
-import { type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
+  // Redirect email confirmation code from / to /auth/callback
+  const { pathname, searchParams } = request.nextUrl;
+  const code = searchParams.get("code");
+  if (pathname === "/" && code) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/callback";
+    return NextResponse.redirect(url);
+  }
+
   return await updateSession(request);
 }
 
