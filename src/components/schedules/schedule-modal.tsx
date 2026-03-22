@@ -19,6 +19,11 @@ interface ScheduleModalProps {
   onInvite: (characterId: string, userId: string) => Promise<void>;
   getEligibleFriends: (instanceId: number) => Promise<EligibleFriend[]>;
   onComplete: (confirmedParticipants: { userId: string; characterId: string }[]) => Promise<void>;
+  onGenerateInviteCode: (scheduleId: string) => Promise<string>;
+  onGetInviteCode: (scheduleId: string) => Promise<string | null>;
+  onAddPlaceholder: (scheduleId: string, name: string, className: string) => Promise<void>;
+  onRemovePlaceholder: (placeholderId: string) => Promise<void>;
+  onGetPlaceholders: (scheduleId: string) => Promise<import("@/lib/types").SchedulePlaceholder[]>;
   onExpire: () => Promise<void>;
   instanceCooldownType?: string;
   instanceCooldownHours?: number | null;
@@ -51,6 +56,11 @@ export function ScheduleModal({
   onInvite,
   getEligibleFriends,
   onComplete,
+  onGenerateInviteCode,
+  onGetInviteCode,
+  onAddPlaceholder,
+  onRemovePlaceholder,
+  onGetPlaceholders,
   onExpire,
   instanceCooldownType,
   instanceCooldownHours,
@@ -64,6 +74,18 @@ export function ScheduleModal({
   const [actionLoading, setActionLoading] = useState(false);
   const [eligibleFriends, setEligibleFriends] = useState<EligibleFriend[]>([]);
   const [inviteSearch, setInviteSearch] = useState("");
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
+  const [placeholders, setPlaceholders] = useState<import("@/lib/types").SchedulePlaceholder[]>([]);
+  const [showPlaceholderForm, setShowPlaceholderForm] = useState(false);
+  const [placeholderName, setPlaceholderName] = useState("");
+  const [placeholderClass, setPlaceholderClass] = useState("");
+
+  useEffect(() => {
+    if (!isOpen || !schedule) return;
+    onGetInviteCode(schedule.id).then(setInviteCode);
+    onGetPlaceholders(schedule.id).then(setPlaceholders);
+  }, [isOpen, schedule?.id, onGetInviteCode, onGetPlaceholders]);
 
   if (!schedule) return null;
 
@@ -180,10 +202,58 @@ export function ScheduleModal({
     }
   };
 
+  const handleGenerateInvite = async () => {
+    if (!schedule) return;
+    setActionLoading(true);
+    try {
+      const code = await onGenerateInviteCode(schedule.id);
+      setInviteCode(code);
+      const url = `${window.location.origin}/invite/${code}`;
+      await navigator.clipboard.writeText(url);
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 2000);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCopyInvite = async () => {
+    if (!inviteCode) return;
+    const url = `${window.location.origin}/invite/${inviteCode}`;
+    await navigator.clipboard.writeText(url);
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), 2000);
+  };
+
   const handleExpire = async () => {
     setActionLoading(true);
     try {
       await onExpire();
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleAddPlaceholder = async () => {
+    if (!schedule || !placeholderName.trim() || !placeholderClass.trim()) return;
+    setActionLoading(true);
+    try {
+      await onAddPlaceholder(schedule.id, placeholderName.trim(), placeholderClass.trim());
+      const updated = await onGetPlaceholders(schedule.id);
+      setPlaceholders(updated);
+      setPlaceholderName("");
+      setPlaceholderClass("");
+      setShowPlaceholderForm(false);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRemovePlaceholder = async (id: string) => {
+    setActionLoading(true);
+    try {
+      await onRemovePlaceholder(id);
+      setPlaceholders((prev) => prev.filter((p) => p.id !== id));
     } finally {
       setActionLoading(false);
     }
@@ -359,7 +429,7 @@ export function ScheduleModal({
             {/* Participant list */}
             <div className="flex flex-col gap-2">
               <p className="text-xs text-[#6B5A8A] font-medium">
-                Participantes ({participants.length})
+                Participantes ({participants.length + placeholders.filter((p) => !p.claimed_by).length})
               </p>
               {sortedParticipants.length === 0 ? (
                 <p className="text-sm text-[#6B5A8A] italic">Nenhum participante ainda.</p>
@@ -426,6 +496,110 @@ export function ScheduleModal({
                 })
               )}
             </div>
+
+            {/* Placeholders (visible to all) */}
+            {placeholders.filter((p) => !p.claimed_by).map((p) => (
+              <div
+                key={p.id}
+                className="group flex items-center gap-3 px-3 py-2 rounded-lg bg-[#2a1f40] border border-[#3D2A5C] opacity-50"
+              >
+                <div className="w-7 h-7 rounded-full bg-[#3D2A5C] flex items-center justify-center text-xs text-[#6B5A8A]">
+                  ?
+                </div>
+                <div className="flex flex-col flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-white font-medium truncate">{p.character_name}</span>
+                    <span className="text-xs text-[#6B5A8A]">{p.character_class}</span>
+                  </div>
+                  <span className="text-[10px] text-yellow-500 font-medium">Aguardando</span>
+                </div>
+                {isCreator && (
+                  <button
+                    onClick={() => handleRemovePlaceholder(p.id)}
+                    disabled={busy}
+                    className="text-xs text-red-400 hover:text-red-300 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                  >
+                    Remover
+                  </button>
+                )}
+              </div>
+            ))}
+
+            {/* Invite link + Add placeholder (creator only) */}
+            {isCreator && schedule.status === "open" && (
+              <div className="flex flex-col gap-3 pt-2 border-t border-[#3D2A5C]">
+                {/* Invite link */}
+                <div className="flex items-center gap-2">
+                  {inviteCode ? (
+                    <>
+                      <input
+                        readOnly
+                        value={`${window.location.origin}/invite/${inviteCode}`}
+                        className="flex-1 bg-[#1a1230] border border-[#3D2A5C] rounded-lg px-3 py-2 text-xs text-[#A89BC2] truncate"
+                      />
+                      <button
+                        onClick={handleCopyInvite}
+                        className="px-3 py-2 text-xs text-[#D4A843] bg-[#2a1f40] border border-[#D4A843]/30 rounded-lg hover:border-[#D4A843] transition-colors cursor-pointer whitespace-nowrap"
+                      >
+                        {inviteCopied ? "Copiado!" : "Copiar"}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={handleGenerateInvite}
+                      disabled={busy}
+                      className="px-4 py-2 text-xs text-[#D4A843] bg-[#2a1f40] border border-[#D4A843]/30 rounded-lg hover:border-[#D4A843] transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {busy ? "Gerando..." : "Gerar link de convite"}
+                    </button>
+                  )}
+                </div>
+
+                {/* Add placeholder form */}
+                {showPlaceholderForm ? (
+                  <div className="flex flex-col gap-2 p-3 rounded-lg bg-[#0f0a1a] border border-[#3D2A5C]">
+                    <input
+                      type="text"
+                      value={placeholderName}
+                      onChange={(e) => setPlaceholderName(e.target.value)}
+                      placeholder="Nome do personagem"
+                      maxLength={24}
+                      className="bg-[#2a1f40] border border-[#3D2A5C] rounded-lg px-3 py-2 text-sm text-white placeholder-[#6B5A8A] focus:outline-none focus:border-[#7C3AED]"
+                    />
+                    <input
+                      type="text"
+                      value={placeholderClass}
+                      onChange={(e) => setPlaceholderClass(e.target.value)}
+                      placeholder="Classe (ex: Arcano)"
+                      maxLength={30}
+                      className="bg-[#2a1f40] border border-[#3D2A5C] rounded-lg px-3 py-2 text-sm text-white placeholder-[#6B5A8A] focus:outline-none focus:border-[#7C3AED]"
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={() => { setShowPlaceholderForm(false); setPlaceholderName(""); setPlaceholderClass(""); }}
+                        className="px-3 py-1.5 text-xs text-[#A89BC2] bg-[#2a1f40] border border-[#3D2A5C] rounded-lg hover:bg-[#3D2A5C] transition-colors cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={handleAddPlaceholder}
+                        disabled={busy || !placeholderName.trim() || !placeholderClass.trim()}
+                        className="px-3 py-1.5 text-xs text-white bg-[#7C3AED] rounded-lg hover:bg-[#6D31D4] transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        Adicionar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowPlaceholderForm(true)}
+                    className="text-xs text-[#7C3AED] hover:text-white transition-colors cursor-pointer self-start"
+                  >
+                    + Adicionar personagem externo
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Joining mode */}
             {mode === "joining" && (
