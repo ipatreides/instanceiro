@@ -24,16 +24,21 @@ const PROVIDERS: { id: Provider; label: string; bg: string; hover: string; icon:
 export function LoginButton() {
   const handleLogin = async (provider: Provider) => {
     const supabase = createClient();
+    const redirect = new URLSearchParams(window.location.search).get("redirect");
+    const callbackUrl = redirect
+      ? `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirect)}`
+      : `${window.location.origin}/auth/callback`;
+
     await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: callbackUrl,
       },
     });
   };
 
   return (
-    <div className="flex flex-col gap-3 w-full max-w-xs">
+    <div className="flex flex-col sm:flex-row gap-3 w-full justify-center items-center">
       {PROVIDERS.map((p) => (
         <button
           key={p.id}

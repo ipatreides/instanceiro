@@ -37,12 +37,17 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isProtectedRoute =
-    pathname.startsWith("/dashboard") || pathname.startsWith("/onboarding");
+    pathname.startsWith("/dashboard") || pathname.startsWith("/onboarding") || pathname.startsWith("/invite");
 
   // Unauthenticated user trying to access protected routes → redirect to /
   if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    if (pathname.startsWith("/invite")) {
+      url.pathname = "/";
+      url.searchParams.set("redirect", pathname);
+    } else {
+      url.pathname = "/";
+    }
     return NextResponse.redirect(url);
   }
 
@@ -60,7 +65,13 @@ export async function updateSession(request: NextRequest) {
     // Authenticated user on landing page → redirect based on onboarding status
     if (pathname === "/") {
       const url = request.nextUrl.clone();
-      url.pathname = onboardingCompleted ? "/dashboard" : "/onboarding";
+      const redirect = request.nextUrl.searchParams.get("redirect");
+      if (redirect && redirect.startsWith("/invite/")) {
+        url.pathname = redirect;
+        url.searchParams.delete("redirect");
+      } else {
+        url.pathname = onboardingCompleted ? "/dashboard" : "/onboarding";
+      }
       return NextResponse.redirect(url);
     }
 

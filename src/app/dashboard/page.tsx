@@ -74,6 +74,11 @@ export default function DashboardPage() {
     completeSchedule,
     expireSchedule,
     getParticipants,
+    generateInviteCode,
+    getInviteCode,
+    addPlaceholder,
+    removePlaceholder,
+    getPlaceholders,
   } = useSchedules();
   const now = useCooldownTimer();
 
@@ -672,6 +677,11 @@ export default function DashboardPage() {
           await expireSchedule(selectedSchedule.id);
           setSelectedSchedule(null);
         }}
+        onGenerateInviteCode={generateInviteCode}
+        onGetInviteCode={getInviteCode}
+        onAddPlaceholder={addPlaceholder}
+        onRemovePlaceholder={removePlaceholder}
+        onGetPlaceholders={getPlaceholders}
       />
 
       {/* Schedule creation modal */}
