@@ -11,19 +11,19 @@ Allow schedule creators to generate a shareable invite link (short code) for the
 | Column | Type | Constraints |
 |--------|------|-------------|
 | id | uuid | PK, default gen_random_uuid() |
-| schedule_id | uuid | FK → instance_schedules, UNIQUE |
+| schedule_id | uuid | FK → instance_schedules ON DELETE CASCADE, UNIQUE |
 | code | varchar(8) | UNIQUE, NOT NULL |
 | created_by | uuid | FK → auth.users |
 | created_at | timestamptz | default now() |
 
-One invite per schedule (UNIQUE on schedule_id). Code is 8 alphanumeric chars (a-z, A-Z, 0-9), case-sensitive, ~218 trillion combinations.
+One invite per schedule (UNIQUE on schedule_id). Code is 8 alphanumeric chars (a-z, A-Z, 0-9), case-sensitive, ~218 trillion combinations. Cascades on schedule deletion.
 
 ### New table: `schedule_placeholders`
 
 | Column | Type | Constraints |
 |--------|------|-------------|
 | id | uuid | PK, default gen_random_uuid() |
-| schedule_id | uuid | FK → instance_schedules |
+| schedule_id | uuid | FK → instance_schedules ON DELETE CASCADE |
 | character_name | text | NOT NULL |
 | character_class | text | NOT NULL |
 | added_by | uuid | FK → auth.users |
@@ -31,16 +31,18 @@ One invite per schedule (UNIQUE on schedule_id). Code is 8 alphanumeric chars (a
 | claimed_character_id | uuid | nullable, FK → characters |
 | created_at | timestamptz | default now() |
 
+Cascades on schedule deletion. Add to `supabase_realtime` publication for live updates when placeholders are added/claimed.
+
 ### RLS Policies
 
 **schedule_invites:**
-- SELECT: any authenticated user can select by code (resolving invite link)
+- SELECT: creator only (`created_by = auth.uid()`). Invite resolution happens via `accept_invite` RPC (SECURITY DEFINER), bypassing RLS.
 - INSERT/DELETE: only if `created_by = auth.uid()`
 
 **schedule_placeholders:**
-- SELECT: any authenticated user (visible in participant list)
+- SELECT: scoped to schedules the user can see (creator OR friend of creator, matching `schedule_participants` visibility)
 - INSERT/DELETE: only if `added_by = auth.uid()`
-- UPDATE: only `claimed_by` and `claimed_character_id` fields, only when `claimed_by IS NULL` and updating to `auth.uid()`
+- UPDATE: not allowed via direct client access. All claiming happens through `accept_invite` RPC (SECURITY DEFINER).
 
 ## Invite Link Flow
 
@@ -50,7 +52,7 @@ One invite per schedule (UNIQUE on schedule_id). Code is 8 alphanumeric chars (a
 
 1. User visits `/invite/{code}`
 2. **No session** → redirect to login (Google/Discord) with `?redirect=/invite/{code}`
-3. **With session** → page loads invite data (schedule, instance, participants, placeholders)
+3. **With session** → page loads invite data (schedule, instance, participants, placeholders) via RPC
 4. **Schedule is open:**
    - User has eligible character → select existing or create new
    - User has no character → inline form (name, class, class_path, level)
@@ -67,11 +69,11 @@ When a user joins via invite, the system attempts to match their character name 
 
 ### Automatic friendship
 
-On any invite access (open or expired schedule), an `accepted` friendship is created between the invitee and the invite's `created_by`. Skipped if friendship already exists.
+On any invite access (open or expired schedule), an `accepted` friendship is created between the invitee and the invite's `created_by`. Checks both directions (requester/addressee) before inserting to avoid duplicates.
 
 ### Participant count
 
-The `X/12` counter includes unclaimed placeholders — they occupy slots.
+The `X/12` counter includes: creator (1) + `schedule_participants` rows + unclaimed placeholders. The existing `participantCount` in `useSchedules.fetchAll` must be updated to include unclaimed placeholders.
 
 ## RPC: `accept_invite`
 
@@ -80,15 +82,50 @@ The `X/12` counter includes unclaimed placeholders — they occupy slots.
 **SECURITY DEFINER function**, executes in a single transaction:
 
 1. Resolve invite → get `schedule_id`, `created_by`
-2. Check schedule status:
-   - If not `open` → create friendship only, return `friendship_only`
-3. Check participant count (participants + unclaimed placeholders) < 12
-   - If full → return `full`
-4. Check if user already in schedule → return `already_joined`
-5. Insert into `schedule_participants` (schedule_id, character_id, user_id)
-6. Try claim placeholder: `UPDATE schedule_placeholders SET claimed_by = auth.uid(), claimed_character_id = character_id WHERE schedule_id = X AND lower(character_name) = lower(char_name) AND claimed_by IS NULL LIMIT 1`
-7. Create friendship (INSERT ... ON CONFLICT DO NOTHING) with status `accepted`
-8. Return `joined`
+2. **Validate character ownership:** verify `character_id` belongs to `auth.uid()` in `characters` table. If not → error.
+3. Check schedule status:
+   - If not `open` → create friendship only (step 8), return `friendship_only`
+4. Count total slots: `schedule_participants` rows + unclaimed `schedule_placeholders` + 1 (creator). If >= 12 → return `full`
+5. Check if user already in schedule (any character) → return `already_joined`
+6. Insert into `schedule_participants` (schedule_id, character_id, user_id)
+7. Try claim placeholder using `FOR UPDATE` lock:
+   ```sql
+   WITH target AS (
+     SELECT id FROM schedule_placeholders
+     WHERE schedule_id = X AND lower(character_name) = lower(char_name)
+       AND claimed_by IS NULL
+     LIMIT 1
+     FOR UPDATE SKIP LOCKED
+   )
+   UPDATE schedule_placeholders SET claimed_by = auth.uid(), claimed_character_id = character_id
+   FROM target WHERE schedule_placeholders.id = target.id
+   ```
+8. Create friendship — check both directions first:
+   ```sql
+   INSERT INTO friendships (requester_id, addressee_id, status)
+   SELECT auth.uid(), created_by, 'accepted'
+   WHERE NOT EXISTS (
+     SELECT 1 FROM friendships
+     WHERE (requester_id = auth.uid() AND addressee_id = created_by)
+        OR (requester_id = created_by AND addressee_id = auth.uid())
+   )
+   ```
+9. Return `joined`
+
+## RPC: `resolve_invite`
+
+**Parameters:** `invite_code text`
+
+**SECURITY DEFINER function** for the invite page to load data without RLS issues:
+
+1. Resolve invite by code → get schedule_id, created_by
+2. Load schedule + instance info (name, scheduled_at, status, start_map)
+3. Load participants (enriched with profile + character info)
+4. Load unclaimed placeholders
+5. Load creator profile (username, avatar)
+6. Return all data
+
+This is read-only and safe for any authenticated user.
 
 ## UI Changes
 
@@ -122,17 +159,22 @@ New section in the invite/participant area:
 - `addPlaceholder(scheduleId, characterName, characterClass)` → INSERT into schedule_placeholders
 - `removePlaceholder(placeholderId)` → DELETE
 - `getPlaceholders(scheduleId)` → list with claimed status
+- `fetchAll` updated: participantCount includes unclaimed placeholders
 
 ### New hook: `useInvite(code)`
 
-- Resolves invite by code → loads schedule + instance + participants + placeholders
+- Resolves invite via `resolve_invite` RPC → loads schedule + instance + participants + placeholders
 - `acceptInvite(characterId)` → calls `accept_invite` RPC
-- `acceptInviteWithNewChar(name, class, classPath, level)` → creates character first, then calls `accept_invite` RPC
+- `acceptInviteWithNewChar(name, class, classPath, level)` → creates character first, then calls `accept_invite` RPC. Note: if the RPC fails after char creation (e.g., schedule full), the character persists — this is acceptable since the user now has an account and can use the character elsewhere.
 
 ## Security
 
 - 8-char alphanumeric codes: 62^8 ≈ 218 trillion combinations, not brute-forceable
 - No sensitive data in the link — code does not reveal schedule_id or user info
-- RPC validates character ownership (character must belong to auth.uid())
-- Placeholder claim uses `WHERE claimed_by IS NULL` to prevent race conditions
+- RPC validates character ownership (step 2: character must belong to auth.uid())
+- Invite resolution only via SECURITY DEFINER RPCs — no direct table SELECT for unauthenticated/unauthorized users
+- Placeholder SELECT scoped to visible schedules (friend/creator) via RLS
+- Placeholder claim uses `FOR UPDATE SKIP LOCKED` to prevent race conditions
+- Friendship insert checks both directions to prevent duplicates
+- Both new tables cascade on schedule deletion — no orphaned rows
 - Supabase built-in rate limiting on API calls
