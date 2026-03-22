@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { InstanceSchedule, ScheduleParticipant } from "@/lib/types";
+import type { InstanceSchedule, ScheduleParticipant, SchedulePlaceholder } from "@/lib/types";
 
 export interface EligibleFriend {
   user_id: string;
@@ -28,6 +28,11 @@ interface UseSchedulesReturn {
   completeSchedule: (scheduleId: string, confirmedParticipants: { userId: string; characterId: string }[]) => Promise<void>;
   expireSchedule: (scheduleId: string) => Promise<void>;
   getParticipants: (scheduleId: string) => Promise<ScheduleParticipant[]>;
+  generateInviteCode: (scheduleId: string) => Promise<string>;
+  getInviteCode: (scheduleId: string) => Promise<string | null>;
+  addPlaceholder: (scheduleId: string, characterName: string, characterClass: string) => Promise<void>;
+  removePlaceholder: (placeholderId: string) => Promise<void>;
+  getPlaceholders: (scheduleId: string) => Promise<SchedulePlaceholder[]>;
 }
 
 export function useSchedules(): UseSchedulesReturn {
@@ -53,10 +58,11 @@ export function useSchedules(): UseSchedulesReturn {
     const instanceIds = [...new Set(data.map((s) => s.instance_id))];
     const creatorIds = [...new Set(data.map((s) => s.created_by))];
 
-    const [instancesRes, profilesRes, participantsRes] = await Promise.all([
+    const [instancesRes, profilesRes, participantsRes, placeholdersRes] = await Promise.all([
       supabase.from("instances").select("id, name, start_map, liga_tier").in("id", instanceIds),
       supabase.from("profiles").select("id, username, avatar_url").in("id", creatorIds),
       supabase.from("schedule_participants").select("schedule_id").in("schedule_id", data.map((s) => s.id)),
+      supabase.from("schedule_placeholders").select("schedule_id").in("schedule_id", data.map((s) => s.id)).is("claimed_by", null),
     ]);
 
     const instanceMap = new Map((instancesRes.data ?? []).map((i: { id: number; name: string; start_map: string | null; liga_tier: string | null }) => [i.id, i]));
@@ -66,6 +72,11 @@ export function useSchedules(): UseSchedulesReturn {
     const countMap = new Map<string, number>();
     for (const p of (participantsRes.data ?? [])) {
       countMap.set(p.schedule_id, (countMap.get(p.schedule_id) ?? 0) + 1);
+    }
+
+    const placeholderCountMap = new Map<string, number>();
+    for (const p of (placeholdersRes.data ?? [])) {
+      placeholderCountMap.set(p.schedule_id, (placeholderCountMap.get(p.schedule_id) ?? 0) + 1);
     }
 
     const enriched: InstanceSchedule[] = data.map((s) => {
@@ -78,7 +89,7 @@ export function useSchedules(): UseSchedulesReturn {
         instanceLigaTier: inst?.liga_tier ?? null,
         creatorUsername: creator?.username ?? "???",
         creatorAvatar: creator?.avatar_url ?? null,
-        participantCount: (countMap.get(s.id) ?? 0) + 1, // +1 for creator
+        participantCount: (countMap.get(s.id) ?? 0) + (placeholderCountMap.get(s.id) ?? 0) + 1, // +1 for creator
       };
     });
 
@@ -94,6 +105,7 @@ export function useSchedules(): UseSchedulesReturn {
       .channel("schedules-changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "instance_schedules" }, () => fetchAll())
       .on("postgres_changes", { event: "*", schema: "public", table: "schedule_participants" }, () => fetchAll())
+      .on("postgres_changes", { event: "*", schema: "public", table: "schedule_placeholders" }, () => fetchAll())
       .subscribe();
 
     return () => {
@@ -257,6 +269,84 @@ export function useSchedules(): UseSchedulesReturn {
     }));
   }, []);
 
+  const generateInviteCode = useCallback(async (scheduleId: string): Promise<string> => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
+
+    // Check if invite already exists
+    const { data: existing } = await supabase
+      .from("schedule_invites")
+      .select("code")
+      .eq("schedule_id", scheduleId)
+      .single();
+
+    if (existing) return existing.code;
+
+    // Generate code via DB function and insert (handle race with re-fetch)
+    const { data: codeData } = await supabase.rpc("generate_invite_code");
+    const code = codeData as string;
+
+    await supabase
+      .from("schedule_invites")
+      .insert({
+        schedule_id: scheduleId,
+        code,
+        created_by: user.id,
+      });
+
+    // Re-fetch to handle race condition (another request may have inserted first)
+    const { data: final } = await supabase
+      .from("schedule_invites")
+      .select("code")
+      .eq("schedule_id", scheduleId)
+      .single();
+
+    return final!.code;
+  }, []);
+
+  const getInviteCode = useCallback(async (scheduleId: string): Promise<string | null> => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("schedule_invites")
+      .select("code")
+      .eq("schedule_id", scheduleId)
+      .single();
+    return data?.code ?? null;
+  }, []);
+
+  const addPlaceholder = useCallback(async (scheduleId: string, characterName: string, characterClass: string) => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
+
+    const { error } = await supabase
+      .from("schedule_placeholders")
+      .insert({
+        schedule_id: scheduleId,
+        character_name: characterName,
+        character_class: characterClass,
+        added_by: user.id,
+      });
+
+    if (error) throw error;
+  }, []);
+
+  const removePlaceholder = useCallback(async (placeholderId: string) => {
+    const supabase = createClient();
+    await supabase.from("schedule_placeholders").delete().eq("id", placeholderId);
+  }, []);
+
+  const getPlaceholders = useCallback(async (scheduleId: string): Promise<SchedulePlaceholder[]> => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("schedule_placeholders")
+      .select("*")
+      .eq("schedule_id", scheduleId)
+      .order("created_at", { ascending: true });
+    return (data ?? []) as SchedulePlaceholder[];
+  }, []);
+
   const getEligibleFriends = useCallback(async (instanceId: number): Promise<EligibleFriend[]> => {
     const supabase = createClient();
     const { data } = await supabase.rpc("get_friends_instance_status", { p_instance_id: instanceId });
@@ -287,5 +377,10 @@ export function useSchedules(): UseSchedulesReturn {
     completeSchedule,
     expireSchedule,
     getParticipants,
+    generateInviteCode,
+    getInviteCode,
+    addPlaceholder,
+    removePlaceholder,
+    getPlaceholders,
   };
 }
