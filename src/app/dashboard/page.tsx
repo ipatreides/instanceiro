@@ -43,6 +43,8 @@ export default function DashboardPage() {
   const [deletingChar, setDeletingChar] = useState<Character | null>(null);
   const [modalInstanceId, setModalInstanceId] = useState<number | null>(null);
   const [showFriends, setShowFriends] = useState(false);
+  const [charFormDirty, setCharFormDirty] = useState(false);
+  const [scheduleFormDirty, setScheduleFormDirty] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -554,10 +556,12 @@ export default function DashboardPage() {
         isOpen={showNewChar}
         onClose={() => setShowNewChar(false)}
         title="Novo Personagem"
+        isDirty={charFormDirty}
       >
         <CharacterForm
           onSubmit={handleCreateCharacter}
           onCancel={() => setShowNewChar(false)}
+          onDirtyChange={setCharFormDirty}
         />
       </Modal>
 
@@ -566,6 +570,7 @@ export default function DashboardPage() {
         isOpen={editingChar !== null}
         onClose={() => setEditingChar(null)}
         title="Editar Personagem"
+        isDirty={charFormDirty}
         titleAction={editingChar ? (
           <button
             onClick={() => { setDeletingChar(editingChar); setEditingChar(null); }}
@@ -610,6 +615,7 @@ export default function DashboardPage() {
                 key={editingChar.id}
                 onSubmit={handleUpdateCharacter}
                 onCancel={() => setEditingChar(null)}
+                onDirtyChange={setCharFormDirty}
                 initialValues={{
                   name: editingChar.name,
                   class_name: editingChar.class,
@@ -713,6 +719,7 @@ export default function DashboardPage() {
         isOpen={schedulingInstanceId !== null}
         onClose={() => setSchedulingInstanceId(null)}
         title="Agendar Instância"
+        isDirty={scheduleFormDirty}
       >
         <ScheduleForm
           onSubmit={async (scheduledAt, message) => {
@@ -722,6 +729,7 @@ export default function DashboardPage() {
             setPendingScheduleId(scheduleId);
           }}
           onCancel={() => setSchedulingInstanceId(null)}
+          onDirtyChange={setScheduleFormDirty}
         />
       </Modal>
 

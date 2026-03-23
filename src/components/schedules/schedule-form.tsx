@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toBrtDatetimeLocal, fromBrtDatetimeLocal } from "@/lib/format-date";
 
 interface ScheduleFormProps {
   minDate?: string; // ISO datetime string for min date (cooldown expiry)
   onSubmit: (scheduledAt: string, message?: string) => void | Promise<void>;
   onCancel: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 function getMinBrt(minDate?: string): string {
@@ -18,10 +19,13 @@ function getMinBrt(minDate?: string): string {
   return toBrtDatetimeLocal(now);
 }
 
-export function ScheduleForm({ minDate, onSubmit, onCancel }: ScheduleFormProps) {
+export function ScheduleForm({ minDate, onSubmit, onCancel, onDirtyChange }: ScheduleFormProps) {
   const [scheduledTime, setScheduledTime] = useState(() => getMinBrt(minDate));
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const isDirty = message.trim().length > 0;
+  useEffect(() => { onDirtyChange?.(isDirty); }, [isDirty, onDirtyChange]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

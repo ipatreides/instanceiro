@@ -85,6 +85,8 @@ export function InstanceModal({
     }
   }, [confirmingMarkDone]);
 
+  const isDirty = confirmingMarkDone || editingId !== null;
+
   if (!stateObj) return null;
   const { instance } = stateObj;
 
@@ -106,7 +108,7 @@ export function InstanceModal({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={instance.name}>
+    <Modal isOpen={isOpen} onClose={onClose} title={instance.name} isDirty={isDirty}>
       <div className="flex flex-col gap-5">
         {/* Instance info */}
         <div className="flex flex-col gap-2">

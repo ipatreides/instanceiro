@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CLASS_TREE, buildClassPath, ClassNode } from "@/lib/class-tree";
 
 interface CharacterFormProps {
@@ -11,6 +11,7 @@ interface CharacterFormProps {
     level: number;
   }) => void | Promise<void>;
   onCancel?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
   initialValues?: {
     name: string;
     class_name: string;
@@ -83,7 +84,7 @@ function getTierLabel(level: number): string {
   return "2ª Classe / Transcendente";
 }
 
-export function CharacterForm({ onSubmit, onCancel, initialValues, submitLabel }: CharacterFormProps) {
+export function CharacterForm({ onSubmit, onCancel, onDirtyChange, initialValues, submitLabel }: CharacterFormProps) {
   // Derive initial base class from class_path
   const initialBase = initialValues?.class_path?.[0] ?? null;
 
@@ -92,6 +93,12 @@ export function CharacterForm({ onSubmit, onCancel, initialValues, submitLabel }
   const [selectedBase, setSelectedBase] = useState<string | null>(initialBase);
   const [selectedClass, setSelectedClass] = useState<string | null>(initialValues?.class_name ?? null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Notify parent of dirty state
+  const isDirty = name !== (initialValues?.name ?? "") ||
+    level !== (initialValues?.level ?? 200) ||
+    selectedClass !== (initialValues?.class_name ?? null);
+  useEffect(() => { onDirtyChange?.(isDirty); }, [isDirty, onDirtyChange]);
 
   const baseNode = CLASS_TREE.find((n) => n.name === selectedBase) ?? null;
 

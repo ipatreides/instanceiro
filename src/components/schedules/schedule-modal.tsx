@@ -91,6 +91,8 @@ export function ScheduleModal({
     onGetPlaceholders(schedule.id).then(setPlaceholders);
   }, [isOpen, schedule?.id, onGetInviteCode, onGetPlaceholders]);
 
+  const isDirty = mode !== "view" || showPlaceholderForm || confirmingCancel;
+
   if (!schedule) return null;
 
   const isCreator = currentUserId === schedule.created_by;
@@ -270,7 +272,7 @@ export function ScheduleModal({
   const busy = loading || actionLoading;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={schedule.instanceName ?? "Agendamento"}>
+    <Modal isOpen={isOpen} onClose={onClose} title={schedule.instanceName ?? "Agendamento"} isDirty={isDirty}>
       <div className="flex flex-col gap-4">
         {/* Badges row */}
         <div className="flex flex-wrap gap-2 items-center">
