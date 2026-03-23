@@ -51,11 +51,11 @@ function SortableCharCard({
   const isShared = character.isShared ?? false;
 
   const selectedClass = isShared
-    ? "bg-primary-secondary border-primary-secondary text-white"
-    : "bg-primary border-primary text-white";
+    ? "bg-primary-secondary border-primary-secondary text-bg"
+    : "bg-primary border-primary text-bg";
   const unselectedClass = isShared
-    ? "bg-surface border-primary-secondary/40 text-primary-secondary hover:border-primary-secondary hover:text-white"
-    : "bg-surface border-border text-text-secondary hover:border-primary-hover hover:text-white";
+    ? "bg-surface border-primary-secondary/40 text-primary-secondary hover:border-primary-secondary hover:text-text-primary"
+    : "bg-surface border-border text-text-secondary hover:border-primary-hover hover:text-text-primary";
   const subTextSelected = isShared ? "text-bg/70" : "text-primary-secondary";
   const subTextUnselected = isShared ? "text-primary-secondary/60" : "text-text-secondary";
 
