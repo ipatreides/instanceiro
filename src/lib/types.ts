@@ -10,13 +10,30 @@ export interface Profile {
   updated_at: string;
 }
 
+export interface Server {
+  id: number;
+  name: string;
+}
+
+export interface Account {
+  id: string;
+  user_id: string;
+  server_id: number;
+  name: string;
+  sort_order: number;
+  is_collapsed: boolean;
+  created_at: string;
+}
+
 export interface Character {
   id: string;
   user_id: string;
+  account_id: string;
   name: string;
   class: string;
   class_path: string[];
   level: number;
+  sort_order: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
