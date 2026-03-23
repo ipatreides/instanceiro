@@ -191,7 +191,7 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
   return (
     <>
       {/* Desktop: always visible, fixed overlay on right */}
-      <aside className="hidden lg:flex flex-col fixed right-0 top-[49px] h-[calc(100vh-49px)] w-[260px] bg-surface border-l border-border z-30 shadow-lg">
+      <aside className="hidden lg:flex flex-col fixed right-0 top-[53px] h-[calc(100vh-53px)] w-[260px] bg-surface border-l border-border z-30 shadow-lg">
         {content}
       </aside>
 
