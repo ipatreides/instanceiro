@@ -471,7 +471,16 @@ export default function DashboardPage() {
           onOpenAccountModal={(account) => setAccountModalAccount(account)}
           onCreateAccount={() => setShowCreateAccount(true)}
           onReorderAccounts={reorderAccounts}
-          onReorderCharacters={reorderChars}
+          onReorderCharacters={async (accountId, orderedCharIds) => {
+            // Optimistic: reorder characters array locally
+            const reordered = orderedCharIds.map((id, i) => {
+              const c = characters.find((ch) => ch.id === id);
+              return c ? { ...c, sort_order: i } : null;
+            }).filter(Boolean);
+            // This won't update useCharacters state directly, so refetch after persist
+            await reorderChars(accountId, orderedCharIds);
+            await refetchCharacters();
+          }}
         />
 
         {characters.length > 0 ? (
