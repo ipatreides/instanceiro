@@ -1,20 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { toBrtDatetimeLocal, fromBrtDatetimeLocal } from "@/lib/format-date";
 
 interface ScheduleFormProps {
   minDate?: string; // ISO datetime string for min date (cooldown expiry)
   onSubmit: (scheduledAt: string, message?: string) => void | Promise<void>;
   onCancel: () => void;
-}
-
-function toBrtDatetimeLocal(date: Date): string {
-  const brt = new Date(date.getTime() - 3 * 60 * 60 * 1000);
-  return brt.toISOString().slice(0, 16);
-}
-
-function fromBrtDatetimeLocal(value: string): string {
-  return `${value}:00-03:00`;
 }
 
 function getMinBrt(minDate?: string): string {

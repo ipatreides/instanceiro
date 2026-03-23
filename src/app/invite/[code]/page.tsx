@@ -6,18 +6,8 @@ import { useInvite } from "@/hooks/use-invite";
 import { useCharacters } from "@/hooks/use-characters";
 import { CharacterForm } from "@/components/characters/character-form";
 import { createClient } from "@/lib/supabase/client";
-
-function formatBrtDateTime(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleString("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+import { FullPageSpinner } from "@/components/ui/spinner";
+import { formatBrtDateTime } from "@/lib/format-date";
 
 export default function InvitePage() {
   const { code } = useParams<{ code: string }>();
@@ -51,11 +41,7 @@ export default function InvitePage() {
   }, [data, expiredHandled, createFriendshipOnly]);
 
   if (!authChecked || loading || charsLoading) {
-    return (
-      <div className="min-h-screen bg-[#0f0a1a] flex items-center justify-center">
-        <p className="text-[#A89BC2]">Carregando convite...</p>
-      </div>
-    );
+    return <FullPageSpinner label="Carregando convite..." />;
   }
 
   if (error || !data) {
