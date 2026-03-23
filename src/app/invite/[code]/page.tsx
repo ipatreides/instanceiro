@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useInvite } from "@/hooks/use-invite";
 import { useCharacters } from "@/hooks/use-characters";
 import { CharacterForm } from "@/components/characters/character-form";
+import { createClient } from "@/lib/supabase/client";
 
 function formatBrtDateTime(dateStr: string): string {
   const d = new Date(dateStr);
@@ -28,6 +29,19 @@ export default function InvitePage() {
   const [selectedCharId, setSelectedCharId] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  // Client-side auth guard: redirect unauthenticated users to landing with redirect param
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        router.push(`/?redirect=/invite/${code}`);
+      } else {
+        setAuthChecked(true);
+      }
+    });
+  }, [code, router]);
 
   // Schedule not open — still create friendship via RPC (no character needed)
   const [expiredHandled, setExpiredHandled] = useState(false);
@@ -36,7 +50,7 @@ export default function InvitePage() {
     createFriendshipOnly().then(() => setExpiredHandled(true));
   }, [data, expiredHandled, createFriendshipOnly]);
 
-  if (loading || charsLoading) {
+  if (!authChecked || loading || charsLoading) {
     return (
       <div className="min-h-screen bg-[#0f0a1a] flex items-center justify-center">
         <p className="text-[#A89BC2]">Carregando convite...</p>
