@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
+import { formatBrtDateTime } from "@/lib/format-date";
 import type { InstanceSchedule, ScheduleParticipant, Character } from "@/lib/types";
 import type { EligibleFriend } from "@/hooks/use-schedules";
 import { calculateCooldownExpiry, isAvailableDay } from "@/lib/cooldown";
@@ -29,18 +30,6 @@ interface ScheduleModalProps {
   instanceCooldownHours?: number | null;
   instanceAvailableDay?: string | null;
   loading?: boolean;
-}
-
-function formatBrtDateTime(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleString("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 export function ScheduleModal({
@@ -80,6 +69,21 @@ export function ScheduleModal({
   const [showPlaceholderForm, setShowPlaceholderForm] = useState(false);
   const [placeholderName, setPlaceholderName] = useState("");
   const [placeholderClass, setPlaceholderClass] = useState("");
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+
+  // Reset states when switching between schedules
+  const scheduleId = schedule?.id ?? null;
+  useEffect(() => {
+    setMode("view");
+    setSelectedCharacterId("");
+    setJoinMessage("");
+    setCheckedParticipants({});
+    setInviteSearch("");
+    setShowPlaceholderForm(false);
+    setPlaceholderName("");
+    setPlaceholderClass("");
+    setConfirmingCancel(false);
+  }, [scheduleId]);
 
   useEffect(() => {
     if (!isOpen || !schedule) return;
@@ -486,7 +490,7 @@ export function ScheduleModal({
                             }
                           }}
                           disabled={busy}
-                          className="text-xs text-red-400 hover:text-red-300 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                          className="text-xs text-red-400 hover:text-red-300 cursor-pointer opacity-60 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity disabled:opacity-50"
                         >
                           {p.user_id === currentUserId ? "Desinscrever" : "Remover"}
                         </button>
@@ -517,7 +521,7 @@ export function ScheduleModal({
                   <button
                     onClick={() => handleRemovePlaceholder(p.id)}
                     disabled={busy}
-                    className="text-xs text-red-400 hover:text-red-300 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                    className="text-xs text-red-400 hover:text-red-300 cursor-pointer opacity-60 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity disabled:opacity-50"
                   >
                     Remover
                   </button>
@@ -676,14 +680,25 @@ export function ScheduleModal({
                     >
                       {busy ? "..." : "Convidar"}
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleExpire}
-                      disabled={busy}
-                      className="px-4 py-2 text-sm text-red-400 bg-[#2a1f40] border border-red-900/50 rounded-lg hover:bg-red-900/20 transition-colors cursor-pointer disabled:opacity-50"
-                    >
-                      {busy ? "Cancelando..." : "Cancelar"}
-                    </button>
+                    {!confirmingCancel ? (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingCancel(true)}
+                        disabled={busy}
+                        className="px-4 py-2 text-sm text-red-400 bg-[#2a1f40] border border-red-900/50 rounded-lg hover:bg-red-900/20 transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        Cancelar
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleExpire}
+                        disabled={busy}
+                        className="px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-500 transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        {busy ? "Cancelando..." : "Confirmar cancelamento"}
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={handleCompleteClick}

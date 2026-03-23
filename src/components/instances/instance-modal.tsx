@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
+import { toBrtDatetimeLocal, fromBrtDatetimeLocal, formatDateTime, nowBrtMax } from "@/lib/format-date";
 import type { InstanceState, InstanceCompletion } from "@/lib/types";
 
 interface InstanceModalProps {
@@ -21,28 +22,6 @@ interface InstanceModalProps {
   actionError?: string | null;
 }
 
-function toBrtDatetimeLocal(date: Date): string {
-  // Convert to BRT (UTC-3)
-  const brt = new Date(date.getTime() - 3 * 60 * 60 * 1000);
-  return brt.toISOString().slice(0, 16);
-}
-
-function fromBrtDatetimeLocal(value: string): string {
-  // value is "YYYY-MM-DDTHH:mm" in BRT, convert to ISO with -03:00
-  return `${value}:00-03:00`;
-}
-
-function formatDateTime(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
 function DifficultyBadge({ difficulty }: { difficulty: string | null }) {
   if (!difficulty) return null;
   const colors: Record<string, string> = {
@@ -57,10 +36,6 @@ function DifficultyBadge({ difficulty }: { difficulty: string | null }) {
       {difficulty}
     </span>
   );
-}
-
-function nowBrtMax(): string {
-  return toBrtDatetimeLocal(new Date());
 }
 
 export function InstanceModal({
@@ -93,6 +68,15 @@ export function InstanceModal({
       setEditingTime("");
     }
   }, [isOpen]);
+
+  // Reset states when switching between instances
+  const instanceId = stateObj?.instance.id ?? null;
+  useEffect(() => {
+    setConfirmingMarkDone(false);
+    setMarkDoneTime("");
+    setEditingId(null);
+    setEditingTime("");
+  }, [instanceId]);
 
   // Set default time when confirming
   useEffect(() => {
@@ -176,15 +160,27 @@ export function InstanceModal({
           </p>
         )}
 
-        {/* Mark done button — available or inactive instances */}
+        {/* Mark done buttons — available or inactive instances */}
         {(isAvailable || isInactive) && !confirmingMarkDone && (
-          <button
-            onClick={() => setConfirmingMarkDone(true)}
-            disabled={actionLoading}
-            className="w-full py-2.5 rounded-md bg-green-600 hover:bg-green-500 text-white font-semibold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Marcar como feita
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => onMarkDone()}
+              disabled={actionLoading}
+              className="flex-1 py-2.5 rounded-md bg-green-600 hover:bg-green-500 text-white font-semibold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Marcar agora
+            </button>
+            <button
+              onClick={() => setConfirmingMarkDone(true)}
+              disabled={actionLoading}
+              className="py-2.5 px-3 rounded-md bg-[#2a1f40] border border-[#3D2A5C] text-[#A89BC2] text-sm transition-colors cursor-pointer hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Escolher horário"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+            </button>
+          </div>
         )}
         {confirmingMarkDone && (
           <div className="flex flex-col gap-2">
@@ -302,6 +298,19 @@ export function InstanceModal({
               className="text-sm text-[#6B5A8A] hover:text-[#A89BC2] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Desativar instância
+            </button>
+          </div>
+        )}
+
+        {/* Activate — only for inactive instances */}
+        {isInactive && (
+          <div className="border-t border-[#3D2A5C] pt-4">
+            <button
+              onClick={onActivate}
+              disabled={actionLoading}
+              className="text-sm text-green-400 hover:text-green-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Ativar instância
             </button>
           </div>
         )}
