@@ -95,7 +95,7 @@ export function DateTimePicker({ value, onChange, minDate, label }: DateTimePick
       {label && <label className="text-xs text-[#6B5A8A]">{label}</label>}
 
       {/* Day selector */}
-      <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
+      <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
         {days.map((day, i) => (
           <button
             key={i}

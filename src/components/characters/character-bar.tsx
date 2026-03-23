@@ -12,7 +12,7 @@ interface CharacterBarProps {
 
 export function CharacterBar({ characters, selectedId, onSelect, onAddClick, onEdit }: CharacterBarProps) {
   return (
-    <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+    <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
       {characters.map((character) => {
         const isSelected = character.id === selectedId;
         const isShared = character.isShared ?? false;
