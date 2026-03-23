@@ -14,6 +14,7 @@ export interface InstanceModalProps {
   onClose: () => void;
   instance: InstanceState | null;
   characters: Character[];
+  selectedCharId: string | null;
   allCompletions: InstanceCompletion[];
   onCompleteParty: (
     ownCharIds: string[],
@@ -35,6 +36,7 @@ export function InstanceModal({
   onClose,
   instance: stateObj,
   characters,
+  selectedCharId,
   allCompletions,
   onCompleteParty,
   onUpdateCompletion,
@@ -63,13 +65,31 @@ export function InstanceModal({
     }
   }, [isOpen]);
 
-  // Reset states when switching between instances
+  // Reset states when switching between instances + auto-add selected char
   useEffect(() => {
     setActiveTab("details");
-    setParticipants([]);
     setConfirmingMarkDone(false);
     setMarkDoneTime("");
-  }, [instanceId]);
+
+    // Auto-populate with selected character
+    if (selectedCharId) {
+      const char = characters.find((c) => c.id === selectedCharId && !c.isShared);
+      if (char) {
+        setParticipants([{
+          type: "own",
+          character_id: char.id,
+          user_id: char.user_id,
+          character_name: char.name,
+          character_class: char.class,
+          character_level: char.level,
+        }]);
+      } else {
+        setParticipants([]);
+      }
+    } else {
+      setParticipants([]);
+    }
+  }, [instanceId, selectedCharId, characters]);
 
   // Set default time when confirming
   useEffect(() => {

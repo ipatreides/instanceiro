@@ -556,6 +556,7 @@ export default function DashboardPage() {
         onClose={handleModalClose}
         instance={modalState}
         characters={characters.filter(c => !c.isShared)}
+        selectedCharId={selectedCharId}
         allCompletions={completions}
         onCompleteParty={async (ownCharIds, friends, completedAt) => {
           if (modalInstanceId === null) return;
