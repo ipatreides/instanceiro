@@ -125,6 +125,7 @@ export function AccountBar({
     const activeId = String(active.id);
     const overId = String(over.id);
 
+    // Account-level reorder
     if (activeId.startsWith("account-") && overId.startsWith("account-")) {
       const oldIndex = accountIds.indexOf(activeId);
       const newIndex = accountIds.indexOf(overId);
@@ -135,6 +136,30 @@ export function AccountBar({
           newIndex
         );
         onReorderAccounts(newOrder);
+      }
+      return;
+    }
+
+    // Character-level reorder within same account
+    if (activeId.startsWith("char-") && overId.startsWith("char-")) {
+      const activeCharId = activeId.replace("char-", "");
+      const overCharId = overId.replace("char-", "");
+
+      const activeChar = characters.find((c) => c.id === activeCharId);
+      const overChar = characters.find((c) => c.id === overCharId);
+
+      if (activeChar && overChar && activeChar.account_id === overChar.account_id) {
+        const accountId = activeChar.account_id;
+        const accountChars = charsByAccount.get(accountId) ?? [];
+        const charIdList = accountChars.map((c) => c.id);
+
+        const oldIndex = charIdList.indexOf(activeCharId);
+        const newIndex = charIdList.indexOf(overCharId);
+
+        if (oldIndex !== -1 && newIndex !== -1) {
+          const newOrder = arrayMove(charIdList, oldIndex, newIndex);
+          onReorderCharacters(accountId, newOrder);
+        }
       }
     }
   }
