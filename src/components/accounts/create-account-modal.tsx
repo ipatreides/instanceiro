@@ -62,8 +62,12 @@ export function CreateAccountModal({ isOpen, onClose, servers, onCreate, onCreat
     onClose();
   }
 
+  const isDirty = step === "account"
+    ? accountName.trim().length > 0 || serverId !== null
+    : true; // always dirty on char step (account already created)
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={step === "account" ? "Nova Conta" : "Adicionar Personagem"}>
+    <Modal isOpen={isOpen} onClose={onClose} title={step === "account" ? "Nova Conta" : "Adicionar Personagem"} isDirty={isDirty}>
       {step === "account" ? (
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-1">

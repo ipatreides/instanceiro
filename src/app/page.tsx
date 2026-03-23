@@ -106,3 +106,4 @@ export default function LandingPage() {
   );
 }
 // test
+const x = "bg-[#7C3AED] text-[#A89BC2]";

@@ -103,7 +103,7 @@ export function AccountModal({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Conta">
+    <Modal isOpen={isOpen} onClose={onClose} title="Conta" isDirty={showCharForm || confirmDeleteAccount}>
       <div className="flex flex-col gap-5">
         {/* Account name (editable) */}
         <div className="flex flex-col gap-1">
