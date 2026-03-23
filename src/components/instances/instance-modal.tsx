@@ -2,63 +2,41 @@
 
 import { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
-import { toBrtDatetimeLocal, fromBrtDatetimeLocal, formatDateTime, nowBrtMax } from "@/lib/format-date";
-import type { InstanceState, InstanceCompletion } from "@/lib/types";
+import { fromBrtDatetimeLocal, nowBrtMax } from "@/lib/format-date";
+import type { InstanceState, InstanceCompletion, Character } from "@/lib/types";
+import type { EligibleFriend } from "@/hooks/use-schedules";
+import type { Participant } from "./participant-list";
+import { InstanceModalDetails } from "./instance-modal-details";
+import { InstanceModalHistory } from "./instance-modal-history";
 
-interface EligibleFriend {
-  user_id: string;
-  username: string;
-  avatar_url: string | null;
-  character_id: string;
-  character_name: string;
-  character_class: string;
-  character_level: number;
-  is_active: boolean;
-  last_completed_at: string | null;
-}
-
-interface InstanceModalProps {
+export interface InstanceModalProps {
   isOpen: boolean;
   onClose: () => void;
   instance: InstanceState | null;
-  history: InstanceCompletion[];
-  isAvailable: boolean;
-  isInactive: boolean;
-  onMarkDone: (completedAt?: string) => void;
+  characters: Character[];
+  allCompletions: InstanceCompletion[];
+  onCompleteParty: (
+    ownCharIds: string[],
+    friends: { character_id: string; user_id: string }[],
+    completedAt?: string,
+  ) => Promise<void>;
   onUpdateCompletion: (completionId: string, completedAt: string) => void;
   onDeleteCompletion: (completionId: string) => void;
   onDeactivate: () => void;
   onActivate: () => void;
   onSchedule?: () => void;
-  getEligibleFriends?: (instanceId: number) => Promise<EligibleFriend[]>;
+  getEligibleFriends: (instanceId: number) => Promise<EligibleFriend[]>;
   actionLoading?: boolean;
   actionError?: string | null;
-}
-
-function DifficultyBadge({ difficulty }: { difficulty: string | null }) {
-  if (!difficulty) return null;
-  const colors: Record<string, string> = {
-    easy: "bg-green-900 text-green-300",
-    normal: "bg-blue-900 text-blue-300",
-    hard: "bg-orange-900 text-orange-300",
-    extreme: "bg-red-900 text-red-300",
-  };
-  const colorClass = colors[difficulty.toLowerCase()] ?? "bg-gray-800 text-[#A89BC2]";
-  return (
-    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${colorClass}`}>
-      {difficulty}
-    </span>
-  );
 }
 
 export function InstanceModal({
   isOpen,
   onClose,
   instance: stateObj,
-  history,
-  isAvailable,
-  isInactive,
-  onMarkDone,
+  characters,
+  allCompletions,
+  onCompleteParty,
   onUpdateCompletion,
   onDeleteCompletion,
   onDeactivate,
@@ -68,43 +46,30 @@ export function InstanceModal({
   actionLoading,
   actionError,
 }: InstanceModalProps) {
+  const [activeTab, setActiveTab] = useState<"details" | "history">("details");
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const [confirmingMarkDone, setConfirmingMarkDone] = useState(false);
   const [markDoneTime, setMarkDoneTime] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingTime, setEditingTime] = useState("");
-  const [friends, setFriends] = useState<EligibleFriend[]>([]);
-  const [friendsLoading, setFriendsLoading] = useState(false);
+
+  const instanceId = stateObj?.instance.id ?? null;
 
   // Reset states when modal closes
   useEffect(() => {
     if (!isOpen) {
+      setActiveTab("details");
+      setParticipants([]);
       setConfirmingMarkDone(false);
       setMarkDoneTime("");
-      setEditingId(null);
-      setEditingTime("");
-      setFriends([]);
     }
   }, [isOpen]);
 
   // Reset states when switching between instances
-  const instanceId = stateObj?.instance.id ?? null;
   useEffect(() => {
+    setActiveTab("details");
+    setParticipants([]);
     setConfirmingMarkDone(false);
     setMarkDoneTime("");
-    setEditingId(null);
-    setEditingTime("");
-    setFriends([]);
   }, [instanceId]);
-
-  // Fetch eligible friends when modal opens for an instance
-  useEffect(() => {
-    if (!isOpen || !instanceId || !getEligibleFriends) return;
-    setFriendsLoading(true);
-    getEligibleFriends(instanceId).then((f) => {
-      setFriends(f);
-      setFriendsLoading(false);
-    });
-  }, [isOpen, instanceId, getEligibleFriends]);
 
   // Set default time when confirming
   useEffect(() => {
@@ -113,94 +78,131 @@ export function InstanceModal({
     }
   }, [confirmingMarkDone]);
 
-  const isDirty = confirmingMarkDone || editingId !== null;
+  const isDirty = participants.length > 0 || confirmingMarkDone;
 
   if (!stateObj) return null;
   const { instance } = stateObj;
+  const isInactive = stateObj.status === "inactive";
+
+  function handleAddParticipant(p: Participant) {
+    setParticipants((prev) => [...prev, p]);
+  }
+
+  function handleRemoveParticipant(characterId: string) {
+    setParticipants((prev) => prev.filter((p) => p.character_id !== characterId));
+  }
+
+  async function handleCompleteParty(completedAt?: string) {
+    const ownIds = participants.filter((p) => p.type === "own").map((p) => p.character_id);
+    const friends = participants
+      .filter((p) => p.type === "friend")
+      .map((p) => ({ character_id: p.character_id, user_id: p.user_id }));
+    await onCompleteParty(ownIds, friends, completedAt);
+  }
 
   function handleConfirmMarkDone() {
     const completedAt = markDoneTime ? fromBrtDatetimeLocal(markDoneTime) : undefined;
-    onMarkDone(completedAt);
+    handleCompleteParty(completedAt);
   }
 
-  function handleStartEdit(completion: InstanceCompletion) {
-    setEditingId(completion.id);
-    setEditingTime(toBrtDatetimeLocal(new Date(completion.completed_at)));
-  }
+  const hasOwnParticipants = participants.filter((p) => p.type === "own").length > 0;
 
-  function handleSaveEdit() {
-    if (!editingId || !editingTime) return;
-    onUpdateCompletion(editingId, fromBrtDatetimeLocal(editingTime));
-    setEditingId(null);
-    setEditingTime("");
-  }
+  // Title action: eye icon toggle
+  const titleAction = (
+    <button
+      onClick={() => (isInactive ? onActivate() : onDeactivate())}
+      disabled={actionLoading}
+      className="text-[#6B5A8A] hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+      title={isInactive ? "Ativar instância" : "Desativar instância"}
+    >
+      {isInactive ? (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+        </svg>
+      ) : (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+        </svg>
+      )}
+    </button>
+  );
 
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title={instance.name} isDirty={isDirty} titleAction={
-      <button
-        onClick={() => isInactive ? onActivate() : onDeactivate()}
-        disabled={actionLoading}
-        className="text-[#6B5A8A] hover:text-white transition-colors cursor-pointer disabled:opacity-50"
-        title={isInactive ? "Ativar instância" : "Desativar instância"}
-      >
-        {isInactive ? (
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
-          </svg>
-        ) : (
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-          </svg>
-        )}
-      </button>
-    }>
-      <div className="flex flex-col gap-5">
-        {/* Instance info */}
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap gap-2 items-center">
-            <span className="text-xs text-[#A89BC2] bg-[#2a1f40] px-2 py-0.5 rounded">
-              Nível {instance.level_required}{instance.level_max ? `–${instance.level_max}` : '+'}
-            </span>
-            {instance.difficulty && (
-              <DifficultyBadge difficulty={instance.difficulty} />
-            )}
-            <span className="text-xs text-[#A89BC2] bg-[#2a1f40] px-2 py-0.5 rounded">
-              {instance.is_solo ? "Solo" : `${instance.party_min}+ jogadores`}
-            </span>
-            {instance.start_map && (
-              <span className="text-xs text-[#D4A843] bg-[#2a1f40] px-2 py-0.5 rounded">
-                {instance.start_map}
-              </span>
-            )}
-            {instance.mutual_exclusion_group && (
-              <span className="text-xs text-purple-400 bg-purple-900/30 px-2 py-0.5 rounded">
-                Cooldown compartilhado
-              </span>
-            )}
-            {instance.liga_tier && (
-              <span className="text-xs text-amber-400 bg-amber-900/30 px-2 py-0.5 rounded">
-                Liga {instance.liga_tier} — {instance.liga_coins} moedas
-              </span>
-            )}
-            {instance.wiki_url && (
-              <a
-                href={instance.wiki_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-blue-400 bg-blue-900/30 px-2 py-0.5 rounded hover:bg-blue-900/50 transition-colors"
-              >
-                bROWiki ↗
-              </a>
-            )}
-          </div>
-          {instance.reward && (
-            <p className="text-sm text-[#A89BC2]">
-              <span className="text-[#6B5A8A]">Recompensa:</span> {instance.reward}
-            </p>
+  // Footer (only on details tab)
+  const footer = activeTab === "details" ? (
+    <div className="flex flex-col gap-2">
+      {!confirmingMarkDone ? (
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleCompleteParty()}
+            disabled={actionLoading || !hasOwnParticipants}
+            className="flex-1 py-2.5 rounded-md bg-green-600 hover:bg-green-500 text-white font-semibold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Marcar agora
+          </button>
+          <button
+            onClick={() => setConfirmingMarkDone(true)}
+            disabled={actionLoading}
+            className="py-2.5 px-3 rounded-md bg-[#2a1f40] border border-[#3D2A5C] text-[#A89BC2] text-sm transition-colors cursor-pointer hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Escolher horário"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+          </button>
+          {onSchedule && (
+            <button
+              onClick={onSchedule}
+              className="py-2.5 px-4 rounded-md bg-[#2a1f40] border border-[#3D2A5C] text-[#D4A843] font-semibold text-sm hover:border-[#D4A843] transition-colors cursor-pointer"
+            >
+              Agendar
+            </button>
           )}
         </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-[#6B5A8A]">Horário de entrada</label>
+            <input
+              type="datetime-local"
+              value={markDoneTime}
+              max={nowBrtMax()}
+              onChange={(e) => setMarkDoneTime(e.target.value)}
+              className="bg-[#2a1f40] border border-[#3D2A5C] rounded-md px-3 py-1.5 text-white text-sm focus:outline-none focus:border-[#7C3AED] transition-colors"
+              style={{ colorScheme: "dark" }}
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleConfirmMarkDone}
+              disabled={actionLoading || !hasOwnParticipants}
+              className="flex-1 py-2.5 rounded-md bg-green-600 hover:bg-green-500 text-white font-semibold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {actionLoading ? "Salvando..." : "Confirmar"}
+            </button>
+            <button
+              onClick={() => setConfirmingMarkDone(false)}
+              disabled={actionLoading}
+              className="flex-1 py-2.5 rounded-md bg-[#2a1f40] border border-[#3D2A5C] text-[#A89BC2] text-sm transition-colors cursor-pointer hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  ) : undefined;
 
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={instance.name}
+      isDirty={isDirty}
+      titleAction={titleAction}
+      footer={footer}
+    >
+      <div className="flex flex-col gap-4">
         {/* Action error */}
         {actionError && (
           <p className="text-sm text-red-400 bg-red-900/20 rounded px-3 py-2">
@@ -208,175 +210,51 @@ export function InstanceModal({
           </p>
         )}
 
-        {/* Mark done buttons — available or inactive instances */}
-        {(isAvailable || isInactive) && !confirmingMarkDone && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => onMarkDone()}
-              disabled={actionLoading}
-              className="flex-1 py-2.5 rounded-md bg-green-600 hover:bg-green-500 text-white font-semibold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Marcar agora
-            </button>
-            <button
-              onClick={() => setConfirmingMarkDone(true)}
-              disabled={actionLoading}
-              className="py-2.5 px-3 rounded-md bg-[#2a1f40] border border-[#3D2A5C] text-[#A89BC2] text-sm transition-colors cursor-pointer hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Escolher horário"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-              </svg>
-            </button>
-          </div>
-        )}
-        {confirmingMarkDone && (
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-[#6B5A8A]">Horário de entrada</label>
-              <input
-                type="datetime-local"
-                value={markDoneTime}
-                max={nowBrtMax()}
-                onChange={(e) => setMarkDoneTime(e.target.value)}
-                className="bg-[#2a1f40] border border-[#3D2A5C] rounded-md px-3 py-1.5 text-white text-sm focus:outline-none focus:border-[#7C3AED] transition-colors"
-                style={{ colorScheme: "dark" }}
-              />
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleConfirmMarkDone}
-                disabled={actionLoading}
-                className="flex-1 py-2.5 rounded-md bg-green-600 hover:bg-green-500 text-white font-semibold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {actionLoading ? "Salvando..." : "Confirmar"}
-              </button>
-              <button
-                onClick={() => setConfirmingMarkDone(false)}
-                disabled={actionLoading}
-                className="flex-1 py-2.5 rounded-md bg-[#2a1f40] border border-[#3D2A5C] text-[#A89BC2] text-sm transition-colors cursor-pointer hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Schedule button */}
-        {onSchedule && !confirmingMarkDone && (
+        {/* Tab bar */}
+        <div className="flex gap-1 border-b border-[#3D2A5C]">
           <button
-            onClick={onSchedule}
-            className="w-full py-2.5 rounded-md bg-[#2a1f40] border border-[#3D2A5C] text-[#D4A843] font-semibold text-sm hover:border-[#D4A843] transition-colors cursor-pointer"
+            onClick={() => setActiveTab("details")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+              activeTab === "details"
+                ? "border-[#7C3AED] text-white"
+                : "border-transparent text-[#A89BC2] hover:text-white"
+            }`}
           >
-            Agendar com amigos
+            Detalhes
           </button>
-        )}
-
-        {/* Friends status */}
-        {getEligibleFriends && (
-          <div className="flex flex-col gap-2">
-            <h3 className="text-sm font-semibold text-[#A89BC2]">
-              Amigos {!friendsLoading && friends.length > 0 && `(${friends.length})`}
-            </h3>
-            {friendsLoading ? (
-              <div className="flex items-center justify-center py-3">
-                <div className="w-4 h-4 border-2 border-[#7C3AED] border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : friends.length === 0 ? (
-              <p className="text-xs text-[#6B5A8A] italic">Nenhum amigo com esta instância.</p>
-            ) : (
-              <div className="flex flex-col gap-1">
-                {friends.map((f) => {
-                  const isOnCooldown = !!f.last_completed_at;
-                  return (
-                    <div
-                      key={`${f.user_id}-${f.character_id}`}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded bg-[#2a1f40] border border-[#3D2A5C]"
-                    >
-                      {f.avatar_url ? (
-                        <img src={f.avatar_url} alt="" className="w-5 h-5 rounded-full" />
-                      ) : (
-                        <div className="w-5 h-5 rounded-full bg-[#3D2A5C] flex items-center justify-center text-[10px] text-[#A89BC2]">?</div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <span className="text-xs text-white font-medium truncate block">{f.character_name}</span>
-                        <span className="text-[10px] text-[#6B5A8A]">{f.character_class} · @{f.username}</span>
-                      </div>
-                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isOnCooldown ? "bg-orange-400" : f.is_active ? "bg-green-500" : "bg-gray-600"}`} />
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* History */}
-        <div className="flex flex-col gap-2">
-          <h3 className="text-sm font-semibold text-[#A89BC2]">
-            Histórico{history.length > 0 && ` (${history.length})`}
-          </h3>
-          {history.length === 0 ? (
-            <p className="text-sm text-[#6B5A8A] italic">Nenhuma conclusão registrada.</p>
-          ) : (
-            <ul className="flex flex-col gap-1">
-              {history.map((completion, index) => (
-                <li
-                  key={completion.id}
-                  className="flex items-center justify-between bg-[#2a1f40] rounded px-3 py-2"
-                >
-                  {editingId === completion.id ? (
-                    <div className="flex items-center gap-2 flex-1">
-                      <input
-                        type="datetime-local"
-                        value={editingTime}
-                        max={nowBrtMax()}
-                        onChange={(e) => setEditingTime(e.target.value)}
-                        className="bg-[#1a1230] border border-[#3D2A5C] rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-[#7C3AED] transition-colors flex-1"
-                        style={{ colorScheme: "dark" }}
-                      />
-                      <button
-                        onClick={handleSaveEdit}
-                        disabled={actionLoading}
-                        className="text-xs text-green-400 hover:text-green-300 cursor-pointer disabled:opacity-50"
-                      >
-                        Salvar
-                      </button>
-                      <button
-                        onClick={() => setEditingId(null)}
-                        className="text-xs text-[#6B5A8A] hover:text-[#A89BC2] cursor-pointer"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => handleStartEdit(completion)}
-                        className="text-sm text-[#A89BC2] hover:text-white transition-colors cursor-pointer"
-                        title="Clique para editar horário"
-                      >
-                        {formatDateTime(completion.completed_at)}
-                      </button>
-                      {index === 0 && (
-                        <button
-                          onClick={() => onDeleteCompletion(completion.id)}
-                          disabled={actionLoading}
-                          className="text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                          aria-label="Remover conclusão"
-                        >
-                          Remover
-                        </button>
-                      )}
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
+          <button
+            onClick={() => setActiveTab("history")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+              activeTab === "history"
+                ? "border-[#7C3AED] text-white"
+                : "border-transparent text-[#A89BC2] hover:text-white"
+            }`}
+          >
+            Histórico
+          </button>
         </div>
 
-        {/* Activate/Deactivate moved to title bar eye icon */}
+        {/* Tab content */}
+        {activeTab === "details" ? (
+          <InstanceModalDetails
+            instance={instance}
+            characters={characters}
+            instanceId={instance.id}
+            getEligibleFriends={getEligibleFriends}
+            participants={participants}
+            onAddParticipant={handleAddParticipant}
+            onRemoveParticipant={handleRemoveParticipant}
+          />
+        ) : (
+          <InstanceModalHistory
+            instanceId={instance.id}
+            completions={allCompletions}
+            characters={characters}
+            onUpdateCompletion={onUpdateCompletion}
+            onDeleteCompletion={onDeleteCompletion}
+            actionLoading={actionLoading}
+          />
+        )}
       </div>
     </Modal>
   );

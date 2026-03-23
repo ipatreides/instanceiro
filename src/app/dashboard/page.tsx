@@ -63,6 +63,7 @@ export default function DashboardPage() {
   const { characters, loading: charsLoading, createCharacter, updateCharacter, refetch: refetchCharacters } = useCharacters();
   const {
     loading: instancesLoading,
+    completions,
     computeStates,
     markDone,
     updateCompletion,
@@ -545,10 +546,12 @@ export default function DashboardPage() {
         isOpen={modalInstanceId !== null}
         onClose={handleModalClose}
         instance={modalState}
-        history={modalInstanceId !== null ? getHistory(modalInstanceId) : []}
-        isAvailable={modalState?.status === "available"}
-        isInactive={modalState?.status === "inactive"}
-        onMarkDone={handleMarkDone}
+        characters={characters}
+        allCompletions={completions}
+        onCompleteParty={async (ownCharIds, _friends, completedAt) => {
+          if (ownCharIds.length === 0) return;
+          await handleMarkDone(completedAt);
+        }}
         onUpdateCompletion={handleUpdateCompletion}
         onDeleteCompletion={handleDeleteCompletion}
         onDeactivate={handleDeactivate}
