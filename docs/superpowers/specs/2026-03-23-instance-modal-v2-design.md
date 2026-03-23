@@ -54,7 +54,7 @@ The list starts empty each time the modal opens. User builds it by adding own ch
 
 - Input field: **"Convidar amigo..."** — filters friends who have this instance registered (active or not, regardless of status). Uses existing `getEligibleFriends` RPC.
 - **Available friends** appear first — clickable, adds to participant list
-- **Friends on cooldown** appear below, visually dimmed (opacity-50), not clickable, with orange dot indicator
+- **Friends on cooldown** appear below with orange dot indicator — still clickable (the notification will ask them to confirm, which is the whole point: "did you also do this?")
 - Once invited (added to list), friend appears in the participant list with ✕ remove button
 - Each friend row shows: avatar, character name, class, level, @username
 
@@ -72,11 +72,12 @@ Three actions:
 
 ## Tab: Histórico
 
-Moved from the main tab. Same functionality:
+Moved from the main tab. Shows history for **all own characters** that have completions for this instance.
 
-- List of `instance_completions` for the current character, ordered by date desc
-- Each row: formatted date (clickable to edit via datetime-local inline)
-- Most recent completion has a "Remover" button
+- List of `instance_completions` for all own characters on this instance, ordered by date desc
+- Each row: character name label + formatted date (clickable to edit via datetime-local inline)
+- If completion has `party_id`, show a small group icon to indicate party completion
+- Most recent completion per character has a "Remover" button
 - Shows "Nenhuma conclusão registrada." when empty
 
 ---
@@ -111,9 +112,12 @@ All inserts happen in a single RPC call (`complete_instance_party`) for atomicit
 | user_id | uuid FK → auth.users | recipient |
 | type | text | notification type, e.g., `party_confirm` |
 | payload | jsonb | type-specific data |
-| read | boolean | default false |
+| is_read | boolean | default false |
 | responded | boolean | default false |
+| expires_at | timestamptz | default now() + interval '7 days' |
 | created_at | timestamptz | default now() |
+
+> `is_read` instead of `read` to avoid SQL reserved word. Notifications expire after 7 days — expired unresponded notifications are treated as implicitly declined.
 
 **`party_confirm` payload:**
 ```json
@@ -190,6 +194,16 @@ interface UseNotificationsReturn {
 | status | text | `confirmed`, `pending`, `accepted`, `declined` |
 | created_at | timestamptz | default now() |
 
+### Schema change: `instance_completions`
+
+Add optional column to existing table:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| party_id | uuid FK → instance_parties NULL | links completion to party (NULL for solo) |
+
+This enables future analytics (which completions came from parties vs solo).
+
 ### RLS policies
 
 - `instance_parties`: users can read parties they created or are a member of
@@ -199,26 +213,31 @@ interface UseNotificationsReturn {
 ### RPC: `complete_instance_party`
 
 Security definer function that atomically:
-1. Creates the party
-2. Inserts party members
-3. Inserts completions for confirmed members
-4. Creates notifications for pending members
+1. Validates ownership: all `p_own_character_ids` must belong to `auth.uid()`, all friend entries must have matching `character_id → user_id` in the `characters` table
+2. Creates the party
+3. Inserts party members
+4. Inserts completions for confirmed members (with `party_id` reference)
+5. Creates notifications for pending members
+6. Raises exception on any validation failure
 
 Parameters:
 ```sql
 p_instance_id int,
 p_completed_at timestamptz,
-p_own_character_ids uuid[],     -- marks as confirmed + inserts completions
-p_friend_character_ids uuid[],  -- marks as pending + creates notifications
-p_friend_user_ids uuid[]        -- parallel array with friend char owners
+p_own_character_ids uuid[],   -- validated as auth.uid() owned, marked confirmed
+p_friends jsonb               -- [{"character_id": "...", "user_id": "..."}, ...]
 ```
+
+> Uses JSONB array for friends instead of parallel arrays to prevent ordering bugs.
 
 ### RPC: `respond_party_notification`
 
 Security definer function that:
-1. Updates party member status
-2. If accepted, inserts instance_completion
-3. Marks notification as responded
+1. Validates notification belongs to `auth.uid()` and is not expired
+2. Updates party member status
+3. If accepted, inserts instance_completion (with `party_id` reference)
+4. Marks notification as responded
+5. Raises exception if notification not found or unauthorized
 
 Parameters:
 ```sql
@@ -253,6 +272,42 @@ p_accepted boolean
 
 ---
 
+## Type Definitions
+
+Add to `src/lib/types.ts`:
+
+```typescript
+export interface InstanceParty {
+  id: string;
+  instance_id: number;
+  completed_at: string;
+  created_by: string;
+  created_at: string;
+}
+
+export interface InstancePartyMember {
+  id: string;
+  party_id: string;
+  character_id: string;
+  user_id: string;
+  status: "confirmed" | "pending" | "accepted" | "declined";
+  created_at: string;
+}
+
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  type: string;
+  payload: Record<string, unknown>;
+  is_read: boolean;
+  responded: boolean;
+  expires_at: string;
+  created_at: string;
+}
+```
+
+---
+
 ## Testing
 
 ### Unit tests
@@ -260,27 +315,30 @@ p_accepted boolean
 **`src/lib/__tests__/instance-party-logic.test.ts`:**
 - Participant list: add own char, add friend, remove, prevent duplicate adds
 - "Marcar agora" disabled when no own characters in list
-- Friends on cooldown are not addable
-- isDirty computation for the new modal states
+- Friends on cooldown ARE addable (they receive notification)
+- isDirty computation for the new modal states (participants added, tab changed)
+- Validate that own chars cannot be added if already in list
+- Validate that friend entries require both character_id and user_id
 
 **`src/lib/__tests__/notifications-logic.test.ts`:**
 - Notification response flow: accept → confirmed status
 - Notification response flow: decline → declined status
-- Unread count computation
-- Payload structure validation
+- Unread count computation (excludes responded and expired)
+- Expired notification treated as implicitly declined
+- Payload structure validation for `party_confirm` type
+- Error handling: respond to already-responded notification
 
 ### E2E tests
 
 **`e2e/instance-modal.spec.ts`:**
 - Cannot test full flow without auth, but can test:
-  - Modal structure renders with tabs
-  - Tab switching works
-  - Notification bell is visible in header (when logged out, may redirect — test what's possible)
+  - Modal structure renders with tabs (requires auth — test what's accessible)
+  - Notification bell is visible in dashboard header
 
 **`e2e/notifications.spec.ts`:**
 - Similar auth constraints — test what's accessible without login
 
-> Note: Full integration tests for the party completion + notification flow require authenticated sessions. These should be tested manually or with a seeded test user in a future CI setup.
+> Note: Full integration tests for the party completion + notification flow require authenticated sessions. These should be tested manually or with a seeded test user in a future CI setup. RPC validation logic (ownership checks, expiration) should be tested via Supabase SQL tests or manual verification.
 
 ---
 
