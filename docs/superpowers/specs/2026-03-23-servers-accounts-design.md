@@ -111,8 +111,8 @@ Opened by clicking the account name in the bar. Contains:
 
 Click [+] at end of bar → small modal:
 - Name field (required)
-- Server selector (Freya / Nidhogg radio buttons)
-- "Criar" button
+- Server selector: two badge buttons side by side (`[Freya]` `[Nidhogg]`). Clicking one selects it (purple bg) and deselects the other (muted bg). Required — cannot submit without selecting one.
+- "Criar" button (disabled until name + server filled)
 
 ---
 
