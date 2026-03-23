@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useUsernameCheck, isValidUsername } from "@/hooks/use-username-check";
 import Link from "next/link";
 import { useState } from "react";
+import { Logo } from "@/components/ui/logo";
 
 export default function SignupPage() {
   const [username, setUsername] = useState("");
@@ -100,17 +101,17 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-[#0f0a1a] flex items-center justify-center px-4">
-        <div className="w-full max-w-md bg-[#1a1230] rounded-xl p-8 border border-[#3D2A5C] text-center">
-          <div className="text-[#D4A843] text-4xl mb-4">✉️</div>
-          <h2 className="text-white text-xl font-semibold mb-3">Verifique seu email</h2>
-          <p className="text-[#A89BC2]">
+      <div className="min-h-screen bg-bg flex items-center justify-center px-4">
+        <div className="w-full max-w-md bg-surface rounded-xl p-8 border border-border text-center">
+          <div className="text-primary text-4xl mb-4">✉️</div>
+          <h2 className="text-text-primary text-xl font-semibold mb-3">Verifique seu email</h2>
+          <p className="text-text-secondary">
             Verifique seu email para confirmar a conta. Enviamos um link de confirmação para{" "}
-            <span className="text-white font-medium">{email}</span>.
+            <span className="text-text-primary font-medium">{email}</span>.
           </p>
           <Link
             href="/login"
-            className="mt-6 inline-block text-[#7C3AED] hover:text-[#9F67FF] transition-colors"
+            className="mt-6 inline-block text-primary hover:underline transition-colors"
           >
             Voltar para login
           </Link>
@@ -120,14 +121,15 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0a1a] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-bg flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-white text-3xl font-bold">Criar Conta</h1>
-          <p className="text-[#A89BC2] mt-2">Crie sua conta no Instanceiro</p>
+          <Logo size="md" />
+          <h1 className="text-text-primary text-3xl font-bold">Criar Conta</h1>
+          <p className="text-text-secondary mt-2">Crie sua conta no Instanceiro</p>
         </div>
 
-        <div className="bg-[#1a1230] rounded-xl p-8 border border-[#3D2A5C]">
+        <div className="bg-surface rounded-xl p-8 border border-border">
           {errorMessage && (
             <div className="mb-4 p-3 rounded-lg bg-red-900/30 border border-red-500/50 text-red-400 text-sm">
               {errorMessage}
@@ -137,11 +139,11 @@ export default function SignupPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Username field */}
             <div>
-              <label htmlFor="username" className="block text-[#A89BC2] text-sm font-medium mb-1">
+              <label htmlFor="username" className="block text-text-secondary text-sm font-medium mb-1">
                 Username
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B5A8A] text-sm font-medium">@</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm font-medium">@</span>
                 <input
                   id="username"
                   type="text"
@@ -149,11 +151,11 @@ export default function SignupPage() {
                   onChange={handleUsernameChange}
                   maxLength={20}
                   placeholder="username"
-                  className="w-full bg-[#2a1f40] border border-[#3D2A5C] text-white placeholder-[#6B5A8A] rounded-lg pl-8 pr-10 py-2.5 focus:border-[#7C3AED] focus:outline-none transition-colors"
+                  className="w-full bg-surface border border-border text-text-primary placeholder-text-secondary rounded-lg pl-8 pr-10 py-2.5 focus:ring-2 focus:ring-focus-ring focus:outline-none transition-colors"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">
                   {usernameStatus === "checking" && (
-                    <span className="text-[#A89BC2] animate-pulse">...</span>
+                    <span className="text-text-secondary animate-pulse">...</span>
                   )}
                   {usernameStatus === "available" && (
                     <span className="text-green-400">✓</span>
@@ -187,7 +189,7 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-[#A89BC2] text-sm font-medium mb-1">
+              <label htmlFor="email" className="block text-text-secondary text-sm font-medium mb-1">
                 Email
               </label>
               <input
@@ -196,7 +198,7 @@ export default function SignupPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="seu@email.com"
-                className="w-full bg-[#2a1f40] border border-[#3D2A5C] text-white placeholder-[#6B5A8A] rounded-lg px-4 py-2.5 focus:border-[#7C3AED] focus:outline-none transition-colors"
+                className="w-full bg-surface border border-border text-text-primary placeholder-text-secondary rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-focus-ring focus:outline-none transition-colors"
               />
               {errors.email && (
                 <p className="mt-1 text-red-400 text-sm">{errors.email}</p>
@@ -204,7 +206,7 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-[#A89BC2] text-sm font-medium mb-1">
+              <label htmlFor="password" className="block text-text-secondary text-sm font-medium mb-1">
                 Senha
               </label>
               <input
@@ -213,7 +215,7 @@ export default function SignupPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Mínimo 6 caracteres"
-                className="w-full bg-[#2a1f40] border border-[#3D2A5C] text-white placeholder-[#6B5A8A] rounded-lg px-4 py-2.5 focus:border-[#7C3AED] focus:outline-none transition-colors"
+                className="w-full bg-surface border border-border text-text-primary placeholder-text-secondary rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-focus-ring focus:outline-none transition-colors"
               />
               {errors.password && (
                 <p className="mt-1 text-red-400 text-sm">{errors.password}</p>
@@ -221,7 +223,7 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-[#A89BC2] text-sm font-medium mb-1">
+              <label htmlFor="confirmPassword" className="block text-text-secondary text-sm font-medium mb-1">
                 Confirmar Senha
               </label>
               <input
@@ -230,7 +232,7 @@ export default function SignupPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Repita a senha"
-                className="w-full bg-[#2a1f40] border border-[#3D2A5C] text-white placeholder-[#6B5A8A] rounded-lg px-4 py-2.5 focus:border-[#7C3AED] focus:outline-none transition-colors"
+                className="w-full bg-surface border border-border text-text-primary placeholder-text-secondary rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-focus-ring focus:outline-none transition-colors"
               />
               {errors.confirmPassword && (
                 <p className="mt-1 text-red-400 text-sm">{errors.confirmPassword}</p>
@@ -240,28 +242,28 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={submitting || !canSubmit}
-              className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors cursor-pointer"
+              className="w-full bg-primary hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-text-primary font-medium py-3 rounded-lg transition-colors cursor-pointer"
             >
               {submitting ? "Criando..." : "Criar Conta"}
             </button>
           </form>
 
           <div className="my-6 flex items-center gap-3">
-            <div className="flex-1 h-px bg-[#3D2A5C]" />
-            <span className="text-[#6B5A8A] text-sm">ou</span>
-            <div className="flex-1 h-px bg-[#3D2A5C]" />
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-text-secondary text-sm">ou</span>
+            <div className="flex-1 h-px bg-border" />
           </div>
 
           <button
             onClick={handleGoogleLogin}
-            className="w-full bg-[#2a1f40] hover:bg-[#3D2A5C] border border-[#3D2A5C] text-white font-medium py-3 rounded-lg transition-colors cursor-pointer"
+            className="w-full bg-bg hover:bg-surface border border-border text-text-primary font-medium py-3 rounded-lg transition-colors cursor-pointer"
           >
             Entrar com Google
           </button>
 
-          <p className="mt-6 text-center text-[#A89BC2] text-sm">
+          <p className="mt-6 text-center text-text-secondary text-sm">
             Já tem conta?{" "}
-            <Link href="/login" className="text-[#7C3AED] hover:text-[#9F67FF] transition-colors">
+            <Link href="/login" className="text-primary hover:underline transition-colors">
               Entrar
             </Link>
           </p>
