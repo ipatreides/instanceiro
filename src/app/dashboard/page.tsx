@@ -28,6 +28,8 @@ import { useSchedules } from "@/hooks/use-schedules";
 import type { InstanceSchedule, ScheduleParticipant } from "@/lib/types";
 import { Modal } from "@/components/ui/modal";
 import { FullPageSpinner, Spinner } from "@/components/ui/spinner";
+import { Logo } from "@/components/ui/logo";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import type { Account, Character, InstanceState } from "@/lib/types";
 
 interface Profile {
@@ -401,13 +403,11 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0a1a] text-white">
+    <div className="min-h-screen bg-bg text-text-primary">
       {/* Header */}
-      <header className="bg-[#1a1230] border-b border-[#3D2A5C] sticky top-0 z-40">
+      <header className="bg-surface border-b border-border sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-5 py-3 flex items-center justify-between">
-          <span className="text-base font-semibold text-white tracking-tight">
-            Instanceiro
-          </span>
+          <Logo size="md" />
           <div className="flex items-center gap-3">
             {profile?.avatar_url && (
               <img
@@ -419,21 +419,21 @@ export default function DashboardPage() {
             {profile?.username && (
               <a
                 href="/profile"
-                className="text-sm text-[#9B6DFF] hover:text-white transition-colors hidden sm:inline"
+                className="text-sm text-primary hover:text-text-primary transition-colors hidden sm:inline"
               >
                 @{profile.username}
               </a>
             )}
             <button
               onClick={() => setShowFriends(true)}
-              className="lg:hidden text-sm text-[#A89BC2] hover:text-white transition-colors cursor-pointer relative"
+              className="lg:hidden text-sm text-text-secondary hover:text-text-primary transition-colors cursor-pointer relative"
               aria-label="Amigos"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
               </svg>
               {pendingReceived.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-status-error rounded-full text-[10px] text-text-primary flex items-center justify-center font-bold">
                   {pendingReceived.length}
                 </span>
               )}
@@ -443,9 +443,10 @@ export default function DashboardPage() {
               unreadCount={unreadCount}
               onRespond={respondToPartyConfirm}
             />
+            <ThemeToggle />
             <button
               onClick={handleLogout}
-              className="text-sm text-[#A89BC2] hover:text-white transition-colors cursor-pointer"
+              className="text-sm text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
             >
               Sair
             </button>
@@ -500,7 +501,7 @@ export default function DashboardPage() {
               suggestions={searchSuggestions}
             />
             {(searchText.trim().length > 0 || searchFilters.length > 0) && (
-              <p className="text-xs text-[#6B5A8A]">
+              <p className="text-xs text-text-secondary">
                 {filteredStates.length} de {allStates.length} instâncias
               </p>
             )}
@@ -549,12 +550,12 @@ export default function DashboardPage() {
           </>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
-            <p className="text-[#A89BC2] text-center">
+            <p className="text-text-secondary text-center">
               Nenhum personagem cadastrado. Crie uma conta para começar.
             </p>
             <button
               onClick={() => setShowCreateAccount(true)}
-              className="px-5 py-2.5 rounded-md bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold text-sm transition-colors cursor-pointer"
+              className="px-5 py-2.5 rounded-md bg-primary hover:bg-primary-hover text-text-primary font-semibold text-sm transition-colors cursor-pointer"
             >
               Criar Conta
             </button>
@@ -629,7 +630,7 @@ export default function DashboardPage() {
         titleAction={editingChar ? (
           <button
             onClick={() => { setDeletingChar(editingChar); setEditingChar(null); }}
-            className="text-gray-500 hover:text-red-400 transition-colors cursor-pointer"
+            className="text-text-secondary hover:text-status-error transition-colors cursor-pointer"
             aria-label="Excluir personagem"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -641,13 +642,13 @@ export default function DashboardPage() {
         {editingChar && (
           <div className="flex flex-col gap-4">
             {/* Tabs */}
-            <div className="flex gap-1 border-b border-[#3D2A5C]">
+            <div className="flex gap-1 border-b border-border">
               <button
                 onClick={() => setEditTab("data")}
                 className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
                   editTab === "data"
-                    ? "border-[#7C3AED] text-white"
-                    : "border-transparent text-[#A89BC2] hover:text-white"
+                    ? "border-primary text-text-primary"
+                    : "border-transparent text-text-secondary hover:text-text-primary"
                 }`}
               >
                 Dados
@@ -656,8 +657,8 @@ export default function DashboardPage() {
                 onClick={() => setEditTab("share")}
                 className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
                   editTab === "share"
-                    ? "border-[#7C3AED] text-white"
-                    : "border-transparent text-[#A89BC2] hover:text-white"
+                    ? "border-primary text-text-primary"
+                    : "border-transparent text-text-secondary hover:text-text-primary"
                 }`}
               >
                 Compartilhamento
@@ -695,19 +696,19 @@ export default function DashboardPage() {
       >
         {deletingChar && (
           <div className="flex flex-col gap-5">
-            <p className="text-[#A89BC2] text-sm">
-              Tem certeza que deseja excluir <span className="text-white font-semibold">{deletingChar.name}</span>? Todo o histórico de instâncias será removido. Essa ação não pode ser desfeita.
+            <p className="text-text-secondary text-sm">
+              Tem certeza que deseja excluir <span className="text-text-primary font-semibold">{deletingChar.name}</span>? Todo o histórico de instâncias será removido. Essa ação não pode ser desfeita.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={handleConfirmDelete}
-                className="flex-1 py-2.5 rounded-md bg-red-600 hover:bg-red-500 text-white font-semibold text-sm transition-colors cursor-pointer"
+                className="flex-1 py-2.5 rounded-md bg-status-error hover:opacity-90 text-text-primary font-semibold text-sm transition-colors cursor-pointer"
               >
                 Excluir
               </button>
               <button
                 onClick={() => setDeletingChar(null)}
-                className="flex-1 py-2.5 rounded-md bg-[#2a1f40] border border-[#3D2A5C] text-[#A89BC2] font-semibold text-sm hover:text-white hover:border-[#6B5A8A] transition-colors cursor-pointer"
+                className="flex-1 py-2.5 rounded-md bg-surface border border-border text-text-secondary font-semibold text-sm hover:text-text-primary hover:border-text-secondary transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
@@ -838,55 +839,55 @@ export default function DashboardPage() {
       {/* Username prompt modal (non-closable) */}
       {needsUsername && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60">
-          <div className="bg-[#1a1230] w-full sm:max-w-md sm:rounded-lg rounded-t-2xl max-h-[85vh] overflow-y-auto">
-            <div className="p-4 border-b border-[#3D2A5C]">
-              <h2 className="text-lg font-semibold text-white">Escolha seu @username</h2>
+          <div className="bg-surface w-full sm:max-w-md sm:rounded-lg rounded-t-2xl max-h-[85vh] overflow-y-auto">
+            <div className="p-4 border-b border-border">
+              <h2 className="text-lg font-semibold text-text-primary">Escolha seu @username</h2>
             </div>
             <div className="p-4 flex flex-col gap-4">
-              <p className="text-[#A89BC2] text-sm">
+              <p className="text-text-secondary text-sm">
                 Esse será seu identificador público no Instanceiro.
               </p>
 
               <div className="flex flex-col gap-2">
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B5A8A] text-sm font-medium">@</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm font-medium">@</span>
                   <input
                     type="text"
                     value={usernameInput}
                     onChange={(e) => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ""))}
                     maxLength={20}
                     placeholder="username"
-                    className="w-full bg-[#2a1f40] border border-[#3D2A5C] rounded-md pl-8 pr-10 py-2.5 text-white text-sm placeholder-[#6B5A8A] focus:outline-none focus:border-[#7C3AED] transition-colors"
+                    className="w-full bg-surface border border-border rounded-md pl-8 pr-10 py-2.5 text-text-primary text-sm placeholder-text-secondary focus:outline-none focus:border-primary transition-colors"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">
                     {usernameStatus === "checking" && (
-                      <span className="text-[#A89BC2] animate-pulse">...</span>
+                      <span className="text-text-secondary animate-pulse">...</span>
                     )}
                     {usernameStatus === "available" && (
-                      <span className="text-green-400">&#10003;</span>
+                      <span className="text-status-available">&#10003;</span>
                     )}
                     {usernameStatus === "taken" && (
-                      <span className="text-red-400">&#10007;</span>
+                      <span className="text-status-error">&#10007;</span>
                     )}
                     {usernameStatus === "invalid" && usernameInput.length > 0 && (
-                      <span className="text-red-400">&#10007;</span>
+                      <span className="text-status-error">&#10007;</span>
                     )}
                   </span>
                 </div>
 
                 <div className="h-5">
                   {usernameStatus === "taken" && (
-                    <p className="text-xs text-red-400">Esse username já está em uso.</p>
+                    <p className="text-xs text-status-error">Esse username já está em uso.</p>
                   )}
                   {usernameStatus === "invalid" && usernameInput.length > 0 && (
-                    <p className="text-xs text-red-400">
+                    <p className="text-xs text-status-error">
                       {usernameInput.length < 3
                         ? "Mínimo 3 caracteres."
                         : "Apenas letras minúsculas e números."}
                     </p>
                   )}
                   {usernameStatus === "available" && (
-                    <p className="text-xs text-green-400">Disponível!</p>
+                    <p className="text-xs text-status-available">Disponível!</p>
                   )}
                 </div>
               </div>
@@ -896,7 +897,7 @@ export default function DashboardPage() {
                   type="button"
                   onClick={handleSaveUsername}
                   disabled={usernameStatus !== "available" || usernameSaving}
-                  className="px-6 py-2 rounded-md bg-[#7C3AED] text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#6D28D9] transition-colors cursor-pointer"
+                  className="px-6 py-2 rounded-md bg-primary text-text-primary font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary-hover transition-colors cursor-pointer"
                 >
                   {usernameSaving ? "Salvando..." : "Confirmar"}
                 </button>
