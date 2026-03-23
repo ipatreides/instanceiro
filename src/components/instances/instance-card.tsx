@@ -57,15 +57,15 @@ function formatAvailableDay(availableDay: string): string {
 }
 
 const STATUS_BORDER: Record<InstanceState["status"], string> = {
-  available: "border-l-green-500",
-  cooldown: "border-l-orange-400",
-  inactive: "border-l-gray-600",
+  available: "card-status-available",
+  cooldown: "card-status-cooldown",
+  inactive: "border-l-disabled-bg",
 };
 
 const STATUS_DOT: Record<InstanceState["status"], string> = {
-  available: "bg-green-500",
-  cooldown: "bg-orange-400",
-  inactive: "bg-gray-600",
+  available: "bg-status-available",
+  cooldown: "bg-status-cooldown",
+  inactive: "bg-disabled-bg",
 };
 
 export function InstanceCard({ state, now, onClick }: InstanceCardProps) {
@@ -78,27 +78,27 @@ export function InstanceCard({ state, now, onClick }: InstanceCardProps) {
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left bg-[#1a1230] border border-[#3D2A5C] border-l-4 ${STATUS_BORDER[status]} rounded-md px-3 py-2.5 hover:bg-[#221840] transition-colors cursor-pointer`}
+      className={`w-full text-left bg-surface border border-border border-l-4 ${STATUS_BORDER[status]} rounded-[var(--radius-md)] px-3 py-2.5 hover:bg-card-hover-bg shadow-card transition-colors cursor-pointer`}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className={`w-2 h-2 rounded-full flex-shrink-0 ${STATUS_DOT[status]}`} />
-          <span className="text-sm font-medium text-white truncate">{instance.name}</span>
+          <span className="text-sm font-medium text-text-primary truncate">{instance.name}</span>
           {instance.mutual_exclusion_group && (
-            <span className="text-xs text-purple-400 flex-shrink-0" title={`Compartilha cooldown com outras instâncias do grupo "${instance.mutual_exclusion_group}"`}>
+            <span className="text-xs text-primary flex-shrink-0" title={`Compartilha cooldown com outras instâncias do grupo "${instance.mutual_exclusion_group}"`}>
               ⟷
             </span>
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {timeLabel && (
-            <span className="text-xs text-orange-400 font-medium">{timeLabel}</span>
+            <span className="text-xs text-status-cooldown-text font-medium">{timeLabel}</span>
           )}
           {completionCount > 0 && (
-            <span className="text-xs text-[#A89BC2]">×{completionCount}</span>
+            <span className="text-xs text-text-secondary">×{completionCount}</span>
           )}
           {instance.liga_tier && (
-            <span className="text-xs text-amber-400 font-medium">
+            <span className="text-xs text-primary-secondary font-medium">
               {instance.liga_tier}·{instance.liga_coins}
             </span>
           )}

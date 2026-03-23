@@ -103,3 +103,13 @@ body {
 *::-webkit-scrollbar {
   display: none;
 }
+
+/* Status-aware card left borders with hover brightening */
+.card-status-available { border-left-color: var(--status-available); }
+.card-status-available:hover { border-left-color: var(--status-available-text); }
+.card-status-cooldown { border-left-color: var(--status-cooldown); }
+.card-status-cooldown:hover { border-left-color: var(--status-cooldown-text); }
+.card-status-soon { border-left-color: var(--status-soon); }
+.card-status-soon:hover { border-left-color: var(--status-soon-text); }
+.card-status-error { border-left-color: var(--status-error); }
+.card-status-error:hover { border-left-color: var(--status-error-text); }
