@@ -721,6 +721,7 @@ export default function DashboardPage() {
       <AccountModal
         isOpen={accountModalAccount !== null}
         onClose={() => setAccountModalAccount(null)}
+        autoShowCharForm={accountModalAccount ? characters.filter(c => c.account_id === accountModalAccount.id).length === 0 : false}
         account={accountModalAccount}
         characters={characters.filter(c => c.account_id === accountModalAccount?.id)}
         servers={servers}
@@ -754,8 +755,9 @@ export default function DashboardPage() {
         onClose={() => setShowCreateAccount(false)}
         servers={servers}
         onCreate={async (name, serverId) => {
-          await createAccount(name, serverId);
+          const newAccount = await createAccount(name, serverId);
           setShowCreateAccount(false);
+          setAccountModalAccount(newAccount);
         }}
       />
 

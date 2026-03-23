@@ -15,6 +15,7 @@ interface AccountModalProps {
   onDeleteAccount: () => Promise<void>;
   onCreateCharacter: (data: { name: string; class_name: string; class_path: string[]; level: number; account_id: string }) => Promise<void>;
   onDeleteCharacter: (charId: string) => Promise<void>;
+  autoShowCharForm?: boolean;
 }
 
 export function AccountModal({
@@ -27,6 +28,7 @@ export function AccountModal({
   onDeleteAccount,
   onCreateCharacter,
   onDeleteCharacter,
+  autoShowCharForm,
 }: AccountModalProps) {
   const [editName, setEditName] = useState("");
   const [showCharForm, setShowCharForm] = useState(false);
@@ -45,8 +47,10 @@ export function AccountModal({
       setShowCharForm(false);
       setConfirmDeleteChar(null);
       setConfirmDeleteAccount(false);
+    } else if (autoShowCharForm) {
+      setShowCharForm(true);
     }
-  }, [isOpen]);
+  }, [isOpen, autoShowCharForm]);
 
   if (!account) return null;
 
@@ -103,7 +107,7 @@ export function AccountModal({
       <div className="flex flex-col gap-5">
         {/* Account name (editable) */}
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-[#A89BC2]">Nome da conta</label>
+          <label className="text-sm font-medium text-text-secondary">Nome da conta</label>
           <input
             ref={inputRef}
             type="text"
@@ -111,51 +115,51 @@ export function AccountModal({
             onChange={(e) => setEditName(e.target.value)}
             onBlur={saveName}
             onKeyDown={handleNameKeyDown}
-            className="bg-[#2a1f40] border border-[#3D2A5C] rounded-md px-3 py-2 text-white placeholder-[#6B5A8A] focus:outline-none focus:border-[#7C3AED] transition-colors"
+            className="bg-surface border border-border rounded-md px-3 py-2 text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary transition-colors"
           />
         </div>
 
         {/* Server (read-only) */}
         <div className="flex items-center gap-2">
-          <span className="text-sm text-[#6B5A8A]">Servidor:</span>
-          <span className="px-2 py-0.5 text-xs rounded bg-[#2a1f40] border border-[#3D2A5C] text-[#A89BC2]">
+          <span className="text-sm text-text-secondary">Servidor:</span>
+          <span className="px-2 py-0.5 text-xs rounded bg-surface border border-border text-text-secondary">
             {serverName}
           </span>
         </div>
 
         {/* Character list */}
         <div className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-[#A89BC2]">
+          <span className="text-sm font-medium text-text-secondary">
             Personagens ({characters.length})
           </span>
           {characters.length === 0 ? (
-            <p className="text-sm text-[#6B5A8A] py-2">Nenhum personagem nesta conta.</p>
+            <p className="text-sm text-text-secondary py-2">Nenhum personagem nesta conta.</p>
           ) : (
             <div className="flex flex-col gap-1 mt-1">
               {characters.map((char) => (
                 <div
                   key={char.id}
-                  className="flex items-center justify-between px-3 py-2 rounded-md bg-[#0f0a1a] border border-[#3D2A5C]"
+                  className="flex items-center justify-between px-3 py-2 rounded-md bg-bg border border-border"
                 >
                   <div className="flex flex-col">
-                    <span className="text-sm text-white">{char.name}</span>
-                    <span className="text-xs text-[#6B5A8A]">
+                    <span className="text-sm text-text-primary">{char.name}</span>
+                    <span className="text-xs text-text-secondary">
                       {char.class} Lv.{char.level}
                     </span>
                   </div>
                   {confirmDeleteChar === char.id ? (
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-red-400">Excluir?</span>
+                      <span className="text-xs text-status-error">Excluir?</span>
                       <button
                         onClick={() => handleDeleteChar(char.id)}
                         disabled={deletingChar === char.id}
-                        className="text-xs text-red-400 hover:text-red-300 cursor-pointer disabled:opacity-50"
+                        className="text-xs text-status-error hover:text-red-300 cursor-pointer disabled:opacity-50"
                       >
                         {deletingChar === char.id ? "..." : "Sim"}
                       </button>
                       <button
                         onClick={() => setConfirmDeleteChar(null)}
-                        className="text-xs text-[#A89BC2] hover:text-white cursor-pointer"
+                        className="text-xs text-text-secondary hover:text-text-primary cursor-pointer"
                       >
                         Cancelar
                       </button>
@@ -163,7 +167,7 @@ export function AccountModal({
                   ) : (
                     <button
                       onClick={() => setConfirmDeleteChar(char.id)}
-                      className="text-red-400/60 hover:text-red-400 text-sm cursor-pointer transition-colors"
+                      className="text-status-error/60 hover:text-status-error text-sm cursor-pointer transition-colors"
                       title="Excluir personagem"
                     >
                       ✕
@@ -177,7 +181,7 @@ export function AccountModal({
 
         {/* Add character */}
         {showCharForm ? (
-          <div className="border border-[#3D2A5C] rounded-md p-3 bg-[#0f0a1a]">
+          <div className="border border-border rounded-md p-3 bg-bg">
             <CharacterForm
               accountId={account.id}
               onSubmit={handleCreateCharacter}
@@ -188,30 +192,30 @@ export function AccountModal({
         ) : (
           <button
             onClick={() => setShowCharForm(true)}
-            className="w-full py-2 rounded-md border border-dashed border-[#3D2A5C] text-sm text-[#A89BC2] hover:text-white hover:border-[#7C3AED] transition-colors cursor-pointer"
+            className="w-full py-2 rounded-md border border-dashed border-border text-sm text-text-secondary hover:text-text-primary hover:border-primary transition-colors cursor-pointer"
           >
             + Adicionar personagem
           </button>
         )}
 
         {/* Delete account */}
-        <div className="pt-2 border-t border-[#3D2A5C]">
+        <div className="pt-2 border-t border-border">
           {confirmDeleteAccount ? (
             <div className="flex flex-col gap-2">
-              <span className="text-sm text-red-400">
+              <span className="text-sm text-status-error">
                 Excluir conta e todos os {characters.length} personagens?
               </span>
               <div className="flex gap-2">
                 <button
                   onClick={handleDeleteAccount}
                   disabled={deletingAccount}
-                  className="px-3 py-1.5 text-xs text-red-400 bg-red-900/20 border border-red-900/50 rounded hover:bg-red-900/40 transition-colors cursor-pointer disabled:opacity-50"
+                  className="px-3 py-1.5 text-xs text-status-error bg-red-900/20 border border-red-900/50 rounded hover:bg-red-900/40 transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {deletingAccount ? "Excluindo..." : "Confirmar"}
                 </button>
                 <button
                   onClick={() => setConfirmDeleteAccount(false)}
-                  className="px-3 py-1.5 text-xs text-[#A89BC2] bg-[#1a1230] border border-[#3D2A5C] rounded hover:text-white transition-colors cursor-pointer"
+                  className="px-3 py-1.5 text-xs text-text-secondary bg-surface border border-border rounded hover:text-text-primary transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -220,7 +224,7 @@ export function AccountModal({
           ) : (
             <button
               onClick={() => setConfirmDeleteAccount(true)}
-              className="text-sm text-red-400/70 hover:text-red-400 transition-colors cursor-pointer"
+              className="text-sm text-status-error/70 hover:text-status-error transition-colors cursor-pointer"
             >
               Excluir conta
             </button>
