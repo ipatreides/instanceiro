@@ -10,6 +10,7 @@ interface ScheduleCardProps {
 function formatScheduledDate(isoDate: string): string {
   const date = new Date(isoDate);
   return date.toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
     weekday: "short",
     day: "2-digit",
     month: "2-digit",

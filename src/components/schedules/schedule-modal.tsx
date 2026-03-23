@@ -345,11 +345,11 @@ export function ScheduleModal({
               className="text-xs px-2 py-1 rounded bg-[#2a1f40] text-[#A89BC2] border border-[#3D2A5C] hover:border-[#7C3AED] hover:text-white transition-colors cursor-pointer"
               title="Clique para alterar horário"
             >
-              {formatBrtDateTime(schedule.scheduled_at)} ✎
+              {formatBrtDateTime(schedule.scheduled_at)} BRT ✎
             </button>
           ) : (
             <span className="text-xs px-2 py-1 rounded bg-[#2a1f40] text-[#A89BC2] border border-[#3D2A5C]">
-              {formatBrtDateTime(schedule.scheduled_at)}
+              {formatBrtDateTime(schedule.scheduled_at)} BRT
             </span>
           )}
           {schedule.instanceStartMap && (

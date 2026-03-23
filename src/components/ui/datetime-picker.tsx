@@ -131,7 +131,7 @@ export function DateTimePicker({ value, onChange, minDate, label }: DateTimePick
 
   return (
     <div className="flex flex-col gap-3">
-      {label && <label className="text-xs text-[#6B5A8A]">{label}</label>}
+      {label && <label className="text-xs text-[#6B5A8A]">{label} <span className="text-[#6B5A8A]/60">(horário de Brasília)</span></label>}
 
       {/* Day selector */}
       <div
@@ -181,7 +181,7 @@ export function DateTimePicker({ value, onChange, minDate, label }: DateTimePick
       {/* Show selected datetime */}
       {value && selectedBrt && (
         <p className="text-xs text-[#6B5A8A]">
-          {formatDayLabel(currentDay, now)} às {String(selectedBrt.getHours()).padStart(2, "0")}:{String(selectedBrt.getMinutes()).padStart(2, "0")}
+          {formatDayLabel(currentDay, now)} às {String(selectedBrt.getHours()).padStart(2, "0")}:{String(selectedBrt.getMinutes()).padStart(2, "0")} BRT
         </p>
       )}
     </div>

@@ -154,7 +154,7 @@ export default function InvitePage() {
           <h1 className="text-2xl font-bold text-white">{data.instance.name}</h1>
           <div className="flex flex-wrap gap-2 justify-center">
             <span className="text-xs px-2 py-1 rounded bg-[#2a1f40] text-[#A89BC2] border border-[#3D2A5C]">
-              {formatBrtDateTime(data.schedule.scheduled_at)}
+              {formatBrtDateTime(data.schedule.scheduled_at)} BRT
             </span>
             {data.instance.start_map && (
               <span className="text-xs px-2 py-1 rounded bg-[#2a1f40] text-[#D4A843] border border-[#3D2A5C]">
