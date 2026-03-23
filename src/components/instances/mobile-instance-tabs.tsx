@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { InstanceState, CooldownType } from "@/lib/types";
 import { InstanceColumn } from "./instance-column";
+import { useDragScroll } from "@/hooks/use-drag-scroll";
 
 const COOLDOWN_ORDER: CooldownType[] = ["weekly", "three_day", "daily", "hourly"];
 
@@ -21,17 +22,18 @@ interface MobileInstanceTabsProps {
 
 export function MobileInstanceTabs({ statesByType, now, onCardClick }: MobileInstanceTabsProps) {
   const [activeTab, setActiveTab] = useState<CooldownType>(COOLDOWN_ORDER[0]);
+  const drag = useDragScroll();
 
   return (
     <div className="md:hidden flex flex-col gap-3">
-      <div className="flex gap-1 overflow-x-auto pb-1">
+      <div ref={drag.ref} {...drag.handlers} className="flex gap-1 overflow-x-auto select-none">
         {COOLDOWN_ORDER.map((type) => {
           const states = statesByType.get(type) ?? [];
           const availableCount = states.filter((s) => s.status === "available").length;
           return (
             <button
               key={type}
-              onClick={() => setActiveTab(type)}
+              onClick={() => { if (!drag.wasDragged()) setActiveTab(type); }}
               className={`flex-shrink-0 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
                 activeTab === type
                   ? "bg-[#7C3AED] text-white"

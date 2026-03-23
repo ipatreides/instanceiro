@@ -1,6 +1,7 @@
 "use client";
 
 import type { Character } from "@/lib/types";
+import { useDragScroll } from "@/hooks/use-drag-scroll";
 
 interface CharacterBarProps {
   characters: Character[];
@@ -11,8 +12,10 @@ interface CharacterBarProps {
 }
 
 export function CharacterBar({ characters, selectedId, onSelect, onAddClick, onEdit }: CharacterBarProps) {
+  const drag = useDragScroll();
+
   return (
-    <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+    <div ref={drag.ref} {...drag.handlers} className="flex items-center gap-2 overflow-x-auto pb-1 select-none">
       {characters.map((character) => {
         const isSelected = character.id === selectedId;
         const isShared = character.isShared ?? false;
@@ -30,7 +33,7 @@ export function CharacterBar({ characters, selectedId, onSelect, onAddClick, onE
         return (
           <button
             key={character.id}
-            onClick={() => isSelected && onEdit && !isShared ? onEdit(character) : onSelect(character)}
+            onClick={() => { if (drag.wasDragged()) return; isSelected && onEdit && !isShared ? onEdit(character) : onSelect(character); }}
             className={`flex-shrink-0 flex flex-col items-start px-4 py-2.5 rounded-lg border transition-colors cursor-pointer min-w-[120px] text-left ${
               isSelected ? selectedClass : unselectedClass
             }`}

@@ -18,10 +18,11 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-.no-scrollbar {
+/* Hide all scrollbars globally — overflow containers should be draggable */
+* {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
-.no-scrollbar::-webkit-scrollbar {
+*::-webkit-scrollbar {
   display: none;
 }
