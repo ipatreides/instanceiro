@@ -98,18 +98,26 @@ export function useSchedules(): UseSchedulesReturn {
 
   useEffect(() => {
     let cancelled = false;
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
     fetchAll().then(() => { if (!cancelled) setLoading(false); });
+
+    const debouncedFetch = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => fetchAll(), 300);
+    };
 
     const supabase = createClient();
     const channel = supabase
       .channel("schedules-changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "instance_schedules" }, () => fetchAll())
-      .on("postgres_changes", { event: "*", schema: "public", table: "schedule_participants" }, () => fetchAll())
-      .on("postgres_changes", { event: "*", schema: "public", table: "schedule_placeholders" }, () => fetchAll())
+      .on("postgres_changes", { event: "*", schema: "public", table: "instance_schedules" }, debouncedFetch)
+      .on("postgres_changes", { event: "*", schema: "public", table: "schedule_participants" }, debouncedFetch)
+      .on("postgres_changes", { event: "*", schema: "public", table: "schedule_placeholders" }, debouncedFetch)
       .subscribe();
 
     return () => {
       cancelled = true;
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [fetchAll]);

@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/client";
 import { calculateCooldownExpiry, isAvailableDay } from "@/lib/cooldown";
 import type { Instance, CharacterInstance, InstanceCompletion, InstanceState } from "@/lib/types";
 
+// Module-level cache for instances (global game data that never changes)
+let cachedInstances: Instance[] | null = null;
+
 interface UseInstancesReturn {
   instances: Instance[];
   characterInstances: CharacterInstance[];
@@ -35,8 +38,12 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
 
     const supabase = createClient();
 
+    const instancesPromise = cachedInstances
+      ? Promise.resolve({ data: cachedInstances, error: null })
+      : supabase.from("instances").select("*").order("name", { ascending: true });
+
     const [instancesRes, ciRes, completionsRes] = await Promise.all([
-      supabase.from("instances").select("*").order("name", { ascending: true }),
+      instancesPromise,
       supabase
         .from("character_instances")
         .select("*")
@@ -51,6 +58,10 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
     if (instancesRes.error) console.error("Error fetching instances:", instancesRes.error);
     if (ciRes.error) console.error("Error fetching character_instances:", ciRes.error);
     if (completionsRes.error) console.error("Error fetching completions:", completionsRes.error);
+
+    if (!cachedInstances && instancesRes.data) {
+      cachedInstances = instancesRes.data;
+    }
 
     setInstances(instancesRes.data ?? []);
     setCharacterInstances(ciRes.data ?? []);
@@ -70,12 +81,22 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
       if (!cancelled) setLoading(false);
     });
 
-    // Subscribe to realtime changes on completions and character_instances
+    // Subscribe to realtime changes filtered by character_id
     const supabase = createClient();
     const channel = supabase
-      .channel("instances-changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "instance_completions" }, () => fetchAll())
-      .on("postgres_changes", { event: "*", schema: "public", table: "character_instances" }, () => fetchAll())
+      .channel(`instances-${characterId}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "instance_completions",
+        filter: `character_id=eq.${characterId}`,
+      }, () => fetchAll())
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "character_instances",
+        filter: `character_id=eq.${characterId}`,
+      }, () => fetchAll())
       .subscribe();
 
     return () => {
