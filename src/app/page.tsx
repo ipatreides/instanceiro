@@ -105,5 +105,4 @@ export default function LandingPage() {
     </div>
   );
 }
-// test
-const x = "bg-[#7C3AED] text-[#A89BC2]";
+

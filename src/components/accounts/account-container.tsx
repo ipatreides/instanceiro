@@ -17,7 +17,8 @@ interface AccountContainerProps {
   onToggleCollapse: () => void;
   onOpenAccountModal: () => void;
   onReorderChars: (orderedCharIds: string[]) => void;
-  dragListeners?: Record<string, unknown>;
+  onMoveLeft?: () => void;
+  onMoveRight?: () => void;
 }
 
 function SortableCharCard({
@@ -106,14 +107,14 @@ export function AccountContainer({
   onToggleCollapse,
   onOpenAccountModal,
   onReorderChars,
-  dragListeners,
+  onMoveLeft,
+  onMoveRight,
 }: AccountContainerProps) {
   const charIds = characters.map((c) => `char-${c.id}`);
 
   if (account.is_collapsed) {
     return (
       <div className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2.5 rounded-lg border border-border bg-surface min-h-[100px] gap-1">
-        <span className="text-text-secondary/30 cursor-grab text-xs" {...dragListeners}>⠿</span>
         <button
           onClick={onOpenAccountModal}
           className="text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors truncate max-w-[80px]"
@@ -124,13 +125,21 @@ export function AccountContainer({
         <span className="text-[10px] text-text-secondary">
           ({characters.length})
         </span>
-        <button
-          onClick={onToggleCollapse}
-          className="text-text-secondary hover:text-text-primary transition-colors text-xs mt-1"
-          aria-label="Expandir"
-        >
-          ►
-        </button>
+        <div className="flex items-center gap-1 mt-1">
+          {onMoveLeft && (
+            <button onClick={onMoveLeft} className="text-text-secondary/50 hover:text-text-primary text-xs cursor-pointer">◀</button>
+          )}
+          <button
+            onClick={onToggleCollapse}
+            className="text-text-secondary hover:text-text-primary transition-colors text-xs"
+            aria-label="Expandir"
+          >
+            ►
+          </button>
+          {onMoveRight && (
+            <button onClick={onMoveRight} className="text-text-secondary/50 hover:text-text-primary text-xs cursor-pointer">▶</button>
+          )}
+        </div>
       </div>
     );
   }
@@ -140,7 +149,9 @@ export function AccountContainer({
       {/* Header */}
       <div className="flex items-center justify-between gap-2 mb-2 px-1">
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-text-secondary/30 cursor-grab text-xs flex-shrink-0" {...dragListeners}>⠿</span>
+          {onMoveLeft && (
+            <button onClick={onMoveLeft} className="text-text-secondary/50 hover:text-text-primary text-xs cursor-pointer flex-shrink-0">◀</button>
+          )}
           <button
             onClick={onOpenAccountModal}
             className="text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors truncate flex items-center gap-1"
@@ -149,6 +160,9 @@ export function AccountContainer({
             {account.name}
             <span className="text-[10px] opacity-50">⚙</span>
           </button>
+          {onMoveRight && (
+            <button onClick={onMoveRight} className="text-text-secondary/50 hover:text-text-primary text-xs cursor-pointer flex-shrink-0">▶</button>
+          )}
         </div>
         <button
           onClick={onToggleCollapse}
