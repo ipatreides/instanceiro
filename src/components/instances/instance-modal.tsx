@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
 import { fromBrtDatetimeLocal, nowBrtMax } from "@/lib/format-date";
-import type { InstanceState, InstanceCompletion, Character } from "@/lib/types";
+import type { Account, InstanceState, InstanceCompletion, Character } from "@/lib/types";
 import type { EligibleFriend } from "@/hooks/use-schedules";
 import type { Participant } from "./participant-list";
 import { InstanceModalDetails } from "./instance-modal-details";
@@ -14,6 +14,7 @@ export interface InstanceModalProps {
   onClose: () => void;
   instance: InstanceState | null;
   characters: Character[];
+  accounts?: Account[];
   selectedCharId: string | null;
   allCompletions: InstanceCompletion[];
   onCompleteParty: (
@@ -36,6 +37,7 @@ export function InstanceModal({
   onClose,
   instance: stateObj,
   characters,
+  accounts,
   selectedCharId,
   allCompletions,
   onCompleteParty,
@@ -259,6 +261,7 @@ export function InstanceModal({
           <InstanceModalDetails
             instance={instance}
             characters={characters}
+            accounts={accounts}
             instanceId={instance.id}
             lockedCharId={selectedCharId}
             getEligibleFriends={getEligibleFriends}

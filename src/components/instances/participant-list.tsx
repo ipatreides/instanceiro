@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import type { Character } from "@/lib/types";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import type { Account, Character } from "@/lib/types";
 
 export interface Participant {
   type: "own" | "friend";
@@ -12,6 +12,8 @@ export interface Participant {
   character_level: number;
   username?: string;
   avatar_url?: string | null;
+  account_id?: string;
+  server_id?: number;
 }
 
 interface EligibleFriend {
@@ -28,6 +30,7 @@ interface EligibleFriend {
 
 interface ParticipantListProps {
   characters: Character[];
+  accounts?: Account[];
   instanceId: number;
   getEligibleFriends: (instanceId: number) => Promise<EligibleFriend[]>;
   participants: Participant[];
@@ -38,6 +41,7 @@ interface ParticipantListProps {
 
 export default function ParticipantList({
   characters,
+  accounts,
   instanceId,
   getEligibleFriends,
   participants,
@@ -48,6 +52,12 @@ export default function ParticipantList({
   const [friends, setFriends] = useState<EligibleFriend[]>([]);
   const [friendsLoading, setFriendsLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const showValidation = useCallback((msg: string) => {
+    setValidationError(msg);
+    setTimeout(() => setValidationError(null), 4000);
+  }, []);
 
   // Fetch friends on mount
   useEffect(() => {
@@ -102,6 +112,25 @@ export default function ParticipantList({
     : availableFriends;
 
   function handleAddOwn(c: Character) {
+    const account = accounts?.find(a => a.id === c.account_id);
+    const serverId = account?.server_id;
+
+    // Validate: same account_id not already in party (own chars only)
+    const ownParticipants = participants.filter(p => p.type === "own");
+    if (ownParticipants.some(p => p.account_id === c.account_id)) {
+      showValidation("Já existe um personagem dessa conta no grupo.");
+      return;
+    }
+
+    // Validate: server_id must match existing participants
+    if (serverId && participants.length > 0) {
+      const existingServerId = participants.find(p => p.server_id)?.server_id;
+      if (existingServerId && existingServerId !== serverId) {
+        showValidation("Esse personagem é de um servidor diferente dos demais.");
+        return;
+      }
+    }
+
     onAdd({
       type: "own",
       character_id: c.id,
@@ -109,6 +138,8 @@ export default function ParticipantList({
       character_name: c.name,
       character_class: c.class,
       character_level: c.level,
+      account_id: c.account_id,
+      server_id: serverId,
     });
   }
 
@@ -133,6 +164,13 @@ export default function ParticipantList({
       <h4 className="text-xs font-semibold text-[#6B5A8A] uppercase tracking-wide">
         Participantes {participants.length > 0 && `(${participants.length})`}
       </h4>
+
+      {/* Validation error */}
+      {validationError && (
+        <div className="px-3 py-2 rounded bg-red-900/40 border border-red-500/30 text-xs text-red-300">
+          {validationError}
+        </div>
+      )}
 
       {/* Current participants */}
       {participants.map((p) => (

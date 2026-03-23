@@ -7,7 +7,10 @@ import { useUsernameCheck } from "@/hooks/use-username-check";
 import { useCharacters } from "@/hooks/use-characters";
 import { useInstances } from "@/hooks/use-instances";
 import { useCooldownTimer } from "@/hooks/use-cooldown-timer";
-import { CharacterBar } from "@/components/characters/character-bar";
+import { useAccounts } from "@/hooks/use-accounts";
+import { AccountBar } from "@/components/accounts/account-bar";
+import { AccountModal } from "@/components/accounts/account-modal";
+import { CreateAccountModal } from "@/components/accounts/create-account-modal";
 import { CharacterForm } from "@/components/characters/character-form";
 import { CharacterShareTab } from "@/components/characters/character-share-tab";
 import { FriendsSidebar } from "@/components/friends/friends-sidebar";
@@ -25,7 +28,7 @@ import { useSchedules } from "@/hooks/use-schedules";
 import type { InstanceSchedule, ScheduleParticipant } from "@/lib/types";
 import { Modal } from "@/components/ui/modal";
 import { FullPageSpinner, Spinner } from "@/components/ui/spinner";
-import type { Character, InstanceState } from "@/lib/types";
+import type { Account, Character, InstanceState } from "@/lib/types";
 
 interface Profile {
   display_name: string | null;
@@ -62,6 +65,10 @@ export default function DashboardPage() {
   const usernameStatus = useUsernameCheck(usernameInput);
   const { pendingReceived } = useFriendships();
   const { notifications, unreadCount, respondToPartyConfirm } = useNotifications();
+
+  const { accounts, servers, loading: accountsLoading, createAccount, updateAccount, deleteAccount, reorderAccounts, reorderCharacters: reorderChars, refetch: refetchAccounts } = useAccounts();
+  const [accountModalAccount, setAccountModalAccount] = useState<Account | null>(null);
+  const [showCreateAccount, setShowCreateAccount] = useState(false);
 
   const { characters, loading: charsLoading, createCharacter, updateCharacter, refetch: refetchCharacters } = useCharacters();
   const {
@@ -261,8 +268,8 @@ export default function DashboardPage() {
     setShowNewChar(false);
   };
 
-  // Full-page spinner only on initial load (characters not yet loaded)
-  if (charsLoading) {
+  // Full-page spinner only on initial load (characters/accounts not yet loaded)
+  if (charsLoading || accountsLoading) {
     return <FullPageSpinner />;
   }
 
@@ -449,13 +456,21 @@ export default function DashboardPage() {
       <div className="flex">
       {/* Main content */}
       <main className="flex-1 min-w-0 max-w-6xl mx-auto px-5 py-4 flex flex-col gap-5">
-        {/* Character bar */}
-        <CharacterBar
+        {/* Account bar */}
+        <AccountBar
+          accounts={accounts}
           characters={characters}
-          selectedId={selectedCharId}
-          onSelect={handleSelectCharacter}
-          onAddClick={() => setShowNewChar(true)}
-          onEdit={handleEditCharacter}
+          selectedCharId={selectedCharId}
+          onSelectChar={handleSelectCharacter}
+          onEditChar={handleEditCharacter}
+          onToggleCollapse={(accountId) => {
+            const acc = accounts.find(a => a.id === accountId);
+            if (acc) updateAccount(accountId, { is_collapsed: !acc.is_collapsed });
+          }}
+          onOpenAccountModal={(account) => setAccountModalAccount(account)}
+          onCreateAccount={() => setShowCreateAccount(true)}
+          onReorderAccounts={reorderAccounts}
+          onReorderCharacters={reorderChars}
         />
 
         {characters.length > 0 ? (
@@ -535,13 +550,13 @@ export default function DashboardPage() {
         ) : (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
             <p className="text-[#A89BC2] text-center">
-              Nenhum personagem cadastrado. Adicione um personagem para começar.
+              Nenhum personagem cadastrado. Crie uma conta para começar.
             </p>
             <button
-              onClick={() => setShowNewChar(true)}
+              onClick={() => setShowCreateAccount(true)}
               className="px-5 py-2.5 rounded-md bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold text-sm transition-colors cursor-pointer"
             >
-              Adicionar Personagem
+              Criar Conta
             </button>
           </div>
         )}
@@ -557,6 +572,7 @@ export default function DashboardPage() {
         onClose={handleModalClose}
         instance={modalState}
         characters={characters.filter(c => !c.isShared)}
+        accounts={accounts}
         selectedCharId={selectedCharId}
         allCompletions={completions}
         onCompleteParty={async (ownCharIds, friends, completedAt) => {
@@ -699,6 +715,48 @@ export default function DashboardPage() {
           </div>
         )}
       </Modal>
+
+      {/* Account modal */}
+      <AccountModal
+        isOpen={accountModalAccount !== null}
+        onClose={() => setAccountModalAccount(null)}
+        account={accountModalAccount}
+        characters={characters.filter(c => c.account_id === accountModalAccount?.id)}
+        servers={servers}
+        onUpdateName={async (name) => {
+          if (!accountModalAccount) return;
+          await updateAccount(accountModalAccount.id, { name });
+          setAccountModalAccount(prev => prev ? { ...prev, name } : null);
+        }}
+        onDeleteAccount={async () => {
+          if (!accountModalAccount) return;
+          await deleteAccount(accountModalAccount.id);
+          setAccountModalAccount(null);
+          await refetchCharacters();
+        }}
+        onCreateCharacter={async (data) => {
+          await createCharacter(data);
+        }}
+        onDeleteCharacter={async (charId) => {
+          const supabase = (await import("@/lib/supabase/client")).createClient();
+          await supabase.from("instance_completions").delete().eq("character_id", charId);
+          await supabase.from("character_instances").delete().eq("character_id", charId);
+          await supabase.from("characters").delete().eq("id", charId);
+          if (selectedCharId === charId) setSelectedCharId(null);
+          await refetchCharacters();
+        }}
+      />
+
+      {/* Create account modal */}
+      <CreateAccountModal
+        isOpen={showCreateAccount}
+        onClose={() => setShowCreateAccount(false)}
+        servers={servers}
+        onCreate={async (name, serverId) => {
+          await createAccount(name, serverId);
+          setShowCreateAccount(false);
+        }}
+      />
 
       {/* Schedule detail modal */}
       <ScheduleModal

@@ -1,6 +1,6 @@
 "use client";
 
-import type { Instance, Character } from "@/lib/types";
+import type { Account, Instance, Character } from "@/lib/types";
 import type { EligibleFriend } from "@/hooks/use-schedules";
 import ParticipantList, { type Participant } from "./participant-list";
 
@@ -23,6 +23,7 @@ function DifficultyBadge({ difficulty }: { difficulty: string | null }) {
 export interface InstanceModalDetailsProps {
   instance: Instance;
   characters: Character[];
+  accounts?: Account[];
   instanceId: number;
   lockedCharId?: string | null;
   getEligibleFriends: (instanceId: number) => Promise<EligibleFriend[]>;
@@ -34,6 +35,7 @@ export interface InstanceModalDetailsProps {
 export function InstanceModalDetails({
   instance,
   characters,
+  accounts,
   instanceId,
   lockedCharId,
   getEligibleFriends,
@@ -89,6 +91,7 @@ export function InstanceModalDetails({
       {/* Participant list */}
       <ParticipantList
         characters={characters}
+        accounts={accounts}
         instanceId={instanceId}
         getEligibleFriends={getEligibleFriends}
         participants={participants}
