@@ -138,13 +138,15 @@ export function AccountContainer({
       <div className="flex items-center justify-between gap-2 mb-2 px-1">
         <button
           onClick={onOpenAccountModal}
-          className="text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors truncate"
+          className="text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors truncate flex items-center gap-1"
+          title="Gerenciar conta"
         >
           {account.name}
+          <span className="text-[10px] opacity-50">⚙</span>
         </button>
         <button
           onClick={onToggleCollapse}
-          className="text-text-secondary hover:text-text-secondary transition-colors text-xs flex-shrink-0"
+          className="text-text-secondary hover:text-text-primary transition-colors text-xs flex-shrink-0"
           aria-label="Recolher"
         >
           ▼
