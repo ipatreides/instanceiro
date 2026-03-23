@@ -51,7 +51,7 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <h2 className="text-sm font-semibold text-text-primary">Amigos</h2>
         {onClose && (
-          <button onClick={onClose} className="text-text-secondary hover:text-text-primary text-lg cursor-pointer">
+          <button onClick={onClose} className="text-text-secondary hover:text-text-primary text-lg cursor-pointer lg:hidden">
             ×
           </button>
         )}
@@ -188,14 +188,22 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
     </div>
   );
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <aside className="absolute right-0 top-0 h-full w-[300px] bg-surface border-l border-border flex flex-col shadow-lg">
+    <>
+      {/* Desktop: always visible, fixed overlay on right */}
+      <aside className="hidden lg:flex flex-col fixed right-0 top-[49px] h-[calc(100vh-49px)] w-[260px] bg-surface border-l border-border z-40 shadow-lg">
         {content}
       </aside>
-    </div>
+
+      {/* Mobile: drawer overlay, toggle controlled */}
+      {isOpen && (
+        <div className="lg:hidden fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+          <aside className="absolute right-0 top-0 h-full w-[300px] bg-surface border-l border-border flex flex-col shadow-lg">
+            {content}
+          </aside>
+        </div>
+      )}
+    </>
   );
 }
