@@ -46,13 +46,13 @@ export default function InvitePage() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-[#0f0a1a] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-bg flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center space-y-4">
-          <h1 className="text-2xl font-bold text-white">Convite inválido</h1>
-          <p className="text-[#A89BC2]">{error ?? "Convite não encontrado"}</p>
+          <h1 className="text-2xl font-bold text-text-primary">Convite inválido</h1>
+          <p className="text-text-secondary">{error ?? "Convite não encontrado"}</p>
           <button
             onClick={() => router.push("/dashboard")}
-            className="px-6 py-2 text-sm text-white bg-[#7C3AED] rounded-lg hover:bg-[#6D31D4] transition-colors cursor-pointer"
+            className="px-6 py-2 text-sm text-text-primary bg-primary rounded-lg hover:bg-primary-hover transition-colors cursor-pointer"
           >
             Ir para o dashboard
           </button>
@@ -64,13 +64,13 @@ export default function InvitePage() {
   // Already joined
   if (data.user_already_joined) {
     return (
-      <div className="min-h-screen bg-[#0f0a1a] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-bg flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center space-y-4">
-          <h1 className="text-2xl font-bold text-white">{data.instance.name}</h1>
-          <p className="text-[#A89BC2]">Você já está neste agendamento.</p>
+          <h1 className="text-2xl font-bold text-text-primary">{data.instance.name}</h1>
+          <p className="text-text-secondary">Você já está neste agendamento.</p>
           <button
             onClick={() => router.push("/dashboard")}
-            className="px-6 py-2 text-sm text-white bg-[#7C3AED] rounded-lg hover:bg-[#6D31D4] transition-colors cursor-pointer"
+            className="px-6 py-2 text-sm text-text-primary bg-primary rounded-lg hover:bg-primary-hover transition-colors cursor-pointer"
           >
             Ir para o dashboard
           </button>
@@ -82,14 +82,14 @@ export default function InvitePage() {
   // Schedule not open
   if (data.schedule.status !== "open") {
     return (
-      <div className="min-h-screen bg-[#0f0a1a] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-bg flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center space-y-4">
-          <h1 className="text-2xl font-bold text-white">{data.instance.name}</h1>
-          <p className="text-[#A89BC2]">Este agendamento já foi finalizado.</p>
-          <p className="text-xs text-[#6B5A8A]">Você foi adicionado como amigo de @{data.creator.username}.</p>
+          <h1 className="text-2xl font-bold text-text-primary">{data.instance.name}</h1>
+          <p className="text-text-secondary">Este agendamento já foi finalizado.</p>
+          <p className="text-xs text-text-secondary">Você foi adicionado como amigo de @{data.creator.username}.</p>
           <button
             onClick={() => router.push("/dashboard")}
-            className="px-6 py-2 text-sm text-white bg-[#7C3AED] rounded-lg hover:bg-[#6D31D4] transition-colors cursor-pointer"
+            className="px-6 py-2 text-sm text-text-primary bg-primary rounded-lg hover:bg-primary-hover transition-colors cursor-pointer"
           >
             Ir para o dashboard
           </button>
@@ -108,13 +108,13 @@ export default function InvitePage() {
       error: "Erro ao aceitar o convite.",
     };
     return (
-      <div className="min-h-screen bg-[#0f0a1a] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-bg flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center space-y-4">
-          <h1 className="text-2xl font-bold text-white">{data.instance.name}</h1>
-          <p className="text-[#A89BC2]">{messages[result] ?? result}</p>
+          <h1 className="text-2xl font-bold text-text-primary">{data.instance.name}</h1>
+          <p className="text-text-secondary">{messages[result] ?? result}</p>
           <button
             onClick={() => router.push("/dashboard")}
-            className="px-6 py-2 text-sm text-white bg-[#7C3AED] rounded-lg hover:bg-[#6D31D4] transition-colors cursor-pointer"
+            className="px-6 py-2 text-sm text-text-primary bg-primary rounded-lg hover:bg-primary-hover transition-colors cursor-pointer"
           >
             Ir para o dashboard
           </button>
@@ -148,45 +148,45 @@ export default function InvitePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0a1a] flex items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-bg flex items-center justify-center px-4 py-8">
       <div className="max-w-lg w-full space-y-6">
         {/* Header card */}
-        <div className="bg-[#1a1230] border border-[#3D2A5C] rounded-xl p-6 text-center space-y-3">
-          <h1 className="text-2xl font-bold text-white">{data.instance.name}</h1>
+        <div className="bg-surface border border-border rounded-xl p-6 text-center space-y-3">
+          <h1 className="text-2xl font-bold text-text-primary">{data.instance.name}</h1>
           <div className="flex flex-wrap gap-2 justify-center">
-            <span className="text-xs px-2 py-1 rounded bg-[#2a1f40] text-[#A89BC2] border border-[#3D2A5C]">
+            <span className="text-xs px-2 py-1 rounded bg-surface text-text-secondary border border-border">
               {formatBrtDateTime(data.schedule.scheduled_at)} BRT
             </span>
             {data.instance.start_map && (
-              <span className="text-xs px-2 py-1 rounded bg-[#2a1f40] text-[#D4A843] border border-[#3D2A5C]">
+              <span className="text-xs px-2 py-1 rounded bg-surface text-primary-secondary border border-border">
                 {data.instance.start_map}
               </span>
             )}
-            <span className="text-xs px-2 py-1 rounded bg-[#2a1f40] text-[#A89BC2] border border-[#3D2A5C]">
+            <span className="text-xs px-2 py-1 rounded bg-surface text-text-secondary border border-border">
               {participantCount}/12
             </span>
           </div>
-          <p className="text-sm text-[#A89BC2]">
-            Convite de <span className="text-white font-medium">@{data.creator.username}</span>
+          <p className="text-sm text-text-secondary">
+            Convite de <span className="text-text-primary font-medium">@{data.creator.username}</span>
           </p>
           {data.schedule.message && (
-            <p className="text-sm text-[#A89BC2] italic">&ldquo;{data.schedule.message}&rdquo;</p>
+            <p className="text-sm text-text-secondary italic">&ldquo;{data.schedule.message}&rdquo;</p>
           )}
         </div>
 
         {/* Join section */}
-        <div className="bg-[#1a1230] border border-[#3D2A5C] rounded-xl p-6 space-y-4">
+        <div className="bg-surface border border-border rounded-xl p-6 space-y-4">
           {mode === "choose" ? (
             <>
-              <h2 className="text-lg font-semibold text-white">Entrar no agendamento</h2>
+              <h2 className="text-lg font-semibold text-text-primary">Entrar no agendamento</h2>
 
               {ownChars.length > 0 && (
                 <div className="flex flex-col gap-3">
-                  <label className="text-sm text-[#A89BC2]">Escolha um personagem existente:</label>
+                  <label className="text-sm text-text-secondary">Escolha um personagem existente:</label>
                   <select
                     value={selectedCharId}
                     onChange={(e) => setSelectedCharId(e.target.value)}
-                    className="bg-[#2a1f40] border border-[#3D2A5C] rounded-lg px-3 py-2 text-sm text-[#A89BC2] focus:outline-none focus:border-[#7C3AED]"
+                    className="bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text-secondary focus:outline-none focus:border-primary"
                     style={{ colorScheme: "dark" }}
                   >
                     <option value="">Selecionar...</option>
@@ -199,7 +199,7 @@ export default function InvitePage() {
                   <button
                     onClick={handleJoinWithExisting}
                     disabled={actionLoading || !selectedCharId}
-                    className="px-4 py-2 text-sm text-white bg-[#7C3AED] rounded-lg hover:bg-[#6D31D4] transition-colors cursor-pointer disabled:opacity-50"
+                    className="px-4 py-2 text-sm text-text-primary bg-primary rounded-lg hover:bg-primary-hover transition-colors cursor-pointer disabled:opacity-50"
                   >
                     {actionLoading ? "Entrando..." : "Entrar"}
                   </button>
@@ -207,14 +207,14 @@ export default function InvitePage() {
               )}
 
               <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-[#3D2A5C]" />
-                <span className="text-xs text-[#6B5A8A]">ou</span>
-                <div className="flex-1 h-px bg-[#3D2A5C]" />
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-text-secondary">ou</span>
+                <div className="flex-1 h-px bg-border" />
               </div>
 
               <button
                 onClick={() => setMode("new_char")}
-                className="w-full px-4 py-2 text-sm text-[#A89BC2] bg-[#2a1f40] border border-[#3D2A5C] rounded-lg hover:bg-[#3D2A5C] transition-colors cursor-pointer"
+                className="w-full px-4 py-2 text-sm text-text-secondary bg-surface border border-border rounded-lg hover:bg-surface transition-colors cursor-pointer"
               >
                 Criar novo personagem
               </button>
@@ -222,10 +222,10 @@ export default function InvitePage() {
           ) : (
             <>
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-white">Novo personagem</h2>
+                <h2 className="text-lg font-semibold text-text-primary">Novo personagem</h2>
                 <button
                   onClick={() => setMode("choose")}
-                  className="text-xs text-[#A89BC2] hover:text-white transition-colors cursor-pointer"
+                  className="text-xs text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
                 >
                   ← Voltar
                 </button>

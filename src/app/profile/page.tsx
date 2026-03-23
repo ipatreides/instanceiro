@@ -76,14 +76,14 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0a1a]">
+    <div className="min-h-screen bg-bg">
       {/* Header */}
-      <header className="bg-[#1a1230] border-b border-[#3D2A5C] sticky top-0 z-40">
+      <header className="bg-surface border-b border-border sticky top-0 z-40">
         <div className="max-w-2xl mx-auto px-5 py-3 flex items-center justify-between">
-          <span className="text-base font-semibold text-white tracking-tight">Perfil</span>
+          <span className="text-base font-semibold text-text-primary tracking-tight">Perfil</span>
           <button
             onClick={() => router.push("/dashboard")}
-            className="text-sm text-[#A89BC2] hover:text-white transition-colors cursor-pointer"
+            className="text-sm text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
           >
             ← Dashboard
           </button>
@@ -91,45 +91,45 @@ export default function ProfilePage() {
       </header>
 
       <main className="max-w-2xl mx-auto px-5 py-8">
-        <div className="bg-[#1a1230] border border-[#3D2A5C] rounded-xl p-6 flex flex-col gap-6">
+        <div className="bg-surface border border-border rounded-xl p-6 flex flex-col gap-6">
           {/* User info */}
           <div className="flex items-center gap-4">
             {avatarUrl && (
               <img src={avatarUrl} alt="Avatar" className="w-12 h-12 rounded-full object-cover" />
             )}
             <div>
-              <p className="text-white font-semibold">{displayName}</p>
-              <p className="text-[#A89BC2] text-sm">@{currentUsername ?? "sem username"}</p>
+              <p className="text-text-primary font-semibold">{displayName}</p>
+              <p className="text-text-secondary text-sm">@{currentUsername ?? "sem username"}</p>
             </div>
           </div>
 
           {/* Username edit */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-[#A89BC2]">Username</label>
+            <label className="text-sm font-medium text-text-secondary">Username</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B5A8A] text-sm font-medium">@</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm font-medium">@</span>
               <input
                 type="text"
                 value={editValue}
                 onChange={handleChange}
                 maxLength={20}
-                className="w-full bg-[#2a1f40] border border-[#3D2A5C] rounded-md pl-8 pr-10 py-2.5 text-white text-sm placeholder-[#6B5A8A] focus:outline-none focus:border-[#7C3AED] transition-colors"
+                className="w-full bg-surface border border-border rounded-md pl-8 pr-10 py-2.5 text-text-primary text-sm placeholder-text-secondary focus:outline-none focus:border-primary transition-colors"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">
-                {status === "checking" && <span className="text-[#A89BC2] animate-pulse">...</span>}
-                {status === "available" && hasChanged && <span className="text-green-400">✓</span>}
-                {status === "taken" && <span className="text-red-400">✗</span>}
-                {status === "invalid" && editValue.length > 0 && <span className="text-red-400">✗</span>}
+                {status === "checking" && <span className="text-text-secondary animate-pulse">...</span>}
+                {status === "available" && hasChanged && <span className="text-status-available">✓</span>}
+                {status === "taken" && <span className="text-status-error">✗</span>}
+                {status === "invalid" && editValue.length > 0 && <span className="text-status-error">✗</span>}
               </span>
             </div>
             <div className="h-5">
-              {status === "taken" && <p className="text-xs text-red-400">Esse username já está em uso.</p>}
+              {status === "taken" && <p className="text-xs text-status-error">Esse username já está em uso.</p>}
               {status === "invalid" && editValue.length > 0 && (
-                <p className="text-xs text-red-400">
+                <p className="text-xs text-status-error">
                   {editValue.length < 3 ? "Mínimo 3 caracteres." : "Apenas letras minúsculas e números."}
                 </p>
               )}
-              {saved && <p className="text-xs text-green-400">Salvo!</p>}
+              {saved && <p className="text-xs text-status-available">Salvo!</p>}
             </div>
           </div>
 
@@ -137,7 +137,7 @@ export default function ProfilePage() {
           <button
             onClick={handleSave}
             disabled={!canSave}
-            className="w-full py-2.5 rounded-md bg-[#7C3AED] text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#6D28D9] transition-colors cursor-pointer"
+            className="w-full py-2.5 rounded-md bg-primary text-text-primary font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary-hover transition-colors cursor-pointer"
           >
             {saving ? "Salvando..." : "Salvar"}
           </button>
