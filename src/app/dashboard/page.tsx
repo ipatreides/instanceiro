@@ -11,7 +11,8 @@ import { CharacterBar } from "@/components/characters/character-bar";
 import { CharacterForm } from "@/components/characters/character-form";
 import { CharacterShareTab } from "@/components/characters/character-share-tab";
 import { FriendsSidebar } from "@/components/friends/friends-sidebar";
-import { InstanceGroup } from "@/components/instances/instance-group";
+import { InstanceColumn } from "@/components/instances/instance-column";
+import { MobileInstanceTabs } from "@/components/instances/mobile-instance-tabs";
 import { InstanceSearch } from "@/components/instances/instance-search";
 import { InstanceModal } from "@/components/instances/instance-modal";
 import { ScheduleSection } from "@/components/schedules/schedule-section";
@@ -291,9 +292,12 @@ export default function DashboardPage() {
     return true;
   });
 
-  const availableStates = filteredStates.filter((s) => s.status === "available");
-  const cooldownStates = filteredStates.filter((s) => s.status === "cooldown");
-  const inactiveStates = filteredStates.filter((s) => s.status === "inactive");
+  // Group by cooldown type for unified column layout
+  const COOLDOWN_ORDER: import("@/lib/types").CooldownType[] = ["weekly", "three_day", "daily", "hourly"];
+  const statesByType = new Map<import("@/lib/types").CooldownType, InstanceState[]>();
+  for (const type of COOLDOWN_ORDER) {
+    statesByType.set(type, filteredStates.filter((s) => s.instance.cooldown_type === type));
+  }
 
   // Find modal instance state
   const modalState: InstanceState | null =
@@ -459,30 +463,46 @@ export default function DashboardPage() {
               onRemoveFilter={(i) => setSearchFilters((prev) => prev.filter((_, idx) => idx !== i))}
               suggestions={searchSuggestions}
             />
+            {(searchText.trim().length > 0 || searchFilters.length > 0) && (
+              <p className="text-xs text-[#6B5A8A]">
+                {filteredStates.length} de {allStates.length} instâncias
+              </p>
+            )}
 
-            {/* Instance groups */}
-            <div className="flex flex-col gap-8">
-              <InstanceGroup
-                title="DISPONÍVEIS"
-                states={availableStates}
+            {/* Instance columns — single unified layout */}
+            <div className="flex flex-col gap-3">
+              {/* Mobile: tabs */}
+              <MobileInstanceTabs
+                statesByType={statesByType}
                 now={now}
                 onCardClick={handleCardClick}
               />
-              <InstanceGroup
-                title="EM COOLDOWN"
-                states={cooldownStates}
-                now={now}
-                onCardClick={handleCardClick}
-              />
-              <InstanceGroup
-                title="INATIVAS"
-                states={inactiveStates}
-                now={now}
-                onCardClick={handleCardClick}
-                collapsible
-                defaultCollapsed
-                forceExpanded={searchText.trim().length > 0 || searchFilters.length > 0}
-              />
+
+              {/* Tablet: 2 columns */}
+              <div className="hidden md:grid lg:hidden grid-cols-2 gap-4">
+                {COOLDOWN_ORDER.map((type) => (
+                  <InstanceColumn
+                    key={type}
+                    cooldownType={type}
+                    states={statesByType.get(type) ?? []}
+                    now={now}
+                    onCardClick={handleCardClick}
+                  />
+                ))}
+              </div>
+
+              {/* Desktop: 4 columns */}
+              <div className="hidden lg:grid grid-cols-4 gap-4">
+                {COOLDOWN_ORDER.map((type) => (
+                  <InstanceColumn
+                    key={type}
+                    cooldownType={type}
+                    states={statesByType.get(type) ?? []}
+                    now={now}
+                    onCardClick={handleCardClick}
+                  />
+                ))}
+              </div>
             </div>
           </>
         ) : (
