@@ -46,24 +46,37 @@ A shield silhouette (adventure/protection) containing a clock face (cooldown/tim
 | `--primary` | Accent, CTA, cooldown | `#C87941` Copper | `#a0612e` Copper-dark |
 | `--primary-secondary` | Secondary accent, clock marks | `#E8A665` Amber | `#c4863e` Amber-dark |
 | `--text-primary` | Headings, body text | `#e8e8f0` Snow | `#1a1a1a` Ink |
-| `--text-secondary` | Metadata, labels | `#7a7a8e` Slate | `#8a8580` Stone |
+| `--text-secondary` | Metadata, labels | `#7a7a8e` Slate | `#706b65` Stone |
 | `--status-available` | Instance ready | `#4a9a5a` Jade | `#2e8a3e` Jade-dark |
+| `--status-available-text` | Badge text (available) | `#6abf7a` | `#1e6a2e` |
 | `--status-soon` | Less than 1h remaining | `#d4a843` Gold | `#b8922e` Gold-dark |
+| `--status-soon-text` | Badge text (soon) | `#f0c060` | `#8a6e1a` |
 | `--status-cooldown` | Active cooldown | `#C87941` Copper | `#a0612e` Copper-dark |
+| `--status-cooldown-text` | Badge text (cooldown) | `#E8A665` | `#8a5020` |
 | `--status-error` | Error, expired | `#c44040` Ember | `#b83030` Ember-dark |
+| `--status-error-text` | Badge text (error) | `#f07070` | `#8a2020` |
 
 ### Status Semaphore
 
-Three-state system for instance cooldowns:
+Three-state system for instance cooldowns, plus an error state:
 
 ```
 Cooldown (Copper) → Soon < 1h (Gold) → Available (Jade)
+Error/Expired (Ember) — for failed or expired instances
 ```
 
 Each status applies to:
-- Card left border color
+- Card left border color (3px solid `--status-*`)
 - Shield icon stroke + fill color
-- Status badge background (token at ~12% opacity) + text color
+- Status badge: background at ~12% opacity of `--status-*`, text uses `--status-*-text`
+
+### Error State
+
+The error/expired state follows the same pattern as other statuses:
+- Card left border: `--status-error`
+- Shield icon: Ember stroke + Ember fill at 15%/10%
+- Badge: Ember at 12% bg + `--status-error-text`
+- Used for: failed instance entries, expired sessions, connection errors
 
 ### Light Mode Principles
 
@@ -98,6 +111,7 @@ Geometric sans-serif with soft corners. Modern without being cold — pairs well
 | H1 | 700 | 32px | -1px | Page titles |
 | H2 | 600 | 22px | 0 | Section headings, instance names |
 | Body | 400 | 14px | 0 | Descriptions, metadata |
+| Nav | 500 | 13px | 0 | Navigation links, secondary actions |
 | Label | 600 | 11px | 1.5px (uppercase) | Status labels, section dividers |
 | Button | 600 | 13px | 0 | CTA and action buttons |
 
@@ -111,10 +125,10 @@ Single font family for the entire app. Load weights 400, 500, 600, 700 from Goog
 
 Outlined icons (1.5px stroke) with translucent fill in the primary color.
 
-| Theme | Fill Opacity | Stroke Color |
-|-------|-------------|--------------|
-| Dark | 15% (`#C8794126`) | `#C87941` |
-| Light | 10% (`#a0612e18`) | `#a0612e` |
+| Theme | Fill Opacity | Hex | Stroke Color |
+|-------|-------------|-----|--------------|
+| Dark | 15% | `#C8794126` | `#C87941` |
+| Light | 10% | `#a0612e1a` | `#a0612e` |
 
 ### Icon Set
 
@@ -150,7 +164,7 @@ The shield icon (used for instance cards) adapts its colors to match the status:
 
 ### Buttons
 
-- **Primary:** `--primary` bg, inverted text (`--bg` dark, `#fff` light), 6px radius
+- **Primary:** `--primary` bg, inverted text (`--bg` dark, `#fff` light), `--radius-md` radius
 - **Secondary/Ghost:** transparent bg, `--border` border, `--text-primary` text
 - **Disabled:** muted bg and text (see hover table)
 - All buttons: Outfit 600, 13px, 8px 20px padding
@@ -167,10 +181,18 @@ Visual mockups for both themes are saved in:
 - `.superpowers/brainstorm/4859-1774299395/light-mode-full.html` (light mode)
 - `.superpowers/brainstorm/4859-1774299395/light-mode.html` (side-by-side comparison + token mapping)
 
+## Border Radius Scale
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--radius-sm` | 4px | Badges, small tags |
+| `--radius-md` | 8px | Cards, buttons, inputs |
+| `--radius-lg` | 12px | Panels, modals, large containers |
+
 ## Implementation Notes
 
 - Use CSS custom properties for all color tokens — theme switching is a class on `<html>` or `<body>`
 - Default to dark mode, respect `prefers-color-scheme` media query
-- Test WCAG AA contrast for `--text-secondary` on `--bg` in both themes (light mode `#8a8580` on `#f8f7f5` may need a 1-2 shade adjustment)
+- Light mode `--text-secondary` is `#706b65` (passes WCAG AA at ~4.6:1 contrast ratio on `#f8f7f5`)
 - The "soon" threshold (< 1h) should be configurable, defaulting to 60 minutes
 - Favicon should use the simplified 16px variant as an SVG favicon for sharpness
