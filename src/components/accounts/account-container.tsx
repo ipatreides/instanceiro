@@ -46,7 +46,7 @@ function SortableCharCard({
   const unselectedClass = isShared
     ? "bg-surface border-primary-secondary/40 text-primary-secondary hover:border-primary-secondary hover:text-white"
     : "bg-surface border-border text-text-secondary hover:border-primary-hover hover:text-white";
-  const subTextSelected = isShared ? "text-bg/70" : "text-[#C49AFF]";
+  const subTextSelected = isShared ? "text-bg/70" : "text-primary-secondary";
   const subTextUnselected = isShared ? "text-primary-secondary/60" : "text-text-secondary";
 
   return (

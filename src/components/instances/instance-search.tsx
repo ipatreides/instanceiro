@@ -26,7 +26,7 @@ interface InstanceSearchProps {
 
 const FILTER_STYLES: Record<string, string> = {
   map: "text-primary-secondary bg-primary-secondary/20",
-  liga: "text-amber-400 bg-amber-900/30",
+  liga: "text-primary-secondary bg-[color-mix(in_srgb,var(--primary-secondary)_20%,transparent)]",
 };
 
 export function InstanceSearch({
