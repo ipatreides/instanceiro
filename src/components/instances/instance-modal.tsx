@@ -134,7 +134,7 @@ export function InstanceModal({
     <button
       onClick={() => (isInactive ? onActivate() : onDeactivate())}
       disabled={actionLoading}
-      className="text-[#6B5A8A] hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+      className="text-text-secondary hover:text-text-primary transition-colors cursor-pointer disabled:opacity-50"
       title={isInactive ? "Ativar instância" : "Desativar instância"}
     >
       {isInactive ? (
@@ -158,14 +158,14 @@ export function InstanceModal({
           <button
             onClick={() => handleCompleteParty()}
             disabled={actionLoading || !hasOwnParticipants}
-            className="flex-1 py-2.5 rounded-md bg-green-600 hover:bg-green-500 text-white font-semibold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 py-2.5 rounded-md bg-status-available hover:bg-green-500 text-white font-semibold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Marcar agora
           </button>
           <button
             onClick={() => setConfirmingMarkDone(true)}
             disabled={actionLoading}
-            className="py-2.5 px-3 rounded-md bg-[#2a1f40] border border-[#3D2A5C] text-[#A89BC2] text-sm transition-colors cursor-pointer hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            className="py-2.5 px-3 rounded-md bg-surface border border-border text-text-secondary text-sm transition-colors cursor-pointer hover:text-text-primary disabled:opacity-50 disabled:cursor-not-allowed"
             title="Escolher horário"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -175,7 +175,7 @@ export function InstanceModal({
           {onSchedule && (
             <button
               onClick={onSchedule}
-              className="py-2.5 px-4 rounded-md bg-[#2a1f40] border border-[#3D2A5C] text-[#D4A843] font-semibold text-sm hover:border-[#D4A843] transition-colors cursor-pointer"
+              className="py-2.5 px-4 rounded-md bg-surface border border-border text-primary-secondary font-semibold text-sm hover:border-primary-secondary transition-colors cursor-pointer"
             >
               Agendar
             </button>
@@ -184,13 +184,13 @@ export function InstanceModal({
       ) : (
         <div className="flex flex-col gap-2">
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-[#6B5A8A]">Horário de entrada</label>
+            <label className="text-xs text-text-secondary">Horário de entrada</label>
             <input
               type="datetime-local"
               value={markDoneTime}
               max={nowBrtMax()}
               onChange={(e) => setMarkDoneTime(e.target.value)}
-              className="bg-[#2a1f40] border border-[#3D2A5C] rounded-md px-3 py-1.5 text-white text-sm focus:outline-none focus:border-[#7C3AED] transition-colors"
+              className="bg-surface border border-border rounded-md px-3 py-1.5 text-text-primary text-sm focus:outline-none focus:border-primary transition-colors"
               style={{ colorScheme: "dark" }}
             />
           </div>
@@ -198,14 +198,14 @@ export function InstanceModal({
             <button
               onClick={handleConfirmMarkDone}
               disabled={actionLoading || !hasOwnParticipants}
-              className="flex-1 py-2.5 rounded-md bg-green-600 hover:bg-green-500 text-white font-semibold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-2.5 rounded-md bg-status-available hover:bg-green-500 text-white font-semibold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {actionLoading ? "Salvando..." : "Confirmar"}
             </button>
             <button
               onClick={() => setConfirmingMarkDone(false)}
               disabled={actionLoading}
-              className="flex-1 py-2.5 rounded-md bg-[#2a1f40] border border-[#3D2A5C] text-[#A89BC2] text-sm transition-colors cursor-pointer hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-2.5 rounded-md bg-surface border border-border text-text-secondary text-sm transition-colors cursor-pointer hover:text-text-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancelar
             </button>
@@ -227,19 +227,19 @@ export function InstanceModal({
       <div className="flex flex-col gap-4">
         {/* Action error */}
         {actionError && (
-          <p className="text-sm text-red-400 bg-red-900/20 rounded px-3 py-2">
+          <p className="text-sm text-status-error bg-red-900/20 rounded px-3 py-2">
             {actionError}
           </p>
         )}
 
         {/* Tab bar */}
-        <div className="flex gap-1 border-b border-[#3D2A5C]">
+        <div className="flex gap-1 border-b border-border">
           <button
             onClick={() => setActiveTab("details")}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
               activeTab === "details"
-                ? "border-[#7C3AED] text-white"
-                : "border-transparent text-[#A89BC2] hover:text-white"
+                ? "border-primary text-text-primary"
+                : "border-transparent text-text-secondary hover:text-text-primary"
             }`}
           >
             Detalhes
@@ -248,8 +248,8 @@ export function InstanceModal({
             onClick={() => setActiveTab("history")}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
               activeTab === "history"
-                ? "border-[#7C3AED] text-white"
-                : "border-transparent text-[#A89BC2] hover:text-white"
+                ? "border-primary text-text-primary"
+                : "border-transparent text-text-secondary hover:text-text-primary"
             }`}
           >
             Histórico

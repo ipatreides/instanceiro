@@ -25,7 +25,7 @@ interface InstanceSearchProps {
 }
 
 const FILTER_STYLES: Record<string, string> = {
-  map: "text-[#D4A843] bg-[#D4A843]/20",
+  map: "text-primary-secondary bg-primary-secondary/20",
   liga: "text-amber-400 bg-amber-900/30",
 };
 
@@ -79,12 +79,12 @@ export function InstanceSearch({
   return (
     <div ref={containerRef} className="relative">
       <div
-        className="flex items-center gap-1.5 flex-wrap bg-[#1a1230] border border-[#3D2A5C] rounded-md px-3 py-1.5 focus-within:border-[#7C3AED] transition-colors cursor-text"
+        className="flex items-center gap-1.5 flex-wrap bg-surface border border-border rounded-md px-3 py-1.5 focus-within:border-primary transition-colors cursor-text"
         onClick={() => inputRef.current?.focus()}
       >
         {/* Search icon */}
         <svg
-          className="w-4 h-4 text-[#A89BC2] flex-shrink-0"
+          className="w-4 h-4 text-text-secondary flex-shrink-0"
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
@@ -123,14 +123,14 @@ export function InstanceSearch({
           onFocus={() => setShowSuggestions(true)}
           onKeyDown={handleKeyDown}
           placeholder={filters.length === 0 ? placeholder : ""}
-          className="flex-1 min-w-[100px] bg-transparent text-sm text-white placeholder-[#6B5A8A] focus:outline-none py-0.5"
+          className="flex-1 min-w-[100px] bg-transparent text-sm text-text-primary placeholder-text-secondary focus:outline-none py-0.5"
         />
 
         {/* Clear all */}
         {(text.length > 0 || filters.length > 0) && (
           <button
             onClick={() => { onTextChange(""); for (let i = filters.length - 1; i >= 0; i--) onRemoveFilter(i); }}
-            className="text-[#A89BC2] hover:text-white transition-colors cursor-pointer flex-shrink-0"
+            className="text-text-secondary hover:text-text-primary transition-colors cursor-pointer flex-shrink-0"
             aria-label="Limpar busca"
           >
             <svg
@@ -149,12 +149,12 @@ export function InstanceSearch({
 
       {/* Suggestions dropdown */}
       {showSuggestions && matchingSuggestions.length > 0 && (
-        <div className="absolute z-30 w-full mt-1 bg-[#1a1230] border border-[#3D2A5C] rounded-md shadow-lg overflow-hidden max-h-60 overflow-y-auto">
+        <div className="absolute z-30 w-full mt-1 bg-surface border border-border rounded-md shadow-lg overflow-hidden max-h-60 overflow-y-auto">
           {matchingSuggestions.map((s) => (
             <button
               key={`${s.type}-${s.value}`}
               onClick={() => handleSelectSuggestion(s)}
-              className="w-full text-left px-3 py-2 text-sm text-[#A89BC2] hover:bg-[#2a1f40] hover:text-white transition-colors cursor-pointer flex items-center gap-2"
+              className="w-full text-left px-3 py-2 text-sm text-text-secondary hover:bg-surface hover:text-text-primary transition-colors cursor-pointer flex items-center gap-2"
             >
               <span className={`text-xs px-1.5 py-0.5 rounded ${FILTER_STYLES[s.type]}`}>
                 {s.type === "map" ? "Mapa" : "Liga"}

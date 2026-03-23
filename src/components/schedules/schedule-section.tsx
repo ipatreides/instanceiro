@@ -19,12 +19,12 @@ export function ScheduleSection({ schedules, onCardClick }: ScheduleSectionProps
       {/* Section header */}
       <div className="flex items-center gap-2">
         <h2 className="text-base font-semibold text-gray-200">AGENDADAS</h2>
-        <span className="text-xs text-[#6B5A8A] bg-[#2a1f40] px-2 py-0.5 rounded-full">
+        <span className="text-xs text-text-secondary bg-surface px-2 py-0.5 rounded-full">
           {schedules.length}
         </span>
         <button
           onClick={() => setCollapsed((c) => !c)}
-          className="ml-auto text-xs text-[#A89BC2] hover:text-white transition-colors cursor-pointer flex items-center gap-1"
+          className="ml-auto text-xs text-text-secondary hover:text-text-primary transition-colors cursor-pointer flex items-center gap-1"
         >
           {collapsed ? "Mostrar" : "Ocultar"}
           <span className={`transition-transform ${collapsed ? "" : "rotate-180"}`}>▾</span>

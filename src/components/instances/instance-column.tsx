@@ -49,15 +49,15 @@ export function InstanceColumn({ cooldownType, states, now, onCardClick }: Insta
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between px-1">
-        <h3 className="text-xs font-semibold text-[#A89BC2] uppercase tracking-wider">
+        <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
           {COOLDOWN_LABELS[cooldownType]}
         </h3>
-        <span className="text-xs text-[#6B5A8A]">
+        <span className="text-xs text-text-secondary">
           {available.length}/{states.length}
         </span>
       </div>
       {states.length === 0 ? (
-        <p className="text-xs text-[#6B5A8A] italic px-1 py-4">{emptyMsg}</p>
+        <p className="text-xs text-text-secondary italic px-1 py-4">{emptyMsg}</p>
       ) : (
         <div className="flex flex-col gap-1.5">
           {activeStates.map((state) => (
@@ -72,7 +72,7 @@ export function InstanceColumn({ cooldownType, states, now, onCardClick }: Insta
             <>
               <button
                 onClick={() => setShowInactive((v) => !v)}
-                className="text-xs text-[#6B5A8A] hover:text-[#A89BC2] transition-colors cursor-pointer flex items-center gap-1 px-1 py-1"
+                className="text-xs text-text-secondary hover:text-text-secondary transition-colors cursor-pointer flex items-center gap-1 px-1 py-1"
               >
                 <span className={`transition-transform ${showInactive ? "rotate-180" : ""}`}>▾</span>
                 {inactive.length} inativa{inactive.length > 1 ? "s" : ""}

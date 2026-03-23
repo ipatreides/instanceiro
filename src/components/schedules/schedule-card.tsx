@@ -29,28 +29,28 @@ export function ScheduleCard({ schedule, onClick }: ScheduleCardProps) {
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left bg-[#1a1230] border rounded-md px-3 py-2.5 hover:bg-[#221840] transition-colors cursor-pointer ${
+      className={`w-full text-left bg-surface border rounded-md px-3 py-2.5 hover:bg-card-hover-bg transition-colors cursor-pointer ${
         isLate
-          ? "border-red-500 animate-pulse"
-          : "border-[#3D2A5C]"
+          ? "border-status-error animate-pulse"
+          : "border-border"
       }`}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0 flex flex-col gap-0.5">
-          <span className="text-sm font-bold text-white truncate">
+          <span className="text-sm font-bold text-text-primary truncate">
             {schedule.instanceName ?? "Instância"}
           </span>
           {schedule.creatorUsername && (
-            <span className="text-xs text-[#6B5A8A] truncate">
+            <span className="text-xs text-text-secondary truncate">
               @{schedule.creatorUsername}
             </span>
           )}
         </div>
         <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
-          <span className="text-xs text-[#A89BC2]">
+          <span className="text-xs text-text-secondary">
             {formatScheduledDate(schedule.scheduled_at)}
           </span>
-          <span className="text-xs text-[#D4A843] bg-[#2a1f40] px-1.5 py-0.5 rounded-full font-medium">
+          <span className="text-xs text-primary-secondary bg-surface px-1.5 py-0.5 rounded-full font-medium">
             {participantCount}/12
           </span>
         </div>

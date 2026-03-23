@@ -161,7 +161,7 @@ export default function ParticipantList({
   return (
     <div className="flex flex-col gap-2">
       {/* Header */}
-      <h4 className="text-xs font-semibold text-[#6B5A8A] uppercase tracking-wide">
+      <h4 className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
         Participantes {participants.length > 0 && `(${participants.length})`}
       </h4>
 
@@ -176,18 +176,18 @@ export default function ParticipantList({
       {participants.map((p) => (
         <div
           key={p.character_id}
-          className="flex items-center gap-2 px-3 py-1.5 rounded bg-[#2a1f40] border border-[#3D2A5C]"
+          className="flex items-center gap-2 px-3 py-1.5 rounded bg-surface border border-border"
         >
           {p.type === "own" ? (
-            <span className="w-5 h-5 rounded-full bg-[#7C3AED] flex items-center justify-center text-[10px] text-white flex-shrink-0">♦</span>
+            <span className="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-[10px] text-white flex-shrink-0">♦</span>
           ) : p.avatar_url ? (
             <img src={p.avatar_url} alt="" className="w-5 h-5 rounded-full flex-shrink-0" />
           ) : (
-            <span className="w-5 h-5 rounded-full bg-[#3D2A5C] flex items-center justify-center text-[10px] text-[#A89BC2] flex-shrink-0">?</span>
+            <span className="w-5 h-5 rounded-full bg-border flex items-center justify-center text-[10px] text-text-secondary flex-shrink-0">?</span>
           )}
           <div className="flex-1 min-w-0">
-            <span className="text-xs text-white font-medium truncate block">{p.character_name}</span>
-            <span className="text-[10px] text-[#6B5A8A]">
+            <span className="text-xs text-text-primary font-medium truncate block">{p.character_name}</span>
+            <span className="text-[10px] text-text-secondary">
               {p.character_class} Lv.{p.character_level}
               {p.type === "friend" && p.username && ` · @${p.username}`}
             </span>
@@ -196,7 +196,7 @@ export default function ParticipantList({
             <button
               type="button"
               onClick={() => onRemove(p.character_id)}
-              className="text-xs text-[#6B5A8A] hover:text-red-400 cursor-pointer transition-colors flex-shrink-0"
+              className="text-xs text-text-secondary hover:text-status-error cursor-pointer transition-colors flex-shrink-0"
             >
               ✕
             </button>
@@ -210,16 +210,16 @@ export default function ParticipantList({
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Buscar personagem ou amigo..."
-        className="w-full rounded-lg bg-[#0f0a1a] border border-[#3D2A5C] px-3 py-2 text-xs text-white placeholder-[#6B5A8A] outline-none focus:border-[#7C3AED] transition-colors"
+        className="w-full rounded-lg bg-bg border border-border px-3 py-2 text-xs text-text-primary placeholder-text-secondary outline-none focus:border-primary transition-colors"
       />
 
       {/* Results list: own chars first, then friends */}
       {friendsLoading ? (
         <div className="flex items-center justify-center py-3">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#7C3AED] border-t-transparent" />
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       ) : !hasResults ? (
-        <p className="text-xs text-[#6B5A8A] italic px-1">
+        <p className="text-xs text-text-secondary italic px-1">
           {q ? "Nenhum resultado." : "Todos já adicionados."}
         </p>
       ) : (
@@ -230,17 +230,17 @@ export default function ParticipantList({
               key={c.id}
               type="button"
               onClick={() => handleAddOwn(c)}
-              className="w-full text-left flex items-center gap-2 px-3 py-1.5 rounded text-xs hover:bg-[#2a1f40] transition-colors cursor-pointer"
+              className="w-full text-left flex items-center gap-2 px-3 py-1.5 rounded text-xs hover:bg-surface transition-colors cursor-pointer"
             >
-              <span className="w-5 h-5 rounded-full bg-[#7C3AED]/30 flex items-center justify-center text-[10px] text-[#7C3AED] flex-shrink-0">♦</span>
-              <span className="text-white truncate">{c.name}</span>
-              <span className="text-[#6B5A8A]">{c.class} Lv.{c.level}</span>
+              <span className="w-5 h-5 rounded-full bg-primary/30 flex items-center justify-center text-[10px] text-primary flex-shrink-0">♦</span>
+              <span className="text-text-primary truncate">{c.name}</span>
+              <span className="text-text-secondary">{c.class} Lv.{c.level}</span>
             </button>
           ))}
 
           {/* Separator if both sections have items */}
           {filteredOwn.length > 0 && filteredFriends.length > 0 && (
-            <div className="border-t border-[#3D2A5C]/50 my-1" />
+            <div className="border-t border-border/50 my-1" />
           )}
 
           {/* Friends */}
@@ -251,18 +251,18 @@ export default function ParticipantList({
                 key={`${f.user_id}-${f.character_id}`}
                 type="button"
                 onClick={() => handleAddFriend(f)}
-                className={`w-full text-left flex items-center gap-2 px-3 py-1.5 rounded text-xs hover:bg-[#2a1f40] transition-colors cursor-pointer ${
+                className={`w-full text-left flex items-center gap-2 px-3 py-1.5 rounded text-xs hover:bg-surface transition-colors cursor-pointer ${
                   onCooldown ? "opacity-60" : ""
                 }`}
               >
                 {f.avatar_url ? (
                   <img src={f.avatar_url} alt="" className="w-5 h-5 rounded-full flex-shrink-0" />
                 ) : (
-                  <span className="w-5 h-5 rounded-full bg-[#3D2A5C] flex items-center justify-center text-[10px] text-[#A89BC2] flex-shrink-0">?</span>
+                  <span className="w-5 h-5 rounded-full bg-border flex items-center justify-center text-[10px] text-text-secondary flex-shrink-0">?</span>
                 )}
-                <span className="text-white truncate">{f.character_name}</span>
-                <span className="text-[#6B5A8A]">{f.character_class} · @{f.username}</span>
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ml-auto ${onCooldown ? "bg-orange-400" : "bg-green-500"}`} />
+                <span className="text-text-primary truncate">{f.character_name}</span>
+                <span className="text-text-secondary">{f.character_class} · @{f.username}</span>
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ml-auto ${onCooldown ? "bg-status-cooldown" : "bg-status-available"}`} />
               </button>
             );
           })}

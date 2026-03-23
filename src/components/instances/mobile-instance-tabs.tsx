@@ -36,14 +36,14 @@ export function MobileInstanceTabs({ statesByType, now, onCardClick }: MobileIns
               onClick={() => { if (!drag.wasDragged()) setActiveTab(type); }}
               className={`flex-shrink-0 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
                 activeTab === type
-                  ? "bg-[#7C3AED] text-white"
-                  : "bg-[#2a1f40] text-[#A89BC2] hover:text-white"
+                  ? "bg-primary text-white"
+                  : "bg-surface text-text-secondary hover:text-text-primary"
               }`}
             >
               {COOLDOWN_LABELS[type]}
               {availableCount > 0 && (
                 <span className={`text-[10px] px-1 py-0.5 rounded-full leading-none ${
-                  activeTab === type ? "bg-white/20" : "bg-green-500/20 text-green-400"
+                  activeTab === type ? "bg-white/20" : "bg-status-available/20 text-status-available"
                 }`}>
                   {availableCount}
                 </span>

@@ -32,7 +32,7 @@ export function NotificationBell({ notifications, unreadCount, onRespond }: Noti
     <div className="relative" ref={containerRef}>
       <button
         onClick={() => setOpen((prev) => !prev)}
-        className="relative text-[#A89BC2] hover:text-white transition-colors"
+        className="relative text-text-secondary hover:text-text-primary transition-colors"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -49,24 +49,24 @@ export function NotificationBell({ notifications, unreadCount, onRespond }: Noti
           />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">
+          <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-status-error text-white text-[10px] font-bold leading-none">
             {unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-[#1a1230] border border-[#3D2A5C] rounded-lg shadow-xl z-50">
-          <div className="px-3 py-2 border-b border-[#3D2A5C]">
-            <span className="text-sm font-medium text-white">Notificações</span>
+        <div className="absolute right-0 top-full mt-2 w-80 bg-surface border border-border rounded-lg shadow-xl z-50">
+          <div className="px-3 py-2 border-b border-border">
+            <span className="text-sm font-medium text-text-primary">Notificações</span>
           </div>
 
           {sorted.length === 0 ? (
-            <div className="px-3 py-4 text-sm text-[#6B5A8A] italic text-center">
+            <div className="px-3 py-4 text-sm text-text-secondary italic text-center">
               Nenhuma notificação
             </div>
           ) : (
-            <div className="max-h-96 overflow-y-auto divide-y divide-[#3D2A5C]/50">
+            <div className="max-h-96 overflow-y-auto divide-y divide-border/50">
               {sorted.map((n) => (
                 <NotificationItem key={n.id} notification={n} onRespond={onRespond} />
               ))}

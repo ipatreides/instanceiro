@@ -48,7 +48,7 @@ export function CreateAccountModal({ isOpen, onClose, servers, onCreate }: Creat
       <div className="flex flex-col gap-5">
         {/* Name input */}
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-[#A89BC2]">Nome</label>
+          <label className="text-sm font-medium text-text-secondary">Nome</label>
           <input
             type="text"
             value={name}
@@ -56,13 +56,13 @@ export function CreateAccountModal({ isOpen, onClose, servers, onCreate }: Creat
             onKeyDown={handleKeyDown}
             placeholder="Nome da conta"
             autoFocus
-            className="bg-[#2a1f40] border border-[#3D2A5C] rounded-md px-3 py-2 text-white placeholder-[#6B5A8A] focus:outline-none focus:border-[#7C3AED] transition-colors"
+            className="bg-surface border border-border rounded-md px-3 py-2 text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary transition-colors"
           />
         </div>
 
         {/* Server selector */}
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-[#A89BC2]">Servidor</label>
+          <label className="text-sm font-medium text-text-secondary">Servidor</label>
           <div className="flex gap-2">
             {servers.map((server) => (
               <button
@@ -71,8 +71,8 @@ export function CreateAccountModal({ isOpen, onClose, servers, onCreate }: Creat
                 onClick={() => setServerId(server.id)}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${
                   serverId === server.id
-                    ? "bg-[#7C3AED] text-white"
-                    : "bg-[#2a1f40] text-[#A89BC2] border border-[#3D2A5C] hover:text-white hover:border-[#7C3AED]"
+                    ? "bg-primary text-white"
+                    : "bg-surface text-text-secondary border border-border hover:text-text-primary hover:border-primary"
                 }`}
               >
                 {server.name}
@@ -85,7 +85,7 @@ export function CreateAccountModal({ isOpen, onClose, servers, onCreate }: Creat
         <button
           onClick={handleCreate}
           disabled={!isValid || creating}
-          className="w-full py-2 rounded-md bg-[#7C3AED] text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#6D28D9] transition-colors cursor-pointer"
+          className="w-full py-2 rounded-md bg-primary text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary-hover transition-colors cursor-pointer"
         >
           {creating ? "Criando..." : "Criar"}
         </button>

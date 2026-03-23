@@ -41,13 +41,13 @@ function SortableCharCard({
   const isShared = character.isShared ?? false;
 
   const selectedClass = isShared
-    ? "bg-[#D4A843] border-[#D4A843] text-white"
-    : "bg-[#7C3AED] border-[#9B6DFF] text-white";
+    ? "bg-primary-secondary border-primary-secondary text-white"
+    : "bg-primary border-primary text-white";
   const unselectedClass = isShared
-    ? "bg-[#1a1230] border-[#D4A843]/40 text-[#D4A843] hover:border-[#D4A843] hover:text-white"
-    : "bg-[#1a1230] border-[#3D2A5C] text-[#A89BC2] hover:border-[#6D28D9] hover:text-white";
-  const subTextSelected = isShared ? "text-[#1a1230]/70" : "text-[#C49AFF]";
-  const subTextUnselected = isShared ? "text-[#D4A843]/60" : "text-[#6B5A8A]";
+    ? "bg-surface border-primary-secondary/40 text-primary-secondary hover:border-primary-secondary hover:text-white"
+    : "bg-surface border-border text-text-secondary hover:border-primary-hover hover:text-white";
+  const subTextSelected = isShared ? "text-bg/70" : "text-[#C49AFF]";
+  const subTextUnselected = isShared ? "text-primary-secondary/60" : "text-text-secondary";
 
   return (
     <button
@@ -68,7 +68,7 @@ function SortableCharCard({
     >
       <span
         className={`text-xs font-medium truncate max-w-full ${
-          isSelected ? subTextSelected : "text-[#A89BC2]"
+          isSelected ? subTextSelected : "text-text-secondary"
         }`}
       >
         {character.class}
@@ -86,7 +86,7 @@ function SortableCharCard({
       {isShared && character.ownerUsername && (
         <span
           className={`text-xs ${
-            isSelected ? subTextSelected : "text-[#D4A843]/50"
+            isSelected ? subTextSelected : "text-primary-secondary/50"
           }`}
         >
           @{character.ownerUsername}
@@ -110,20 +110,20 @@ export function AccountContainer({
 
   if (account.is_collapsed) {
     return (
-      <div className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2.5 rounded-lg border border-[#3D2A5C] bg-[#1a1230] min-h-[100px] gap-1">
+      <div className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2.5 rounded-lg border border-border bg-surface min-h-[100px] gap-1">
         <button
           onClick={onOpenAccountModal}
-          className="text-xs font-semibold text-[#A89BC2] hover:text-white transition-colors truncate max-w-[80px]"
+          className="text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors truncate max-w-[80px]"
           title={account.name}
         >
           {account.name}
         </button>
-        <span className="text-[10px] text-[#6B5A8A]">
+        <span className="text-[10px] text-text-secondary">
           ({characters.length})
         </span>
         <button
           onClick={onToggleCollapse}
-          className="text-[#6B5A8A] hover:text-[#A89BC2] transition-colors text-xs mt-1"
+          className="text-text-secondary hover:text-text-secondary transition-colors text-xs mt-1"
           aria-label="Expandir"
         >
           ►
@@ -133,18 +133,18 @@ export function AccountContainer({
   }
 
   return (
-    <div className="flex-shrink-0 rounded-lg border border-[#3D2A5C] p-2">
+    <div className="flex-shrink-0 rounded-lg border border-border p-2">
       {/* Header */}
       <div className="flex items-center justify-between gap-2 mb-2 px-1">
         <button
           onClick={onOpenAccountModal}
-          className="text-xs font-semibold text-[#A89BC2] hover:text-white transition-colors truncate"
+          className="text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors truncate"
         >
           {account.name}
         </button>
         <button
           onClick={onToggleCollapse}
-          className="text-[#6B5A8A] hover:text-[#A89BC2] transition-colors text-xs flex-shrink-0"
+          className="text-text-secondary hover:text-text-secondary transition-colors text-xs flex-shrink-0"
           aria-label="Recolher"
         >
           ▼

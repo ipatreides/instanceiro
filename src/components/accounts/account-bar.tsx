@@ -179,7 +179,7 @@ export function AccountBar({
           {/* Add account button */}
           <button
             onClick={onCreateAccount}
-            className="flex-shrink-0 flex items-center justify-center w-12 rounded-lg border-2 border-dashed border-[#3D2A5C] text-[#6B5A8A] hover:border-[#6D28D9] hover:text-[#A89BC2] transition-colors cursor-pointer"
+            className="flex-shrink-0 flex items-center justify-center w-12 rounded-lg border-2 border-dashed border-border text-text-secondary hover:border-primary-hover hover:text-text-secondary transition-colors cursor-pointer"
             aria-label="Adicionar conta"
           >
             <span className="text-xl leading-none">+</span>

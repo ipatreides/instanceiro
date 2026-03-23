@@ -41,14 +41,14 @@ export function ScheduleForm({ minDate, initialTime, onSubmit, onCancel, onDirty
       />
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-[#6B5A8A]">Mensagem (opcional)</label>
+        <label className="text-xs text-text-secondary">Mensagem (opcional)</label>
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Mensagem para o grupo..."
           disabled={loading}
           rows={2}
-          className="bg-[#2a1f40] border border-[#3D2A5C] rounded-lg px-3 py-2 text-sm text-[#A89BC2] placeholder-[#6B5A8A] focus:outline-none focus:border-[#7C3AED] resize-none"
+          className="bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text-secondary placeholder-text-secondary focus:outline-none focus:border-primary resize-none"
           style={{ colorScheme: "dark" }}
         />
       </div>
@@ -58,14 +58,14 @@ export function ScheduleForm({ minDate, initialTime, onSubmit, onCancel, onDirty
           type="button"
           onClick={onCancel}
           disabled={loading}
-          className="px-4 py-2 text-sm text-[#A89BC2] bg-[#2a1f40] border border-[#3D2A5C] rounded-lg hover:bg-[#3D2A5C] transition-colors cursor-pointer disabled:opacity-50"
+          className="px-4 py-2 text-sm text-text-secondary bg-surface border border-border rounded-lg hover:bg-border transition-colors cursor-pointer disabled:opacity-50"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={loading || !scheduledTime}
-          className="px-4 py-2 text-sm text-white bg-[#7C3AED] rounded-lg hover:bg-[#6D31D4] transition-colors cursor-pointer disabled:opacity-50"
+          className="px-4 py-2 text-sm text-white bg-primary rounded-lg hover:bg-primary-hover transition-colors cursor-pointer disabled:opacity-50"
         >
           {loading ? "Salvando..." : (submitLabel ?? "Agendar")}
         </button>

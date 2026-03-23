@@ -12,7 +12,7 @@ function DifficultyBadge({ difficulty }: { difficulty: string | null }) {
     hard: "bg-orange-900 text-orange-300",
     extreme: "bg-red-900 text-red-300",
   };
-  const colorClass = colors[difficulty.toLowerCase()] ?? "bg-gray-800 text-[#A89BC2]";
+  const colorClass = colors[difficulty.toLowerCase()] ?? "bg-gray-800 text-text-secondary";
   return (
     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${colorClass}`}>
       {difficulty}
@@ -47,22 +47,22 @@ export function InstanceModalDetails({
     <div className="flex flex-col gap-4">
       {/* Badges row */}
       <div className="flex flex-wrap gap-2 items-center">
-        <span className="text-xs text-[#A89BC2] bg-[#2a1f40] px-2 py-0.5 rounded-full">
+        <span className="text-xs text-text-secondary bg-surface px-2 py-0.5 rounded-full">
           Nv. {instance.level_required}{instance.level_max ? `\u2013${instance.level_max}` : '+'}
         </span>
         {instance.difficulty && (
           <DifficultyBadge difficulty={instance.difficulty} />
         )}
-        <span className="text-xs text-[#A89BC2] bg-[#2a1f40] px-2 py-0.5 rounded-full">
+        <span className="text-xs text-text-secondary bg-surface px-2 py-0.5 rounded-full">
           {instance.is_solo ? "Solo" : `${instance.party_min}+ jogadores`}
         </span>
         {instance.start_map && (
-          <span className="text-xs text-[#D4A843] bg-[#2a1f40] px-2 py-0.5 rounded-full">
+          <span className="text-xs text-primary-secondary bg-surface px-2 py-0.5 rounded-full">
             {instance.start_map}
           </span>
         )}
         {instance.mutual_exclusion_group && (
-          <span className="text-xs text-purple-400 bg-purple-900/30 px-2 py-0.5 rounded-full">
+          <span className="text-xs text-primary bg-purple-900/30 px-2 py-0.5 rounded-full">
             Cooldown compartilhado
           </span>
         )}
@@ -72,7 +72,7 @@ export function InstanceModalDetails({
           </span>
         )}
         {instance.reward && (
-          <span className="text-xs text-[#6B5A8A] bg-[#2a1f40] px-2 py-0.5 rounded-full">
+          <span className="text-xs text-text-secondary bg-surface px-2 py-0.5 rounded-full">
             {instance.reward}
           </span>
         )}

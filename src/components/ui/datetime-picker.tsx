@@ -95,7 +95,7 @@ export function DateTimePicker({ value, onChange, minDate, label }: DateTimePick
 
   return (
     <div className="flex flex-col gap-3">
-      {label && <label className="text-xs text-[#6B5A8A]">{label} <span className="text-[#6B5A8A]/60">(horário de Brasília)</span></label>}
+      {label && <label className="text-xs text-text-secondary">{label} <span className="text-text-secondary/60">(horário de Brasília)</span></label>}
 
       {/* Day selector */}
       <div
@@ -110,8 +110,8 @@ export function DateTimePicker({ value, onChange, minDate, label }: DateTimePick
             onClick={() => { if (!drag.wasDragged()) handleDayClick(i); }}
             className={`flex-shrink-0 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
               selectedDayIndex === i
-                ? "bg-[#7C3AED] text-white"
-                : "bg-[#2a1f40] text-[#A89BC2] border border-[#3D2A5C] hover:border-[#7C3AED] hover:text-white"
+                ? "bg-primary text-white"
+                : "bg-surface text-text-secondary border border-border hover:border-primary hover:text-text-primary"
             }`}
           >
             {formatDayLabel(day, now)}
@@ -130,8 +130,8 @@ export function DateTimePicker({ value, onChange, minDate, label }: DateTimePick
               selectedHour === hour && selectedDayIndex === (days.findIndex(
                 (d) => selectedBrt && d.getDate() === selectedBrt.getDate() && d.getMonth() === selectedBrt.getMonth()
               ))
-                ? "bg-[#7C3AED] text-white"
-                : "bg-[#2a1f40] text-[#A89BC2] border border-[#3D2A5C] hover:border-[#7C3AED] hover:text-white"
+                ? "bg-primary text-white"
+                : "bg-surface text-text-secondary border border-border hover:border-primary hover:text-text-primary"
             }`}
           >
             {String(hour).padStart(2, "0")}:00
@@ -141,7 +141,7 @@ export function DateTimePicker({ value, onChange, minDate, label }: DateTimePick
 
       {/* Show selected datetime */}
       {value && selectedBrt && (
-        <p className="text-xs text-[#6B5A8A]">
+        <p className="text-xs text-text-secondary">
           {formatDayLabel(currentDay, now)} às {String(selectedBrt.getHours()).padStart(2, "0")}:{String(selectedBrt.getMinutes()).padStart(2, "0")} BRT
         </p>
       )}
