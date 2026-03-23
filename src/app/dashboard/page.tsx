@@ -755,9 +755,11 @@ export default function DashboardPage() {
         onClose={() => setShowCreateAccount(false)}
         servers={servers}
         onCreate={async (name, serverId) => {
-          const newAccount = await createAccount(name, serverId);
-          setShowCreateAccount(false);
-          setAccountModalAccount(newAccount);
+          const account = await createAccount(name, serverId);
+          return account;
+        }}
+        onCreateCharacter={async (data) => {
+          await createCharacter(data);
         }}
       />
 
