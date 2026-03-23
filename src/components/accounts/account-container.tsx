@@ -191,6 +191,8 @@ export function AccountContainer({
       </div>
 
       {/* Character cards — own DndContext for char reordering */}
+      {/* Wrap in a div that stops pointer events from bubbling to parent DndContext */}
+      <div onPointerDown={(e) => e.stopPropagation()}>
       <DndContext
         collisionDetection={closestCenter}
         sensors={charSensors}
@@ -213,6 +215,7 @@ export function AccountContainer({
           </div>
         </SortableContext>
       </DndContext>
+      </div>
     </div>
   );
 }
