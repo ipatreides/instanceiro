@@ -20,12 +20,12 @@ export default function ResetPasswordPage() {
       (event) => {
         if (event === "PASSWORD_RECOVERY") {
           setCanReset(true);
+          setChecking(false);
         }
-        setChecking(false);
       }
     );
 
-    // Timeout fallback — if no event after 3s, show error
+    // Timeout fallback — if no PASSWORD_RECOVERY event after 3s, show error
     const timer = setTimeout(() => setChecking(false), 3000);
 
     return () => {
