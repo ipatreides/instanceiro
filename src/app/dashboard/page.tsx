@@ -12,6 +12,8 @@ import { CharacterForm } from "@/components/characters/character-form";
 import { CharacterShareTab } from "@/components/characters/character-share-tab";
 import { FriendsSidebar } from "@/components/friends/friends-sidebar";
 import { useFriendships } from "@/hooks/use-friendships";
+import { useNotifications } from "@/hooks/use-notifications";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { InstanceColumn } from "@/components/instances/instance-column";
 import { MobileInstanceTabs } from "@/components/instances/mobile-instance-tabs";
 import { InstanceSearch } from "@/components/instances/instance-search";
@@ -59,6 +61,7 @@ export default function DashboardPage() {
   const [usernameSaving, setUsernameSaving] = useState(false);
   const usernameStatus = useUsernameCheck(usernameInput);
   const { pendingReceived } = useFriendships();
+  const { notifications, unreadCount, respondToPartyConfirm } = useNotifications();
 
   const { characters, loading: charsLoading, createCharacter, updateCharacter, refetch: refetchCharacters } = useCharacters();
   const {
@@ -70,6 +73,7 @@ export default function DashboardPage() {
     deleteCompletion,
     toggleActive,
     getHistory,
+    completeParty,
   } = useInstances(selectedCharId);
   const {
     schedules,
@@ -426,6 +430,11 @@ export default function DashboardPage() {
                 </span>
               )}
             </button>
+            <NotificationBell
+              notifications={notifications}
+              unreadCount={unreadCount}
+              onRespond={respondToPartyConfirm}
+            />
             <button
               onClick={handleLogout}
               className="text-sm text-[#A89BC2] hover:text-white transition-colors cursor-pointer"
@@ -546,11 +555,25 @@ export default function DashboardPage() {
         isOpen={modalInstanceId !== null}
         onClose={handleModalClose}
         instance={modalState}
-        characters={characters}
+        characters={characters.filter(c => !c.isShared)}
         allCompletions={completions}
-        onCompleteParty={async (ownCharIds, _friends, completedAt) => {
-          if (ownCharIds.length === 0) return;
-          await handleMarkDone(completedAt);
+        onCompleteParty={async (ownCharIds, friends, completedAt) => {
+          if (modalInstanceId === null) return;
+          setActionLoading(true);
+          setActionError(null);
+          try {
+            // If instance is inactive, activate it first
+            const state = allStates.find((s) => s.instance.id === modalInstanceId);
+            if (state?.status === "inactive") {
+              await toggleActive(modalInstanceId, true);
+            }
+            await completeParty(modalInstanceId, ownCharIds, friends, completedAt);
+            setModalInstanceId(null);
+          } catch {
+            setActionError("Erro ao marcar instância. Tente novamente.");
+          } finally {
+            setActionLoading(false);
+          }
         }}
         onUpdateCompletion={handleUpdateCompletion}
         onDeleteCompletion={handleDeleteCompletion}

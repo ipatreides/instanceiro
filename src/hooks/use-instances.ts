@@ -19,6 +19,7 @@ interface UseInstancesReturn {
   deleteCompletion: (completionId: string) => Promise<void>;
   toggleActive: (instanceId: number, isActive: boolean) => Promise<void>;
   getHistory: (instanceId: number, limit?: number) => InstanceCompletion[];
+  completeParty: (instanceId: number, ownCharIds: string[], friends: {character_id: string, user_id: string}[], completedAt?: string) => Promise<void>;
   refetch: () => Promise<void>;
 }
 
@@ -320,6 +321,21 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
     [completions]
   );
 
+  const completeParty = useCallback(
+    async (instanceId: number, ownCharIds: string[], friends: {character_id: string, user_id: string}[], completedAt?: string) => {
+      const supabase = createClient();
+      const { error } = await supabase.rpc("complete_instance_party", {
+        p_instance_id: instanceId,
+        p_completed_at: completedAt ?? new Date().toISOString(),
+        p_own_character_ids: ownCharIds,
+        p_friends: friends,
+      });
+      if (error) throw error;
+      await fetchAll();
+    },
+    [fetchAll]
+  );
+
   return {
     instances,
     characterInstances,
@@ -331,6 +347,7 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
     deleteCompletion,
     toggleActive,
     getHistory,
+    completeParty,
     refetch,
   };
 }
