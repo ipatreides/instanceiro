@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
+import { Outfit } from "next/font/google";
 import "./globals.css";
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-outfit",
+});
 
 export const metadata: Metadata = {
   title: "Instanceiro",
@@ -12,8 +19,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className="dark">
-      <body className="bg-[#0f0a1a] text-gray-200 min-h-screen antialiased" suppressHydrationWarning>
+    <html lang="pt-BR" data-theme="dark" className={outfit.variable}>
+      <body className="bg-bg text-text-primary min-h-screen antialiased font-sans" suppressHydrationWarning>
         {children}
       </body>
     </html>
