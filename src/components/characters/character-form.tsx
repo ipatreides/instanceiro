@@ -21,67 +21,22 @@ interface CharacterFormProps {
   submitLabel?: string;
 }
 
-/**
- * Given a base class node and a level, return the classes at the appropriate tier.
- * Depth 0 = base, 1 = 2nd, 2 = transcendent, 3 = 3rd, 4 = 4th
- *
- * Level ranges:
- *   1-99  → show depth 0 (base) + depth 1 (2nd) + depth 2 (transcendent)
- *   100-199 → show depth 3 (3rd class)
- *   100-200 → show depth 2 (3rd class)
- */
-function getClassesForLevel(baseNode: ClassNode, level: number): ClassNode[] {
-  // Collect all nodes at each depth under this base
-  const byDepth: ClassNode[][] = [];
-
-  function collect(nodes: ClassNode[], depth: number) {
-    if (!byDepth[depth]) byDepth[depth] = [];
+/** Get all descendant classes for a base node (flat list) */
+function getAllDescendants(baseNode: ClassNode): ClassNode[] {
+  const result: ClassNode[] = [];
+  function collect(nodes: ClassNode[]) {
     for (const node of nodes) {
-      byDepth[depth].push(node);
-      if (node.children) collect(node.children, depth + 1);
+      result.push(node);
+      if (node.children) collect(node.children);
     }
   }
-
   if (baseNode.children) {
-    collect(baseNode.children, 0);
-  }
-
-  // No children (e.g., Summoner) — the base itself is the class
-  if (byDepth.length === 0) return [baseNode];
-
-  let targetDepths: number[];
-  if (level >= 100) {
-    targetDepths = [2]; // 3rd class
+    collect(baseNode.children);
   } else {
-    targetDepths = [0, 1]; // 2nd class + transcendent
+    // No children (e.g., Invocador) — the base itself is the class
+    result.push(baseNode);
   }
-
-  // Try target depths, fallback to deepest available
-  for (const d of targetDepths) {
-    if (byDepth[d] && byDepth[d].length > 0) {
-      // If multiple target depths, merge them
-      const result = targetDepths.flatMap((td) => byDepth[td] ?? []);
-      // Deduplicate
-      const seen = new Set<string>();
-      return result.filter((n) => {
-        if (seen.has(n.name)) return false;
-        seen.add(n.name);
-        return true;
-      });
-    }
-  }
-
-  // Fallback: return deepest available
-  for (let i = byDepth.length - 1; i >= 0; i--) {
-    if (byDepth[i] && byDepth[i].length > 0) return byDepth[i];
-  }
-
-  return [baseNode];
-}
-
-function getTierLabel(level: number): string {
-  if (level >= 100) return "3ª Classe";
-  return "2ª Classe / Transcendente";
+  return result;
 }
 
 export function CharacterForm({ onSubmit, onCancel, onDirtyChange, initialValues, submitLabel }: CharacterFormProps) {
@@ -102,12 +57,12 @@ export function CharacterForm({ onSubmit, onCancel, onDirtyChange, initialValues
 
   const baseNode = CLASS_TREE.find((n) => n.name === selectedBase) ?? null;
 
-  // When base or level changes, check if selected class is still valid
-  const availableClasses = baseNode ? getClassesForLevel(baseNode, level) : [];
+  // Show ALL descendant classes for the selected base (no level filtering)
+  const availableClasses = baseNode ? getAllDescendants(baseNode) : [];
   const isClassStillValid = selectedClass && availableClasses.some((n) => n.name === selectedClass);
   const effectiveClass = isClassStillValid ? selectedClass : null;
 
-  // Auto-select if only one option
+  // Auto-select if only one option (e.g. Invocador has no children)
   const autoClass = availableClasses.length === 1 ? availableClasses[0].name : null;
   const finalClass = effectiveClass ?? autoClass;
 
@@ -126,8 +81,6 @@ export function CharacterForm({ onSubmit, onCancel, onDirtyChange, initialValues
 
   function handleLevelChange(newLevel: number) {
     setLevel(newLevel);
-    // Reset class selection when tier changes
-    setSelectedClass(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -204,12 +157,10 @@ export function CharacterForm({ onSubmit, onCancel, onDirtyChange, initialValues
           </div>
         </div>
 
-        {/* Step 2: Final class based on level */}
+        {/* Step 2: Pick class */}
         {selectedBase && availableClasses.length > 1 && (
           <div className="flex flex-col gap-1">
-            <span className="text-xs text-[#6B5A8A] uppercase tracking-wide">
-              {getTierLabel(level)}
-            </span>
+            <span className="text-xs text-[#6B5A8A] uppercase tracking-wide">Classe</span>
             <div className="flex flex-wrap gap-2">
               {availableClasses.map((node) => (
                 <button

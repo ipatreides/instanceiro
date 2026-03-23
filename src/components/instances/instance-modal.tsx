@@ -5,6 +5,18 @@ import { Modal } from "@/components/ui/modal";
 import { toBrtDatetimeLocal, fromBrtDatetimeLocal, formatDateTime, nowBrtMax } from "@/lib/format-date";
 import type { InstanceState, InstanceCompletion } from "@/lib/types";
 
+interface EligibleFriend {
+  user_id: string;
+  username: string;
+  avatar_url: string | null;
+  character_id: string;
+  character_name: string;
+  character_class: string;
+  character_level: number;
+  is_active: boolean;
+  last_completed_at: string | null;
+}
+
 interface InstanceModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -18,6 +30,7 @@ interface InstanceModalProps {
   onDeactivate: () => void;
   onActivate: () => void;
   onSchedule?: () => void;
+  getEligibleFriends?: (instanceId: number) => Promise<EligibleFriend[]>;
   actionLoading?: boolean;
   actionError?: string | null;
 }
@@ -51,6 +64,7 @@ export function InstanceModal({
   onDeactivate,
   onActivate,
   onSchedule,
+  getEligibleFriends,
   actionLoading,
   actionError,
 }: InstanceModalProps) {
@@ -58,6 +72,8 @@ export function InstanceModal({
   const [markDoneTime, setMarkDoneTime] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTime, setEditingTime] = useState("");
+  const [friends, setFriends] = useState<EligibleFriend[]>([]);
+  const [friendsLoading, setFriendsLoading] = useState(false);
 
   // Reset states when modal closes
   useEffect(() => {
@@ -66,6 +82,7 @@ export function InstanceModal({
       setMarkDoneTime("");
       setEditingId(null);
       setEditingTime("");
+      setFriends([]);
     }
   }, [isOpen]);
 
@@ -76,7 +93,18 @@ export function InstanceModal({
     setMarkDoneTime("");
     setEditingId(null);
     setEditingTime("");
+    setFriends([]);
   }, [instanceId]);
+
+  // Fetch eligible friends when modal opens for an instance
+  useEffect(() => {
+    if (!isOpen || !instanceId || !getEligibleFriends) return;
+    setFriendsLoading(true);
+    getEligibleFriends(instanceId).then((f) => {
+      setFriends(f);
+      setFriendsLoading(false);
+    });
+  }, [isOpen, instanceId, getEligibleFriends]);
 
   // Set default time when confirming
   useEffect(() => {
@@ -224,6 +252,45 @@ export function InstanceModal({
           >
             Agendar com amigos
           </button>
+        )}
+
+        {/* Friends status */}
+        {getEligibleFriends && (
+          <div className="flex flex-col gap-2">
+            <h3 className="text-sm font-semibold text-[#A89BC2]">
+              Amigos {!friendsLoading && friends.length > 0 && `(${friends.length})`}
+            </h3>
+            {friendsLoading ? (
+              <div className="flex items-center justify-center py-3">
+                <div className="w-4 h-4 border-2 border-[#7C3AED] border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : friends.length === 0 ? (
+              <p className="text-xs text-[#6B5A8A] italic">Nenhum amigo com esta instância.</p>
+            ) : (
+              <div className="flex flex-col gap-1">
+                {friends.map((f) => {
+                  const isOnCooldown = !!f.last_completed_at;
+                  return (
+                    <div
+                      key={`${f.user_id}-${f.character_id}`}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded bg-[#2a1f40] border border-[#3D2A5C]"
+                    >
+                      {f.avatar_url ? (
+                        <img src={f.avatar_url} alt="" className="w-5 h-5 rounded-full" />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-[#3D2A5C] flex items-center justify-center text-[10px] text-[#A89BC2]">?</div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs text-white font-medium truncate block">{f.character_name}</span>
+                        <span className="text-[10px] text-[#6B5A8A]">{f.character_class} · @{f.username}</span>
+                      </div>
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isOnCooldown ? "bg-orange-400" : f.is_active ? "bg-green-500" : "bg-gray-600"}`} />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         )}
 
         {/* History */}

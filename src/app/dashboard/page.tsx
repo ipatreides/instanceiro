@@ -556,6 +556,7 @@ export default function DashboardPage() {
           setSchedulingInstanceId(modalState.instance.id);
           setModalInstanceId(null);
         } : undefined}
+        getEligibleFriends={getEligibleFriends}
         actionLoading={actionLoading}
         actionError={actionError}
       />
