@@ -1,3 +1,8 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { LoginButton } from "@/components/auth/login-button";
 
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
@@ -11,6 +16,28 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
 }
 
 export default function LandingPage() {
+  const router = useRouter();
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        router.replace("/dashboard");
+      } else {
+        setChecking(false);
+      }
+    });
+  }, [router]);
+
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-[#0f0a1a] flex items-center justify-center">
+        <div className="h-8 w-8 border-4 border-[#D4A843] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0f0a1a] flex flex-col">
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-16">
