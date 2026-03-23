@@ -24,6 +24,7 @@ export interface InstanceModalDetailsProps {
   instance: Instance;
   characters: Character[];
   instanceId: number;
+  lockedCharId?: string | null;
   getEligibleFriends: (instanceId: number) => Promise<EligibleFriend[]>;
   participants: Participant[];
   onAddParticipant: (p: Participant) => void;
@@ -34,6 +35,7 @@ export function InstanceModalDetails({
   instance,
   characters,
   instanceId,
+  lockedCharId,
   getEligibleFriends,
   participants,
   onAddParticipant,
@@ -90,6 +92,7 @@ export function InstanceModalDetails({
         instanceId={instanceId}
         getEligibleFriends={getEligibleFriends}
         participants={participants}
+        lockedCharId={lockedCharId}
         onAdd={onAddParticipant}
         onRemove={onRemoveParticipant}
       />

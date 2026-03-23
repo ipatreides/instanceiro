@@ -260,6 +260,7 @@ export function InstanceModal({
             instance={instance}
             characters={characters}
             instanceId={instance.id}
+            lockedCharId={selectedCharId}
             getEligibleFriends={getEligibleFriends}
             participants={participants}
             onAddParticipant={handleAddParticipant}

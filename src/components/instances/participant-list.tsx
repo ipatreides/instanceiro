@@ -31,6 +31,7 @@ interface ParticipantListProps {
   instanceId: number;
   getEligibleFriends: (instanceId: number) => Promise<EligibleFriend[]>;
   participants: Participant[];
+  lockedCharId?: string | null;
   onAdd: (p: Participant) => void;
   onRemove: (characterId: string) => void;
 }
@@ -40,6 +41,7 @@ export default function ParticipantList({
   instanceId,
   getEligibleFriends,
   participants,
+  lockedCharId,
   onAdd,
   onRemove,
 }: ParticipantListProps) {
@@ -152,13 +154,15 @@ export default function ParticipantList({
               {p.type === "friend" && p.username && ` · @${p.username}`}
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() => onRemove(p.character_id)}
-            className="text-xs text-[#6B5A8A] hover:text-red-400 cursor-pointer transition-colors flex-shrink-0"
-          >
-            ✕
-          </button>
+          {p.character_id !== lockedCharId && (
+            <button
+              type="button"
+              onClick={() => onRemove(p.character_id)}
+              className="text-xs text-[#6B5A8A] hover:text-red-400 cursor-pointer transition-colors flex-shrink-0"
+            >
+              ✕
+            </button>
+          )}
         </div>
       ))}
 
