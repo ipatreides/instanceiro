@@ -4,11 +4,13 @@ import { useState, useEffect } from "react";
 import { getLeafClasses, buildClassPath } from "@/lib/class-tree";
 
 interface CharacterFormProps {
+  accountId?: string;
   onSubmit: (data: {
     name: string;
     class_name: string;
     class_path: string[];
     level: number;
+    account_id?: string;
   }) => void | Promise<void>;
   onCancel?: () => void;
   onDirtyChange?: (dirty: boolean) => void;
@@ -23,7 +25,7 @@ interface CharacterFormProps {
 
 const ALL_CLASSES = getLeafClasses();
 
-export function CharacterForm({ onSubmit, onCancel, onDirtyChange, initialValues, submitLabel }: CharacterFormProps) {
+export function CharacterForm({ accountId, onSubmit, onCancel, onDirtyChange, initialValues, submitLabel }: CharacterFormProps) {
   const [name, setName] = useState(initialValues?.name ?? "");
   const [level, setLevel] = useState(initialValues?.level ?? 200);
   const [classInput, setClassInput] = useState(initialValues?.class_name ?? "");
@@ -48,6 +50,7 @@ export function CharacterForm({ onSubmit, onCancel, onDirtyChange, initialValues
         class_name: classInput,
         class_path: classPath,
         level,
+        ...(accountId && { account_id: accountId }),
       });
     } finally {
       setSubmitting(false);

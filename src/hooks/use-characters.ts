@@ -9,6 +9,7 @@ interface CreateCharacterData {
   class_name: string;
   class_path: string[];
   level: number;
+  account_id: string;
 }
 
 interface UpdateCharacterData {
@@ -41,7 +42,7 @@ export function useCharacters(): UseCharactersReturn {
       .select("*")
       .eq("user_id", user.id)
       .eq("is_active", true)
-      .order("created_at", { ascending: true });
+      .order("sort_order", { ascending: true });
 
     if (error) {
       console.error("Error fetching characters:", error);
@@ -105,6 +106,7 @@ export function useCharacters(): UseCharactersReturn {
         .from("characters")
         .insert({
           user_id: user.id,
+          account_id: data.account_id,
           name: data.name,
           class: data.class_name,
           class_path: data.class_path,

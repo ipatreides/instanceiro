@@ -14,6 +14,7 @@ interface UseInviteReturn {
     class_name: string;
     class_path: string[];
     level: number;
+    account_id?: string;
   }) => Promise<"joined" | "friendship_only" | "already_joined" | "full" | "error">;
   createFriendshipOnly: () => Promise<"friendship_only" | "error">;
 }
@@ -66,6 +67,7 @@ export function useInvite(code: string): UseInviteReturn {
     class_name: string;
     class_path: string[];
     level: number;
+    account_id?: string;
   }) => {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -76,6 +78,7 @@ export function useInvite(code: string): UseInviteReturn {
       .from("characters")
       .insert({
         user_id: user.id,
+        ...(charData.account_id && { account_id: charData.account_id }),
         name: charData.name,
         class: charData.class_name,
         class_path: charData.class_path,

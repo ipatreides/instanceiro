@@ -139,6 +139,7 @@ export default function InvitePage() {
     class_name: string;
     class_path: string[];
     level: number;
+    account_id?: string;
   }) => {
     setActionLoading(true);
     const status = await acceptInviteWithNewChar(charData);

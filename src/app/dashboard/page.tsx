@@ -254,8 +254,9 @@ export default function DashboardPage() {
     class_name: string;
     class_path: string[];
     level: number;
+    account_id?: string;
   }) => {
-    const newChar = await createCharacter(data);
+    const newChar = await createCharacter({ ...data, account_id: data.account_id ?? "" });
     setSelectedCharId(newChar.id);
     setShowNewChar(false);
   };
