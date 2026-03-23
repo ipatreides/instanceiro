@@ -54,14 +54,11 @@ Add columns:
 
 ## Data Migration
 
-Existing characters have no account. Migration strategy:
+Database will be wiped before deploying this feature — no migration of existing characters needed.
 
 1. Create `servers` with Freya (id=1) and Nidhogg (id=2)
-2. Add `account_id` column as nullable first
-3. For each user with characters: create a default account "Minha Conta" on Freya
-4. Set all existing characters' `account_id` to their user's default account
-5. Alter `account_id` to NOT NULL
-6. Add `sort_order` column to characters (default 0)
+2. Add `account_id` (NOT NULL) and `sort_order` columns to `characters`
+3. Existing data will be cleared
 
 ---
 
