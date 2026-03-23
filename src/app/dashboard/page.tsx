@@ -72,7 +72,7 @@ export default function DashboardPage() {
   const [accountModalAccount, setAccountModalAccount] = useState<Account | null>(null);
   const [showCreateAccount, setShowCreateAccount] = useState(false);
 
-  const { characters, loading: charsLoading, createCharacter, updateCharacter, refetch: refetchCharacters } = useCharacters();
+  const { characters, loading: charsLoading, createCharacter, updateCharacter, reorderCharacters: reorderCharsLocal, refetch: refetchCharacters } = useCharacters();
   const {
     loading: instancesLoading,
     completions,
@@ -472,14 +472,10 @@ export default function DashboardPage() {
           onCreateAccount={() => setShowCreateAccount(true)}
           onReorderAccounts={reorderAccounts}
           onReorderCharacters={async (accountId, orderedCharIds) => {
-            // Optimistic: reorder characters array locally
-            const reordered = orderedCharIds.map((id, i) => {
-              const c = characters.find((ch) => ch.id === id);
-              return c ? { ...c, sort_order: i } : null;
-            }).filter(Boolean);
-            // This won't update useCharacters state directly, so refetch after persist
-            await reorderChars(accountId, orderedCharIds);
-            await refetchCharacters();
+            // Optimistic local update (instant, no flash)
+            reorderCharsLocal(orderedCharIds);
+            // Persist to DB in background
+            reorderChars(accountId, orderedCharIds);
           }}
         />
 

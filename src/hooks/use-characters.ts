@@ -24,6 +24,7 @@ interface UseCharactersReturn {
   loading: boolean;
   createCharacter: (data: CreateCharacterData, activeInstanceIds?: Set<number>) => Promise<Character>;
   updateCharacter: (id: string, data: UpdateCharacterData) => Promise<void>;
+  reorderCharacters: (orderedCharIds: string[]) => void;
   refetch: () => Promise<void>;
 }
 
@@ -185,5 +186,23 @@ export function useCharacters(): UseCharactersReturn {
     []
   );
 
-  return { characters, loading, createCharacter, updateCharacter, refetch };
+  const reorderCharacters = useCallback((orderedCharIds: string[]) => {
+    setCharacters((prev) => {
+      const charMap = new Map(prev.map((c) => [c.id, c]));
+      const reordered: Character[] = [];
+      for (let i = 0; i < orderedCharIds.length; i++) {
+        const c = charMap.get(orderedCharIds[i]);
+        if (c) reordered.push({ ...c, sort_order: i });
+      }
+      // Keep chars not in the reorder list (other accounts) unchanged
+      const reorderedIds = new Set(orderedCharIds);
+      const rest = prev.filter((c) => !reorderedIds.has(c.id));
+      return [...rest, ...reordered].sort((a, b) => {
+        if (a.account_id !== b.account_id) return 0;
+        return a.sort_order - b.sort_order;
+      });
+    });
+  }, []);
+
+  return { characters, loading, createCharacter, updateCharacter, reorderCharacters, refetch };
 }
