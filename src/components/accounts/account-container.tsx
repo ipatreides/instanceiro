@@ -2,9 +2,18 @@
 
 import type { Account, Character } from "@/lib/types";
 import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
   SortableContext,
   horizontalListSortingStrategy,
   useSortable,
+  arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -110,6 +119,26 @@ export function AccountContainer({
 }: AccountContainerProps) {
   const charIds = characters.map((c) => `char-${c.id}`);
 
+  const charSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 10 } })
+  );
+
+  function handleCharDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const activeCharId = String(active.id).replace("char-", "");
+    const overCharId = String(over.id).replace("char-", "");
+
+    const currentIds = characters.map((c) => c.id);
+    const oldIndex = currentIds.indexOf(activeCharId);
+    const newIndex = currentIds.indexOf(overCharId);
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      onReorderChars(arrayMove(currentIds, oldIndex, newIndex));
+    }
+  }
+
   if (account.is_collapsed) {
     return (
       <div
@@ -161,23 +190,29 @@ export function AccountContainer({
         </button>
       </div>
 
-      {/* Character cards */}
-      <SortableContext
-        items={charIds}
-        strategy={horizontalListSortingStrategy}
+      {/* Character cards — own DndContext for char reordering */}
+      <DndContext
+        collisionDetection={closestCenter}
+        sensors={charSensors}
+        onDragEnd={handleCharDragEnd}
       >
-        <div className="flex items-center gap-2">
-          {characters.map((character) => (
-            <SortableCharCard
-              key={character.id}
-              character={character}
-              isSelected={character.id === selectedCharId}
-              onSelect={onSelectChar}
-              onEdit={onEditChar}
-            />
-          ))}
-        </div>
-      </SortableContext>
+        <SortableContext
+          items={charIds}
+          strategy={horizontalListSortingStrategy}
+        >
+          <div className="flex items-center gap-2">
+            {characters.map((character) => (
+              <SortableCharCard
+                key={character.id}
+                character={character}
+                isSelected={character.id === selectedCharId}
+                onSelect={onSelectChar}
+                onEdit={onEditChar}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }
