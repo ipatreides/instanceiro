@@ -43,10 +43,9 @@ export function NotificationItem({ notification, onRespond }: NotificationItemPr
     <div className="px-3 py-2 text-sm">
       <p className="text-[#A89BC2] mb-2">
         <span className="text-[#9B6DFF]">@{payload.invited_by}</span>{" "}
-        perguntou se você fez{" "}
-        <span className="text-white font-medium">{payload.instance_name}</span>{" "}
-        com{" "}
-        <span className="text-white font-medium">{payload.character_name}</span>
+        te adicionou à{" "}
+        <span className="text-white font-medium">{payload.instance_name}</span>
+        {" "}com ele, participar?
       </p>
       <div className="flex gap-2">
         <button
