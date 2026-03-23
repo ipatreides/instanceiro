@@ -22,7 +22,7 @@ import { ScheduleForm } from "@/components/schedules/schedule-form";
 import { useSchedules } from "@/hooks/use-schedules";
 import type { InstanceSchedule, ScheduleParticipant } from "@/lib/types";
 import { Modal } from "@/components/ui/modal";
-import { FullPageSpinner } from "@/components/ui/spinner";
+import { FullPageSpinner, Spinner } from "@/components/ui/spinner";
 import type { Character, InstanceState } from "@/lib/types";
 
 interface Profile {
@@ -50,6 +50,7 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [selectedSchedule, setSelectedSchedule] = useState<InstanceSchedule | null>(null);
   const [scheduleParticipants, setScheduleParticipants] = useState<ScheduleParticipant[]>([]);
+  const [participantsLoading, setParticipantsLoading] = useState(false);
   const [schedulingInstanceId, setSchedulingInstanceId] = useState<number | null>(null);
   const [pendingScheduleId, setPendingScheduleId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -253,9 +254,8 @@ export default function DashboardPage() {
     setShowNewChar(false);
   };
 
-  const isLoading = charsLoading || instancesLoading;
-
-  if (isLoading) {
+  // Full-page spinner only on initial load (characters not yet loaded)
+  if (charsLoading) {
     return <FullPageSpinner />;
   }
 
@@ -454,8 +454,11 @@ export default function DashboardPage() {
                 schedules={schedules}
                 onCardClick={async (s) => {
                   setSelectedSchedule(s);
+                  setScheduleParticipants([]);
+                  setParticipantsLoading(true);
                   const p = await getParticipants(s.id);
                   setScheduleParticipants(p);
+                  setParticipantsLoading(false);
                 }}
               />
             )}
@@ -476,6 +479,11 @@ export default function DashboardPage() {
             )}
 
             {/* Instance columns — single unified layout */}
+            {instancesLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Spinner size="md" />
+              </div>
+            ) : (
             <div className="flex flex-col gap-3">
               {/* Mobile: tabs */}
               <MobileInstanceTabs
@@ -510,6 +518,7 @@ export default function DashboardPage() {
                 ))}
               </div>
             </div>
+            )}
           </>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
@@ -667,6 +676,7 @@ export default function DashboardPage() {
         onClose={() => setSelectedSchedule(null)}
         schedule={selectedSchedule}
         participants={scheduleParticipants}
+        loading={participantsLoading}
         currentUserId={userId}
         characters={characters.filter((c) => !c.isShared)}
         onJoin={async (characterId, message) => {

@@ -8,10 +8,11 @@ interface ModalProps {
   title: string;
   titleAction?: React.ReactNode;
   isDirty?: boolean;
+  footer?: React.ReactNode;
   children: React.ReactNode;
 }
 
-export function Modal({ isOpen, onClose, title, titleAction, isDirty, children }: ModalProps) {
+export function Modal({ isOpen, onClose, title, titleAction, isDirty, footer, children }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -59,8 +60,8 @@ export function Modal({ isOpen, onClose, title, titleAction, isDirty, children }
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60"
       onClick={(e) => e.target === overlayRef.current && handleClose()}
     >
-      <div className="bg-[#1a1230] w-full sm:max-w-xl sm:rounded-lg rounded-t-2xl max-h-[85vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-[#3D2A5C]">
+      <div className="bg-[#1a1230] w-full sm:max-w-xl sm:rounded-lg rounded-t-2xl max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b border-[#3D2A5C] flex-shrink-0">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold text-white">{title}</h2>
             {titleAction}
@@ -86,7 +87,12 @@ export function Modal({ isOpen, onClose, title, titleAction, isDirty, children }
             </div>
           </div>
         )}
-        <div className="p-4">{children}</div>
+        <div className="p-4 overflow-y-auto flex-1">{children}</div>
+        {footer && (
+          <div className="flex-shrink-0 border-t border-[#3D2A5C] px-4 py-3">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

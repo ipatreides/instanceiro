@@ -6,6 +6,7 @@ import { formatBrtDateTime } from "@/lib/format-date";
 import type { InstanceSchedule, ScheduleParticipant, Character } from "@/lib/types";
 import type { EligibleFriend } from "@/hooks/use-schedules";
 import { calculateCooldownExpiry, isAvailableDay } from "@/lib/cooldown";
+import { getLeafClasses } from "@/lib/class-tree";
 
 interface ScheduleModalProps {
   isOpen: boolean;
@@ -272,7 +273,61 @@ export function ScheduleModal({
   const busy = loading || actionLoading;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={schedule.instanceName ?? "Agendamento"} isDirty={isDirty}>
+    <Modal isOpen={isOpen} onClose={onClose} title={schedule.instanceName ?? "Agendamento"} isDirty={isDirty} footer={
+      mode === "view" && schedule.status === "open" ? (
+        <div className="flex flex-wrap gap-2 justify-end">
+          {!isCreator && availableCharsToJoin.length > 0 && (
+            <button
+              type="button"
+              onClick={handleJoinClick}
+              disabled={busy}
+              className="px-4 py-2 text-sm text-white bg-[#7C3AED] rounded-lg hover:bg-[#6D31D4] transition-colors cursor-pointer disabled:opacity-50"
+            >
+              Participar
+            </button>
+          )}
+          {isCreator && (
+            <>
+              <button
+                type="button"
+                onClick={handleInviteClick}
+                disabled={busy}
+                className="px-4 py-2 text-sm text-[#D4A843] bg-[#2a1f40] border border-[#D4A843]/30 rounded-lg hover:border-[#D4A843] transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {busy ? "..." : "Convidar"}
+              </button>
+              {!confirmingCancel ? (
+                <button
+                  type="button"
+                  onClick={() => setConfirmingCancel(true)}
+                  disabled={busy}
+                  className="px-4 py-2 text-sm text-red-400 bg-[#2a1f40] border border-red-900/50 rounded-lg hover:bg-red-900/20 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleExpire}
+                  disabled={busy}
+                  className="px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-500 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {busy ? "Cancelando..." : "Confirmar cancelamento"}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleCompleteClick}
+                disabled={busy}
+                className="px-4 py-2 text-sm text-white bg-green-700 rounded-lg hover:bg-green-600 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Completar
+              </button>
+            </>
+          )}
+        </div>
+      ) : undefined
+    }>
       <div className="flex flex-col gap-4">
         {/* Badges row */}
         <div className="flex flex-wrap gap-2 items-center">
@@ -435,9 +490,13 @@ export function ScheduleModal({
             {/* Participant list */}
             <div className="flex flex-col gap-2">
               <p className="text-xs text-[#6B5A8A] font-medium">
-                Participantes ({participants.length + placeholders.filter((p) => !p.claimed_by).length})
+                Participantes {!loading && `(${participants.length + placeholders.filter((p) => !p.claimed_by).length})`}
               </p>
-              {sortedParticipants.length === 0 ? (
+              {loading ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="w-5 h-5 border-2 border-[#7C3AED] border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : sortedParticipants.length === 0 ? (
                 <p className="text-sm text-[#6B5A8A] italic">Nenhum participante ainda.</p>
               ) : (
                 sortedParticipants.map((p) => {
@@ -578,8 +637,14 @@ export function ScheduleModal({
                       onChange={(e) => setPlaceholderClass(e.target.value)}
                       placeholder="Classe (ex: Arcano)"
                       maxLength={30}
+                      list="class-suggestions"
                       className="bg-[#2a1f40] border border-[#3D2A5C] rounded-lg px-3 py-2 text-sm text-white placeholder-[#6B5A8A] focus:outline-none focus:border-[#7C3AED]"
                     />
+                    <datalist id="class-suggestions">
+                      {getLeafClasses().map((c) => (
+                        <option key={c} value={c} />
+                      ))}
+                    </datalist>
                     <div className="flex gap-2 justify-end">
                       <button
                         onClick={() => { setShowPlaceholderForm(false); setPlaceholderName(""); setPlaceholderClass(""); }}
@@ -659,60 +724,7 @@ export function ScheduleModal({
               </div>
             )}
 
-            {/* Action buttons */}
-            {mode === "view" && schedule.status === "open" && (
-              <div className="flex flex-wrap gap-2 justify-end pt-2 border-t border-[#3D2A5C]">
-                {!isCreator && availableCharsToJoin.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleJoinClick}
-                    disabled={busy}
-                    className="px-4 py-2 text-sm text-white bg-[#7C3AED] rounded-lg hover:bg-[#6D31D4] transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    Participar
-                  </button>
-                )}
-                {isCreator && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleInviteClick}
-                      disabled={busy}
-                      className="px-4 py-2 text-sm text-[#D4A843] bg-[#2a1f40] border border-[#D4A843]/30 rounded-lg hover:border-[#D4A843] transition-colors cursor-pointer disabled:opacity-50"
-                    >
-                      {busy ? "..." : "Convidar"}
-                    </button>
-                    {!confirmingCancel ? (
-                      <button
-                        type="button"
-                        onClick={() => setConfirmingCancel(true)}
-                        disabled={busy}
-                        className="px-4 py-2 text-sm text-red-400 bg-[#2a1f40] border border-red-900/50 rounded-lg hover:bg-red-900/20 transition-colors cursor-pointer disabled:opacity-50"
-                      >
-                        Cancelar
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleExpire}
-                        disabled={busy}
-                        className="px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-500 transition-colors cursor-pointer disabled:opacity-50"
-                      >
-                        {busy ? "Cancelando..." : "Confirmar cancelamento"}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={handleCompleteClick}
-                      disabled={busy}
-                      className="px-4 py-2 text-sm text-white bg-green-700 rounded-lg hover:bg-green-600 transition-colors cursor-pointer disabled:opacity-50"
-                    >
-                      Completar
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
+            {/* Action buttons moved to modal footer */}
           </>
         )}
       </div>
