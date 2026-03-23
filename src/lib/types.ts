@@ -150,6 +150,7 @@ export interface InstanceCompletion {
   character_id: string;
   instance_id: number;
   completed_at: string;
+  party_id?: string | null;
 }
 
 export interface InstanceState {
@@ -159,4 +160,32 @@ export interface InstanceState {
   lastCompletion: InstanceCompletion | null;
   cooldownExpiresAt: Date | null;
   status: "available" | "cooldown" | "inactive";
+}
+
+export interface InstanceParty {
+  id: string;
+  instance_id: number;
+  completed_at: string;
+  created_by: string;
+  created_at: string;
+}
+
+export interface InstancePartyMember {
+  id: string;
+  party_id: string;
+  character_id: string;
+  user_id: string;
+  status: "confirmed" | "pending" | "accepted" | "declined";
+  created_at: string;
+}
+
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  type: string;
+  payload: Record<string, unknown>;
+  is_read: boolean;
+  responded: boolean;
+  expires_at: string;
+  created_at: string;
 }
