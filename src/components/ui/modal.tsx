@@ -60,17 +60,17 @@ export function Modal({ isOpen, onClose, title, titleAction, isDirty, footer, ch
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60"
       onClick={(e) => e.target === overlayRef.current && handleClose()}
     >
-      <div className="bg-[#1a1230] w-full sm:max-w-xl sm:rounded-lg rounded-t-2xl max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b border-[#3D2A5C] flex-shrink-0">
+      <div className="bg-surface w-full sm:max-w-xl sm:rounded-[var(--radius-lg)] rounded-t-2xl max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold text-white">{title}</h2>
+            <h2 className="text-lg font-semibold text-text-primary">{title}</h2>
             {titleAction}
           </div>
-          <button onClick={handleClose} className="text-[#A89BC2] hover:text-white text-xl cursor-pointer">×</button>
+          <button onClick={handleClose} className="text-text-secondary hover:text-text-primary text-xl cursor-pointer">×</button>
         </div>
         {showConfirm && (
-          <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-[#2a1f40] border-b border-[#3D2A5C]">
-            <span className="text-sm text-[#A89BC2]">Descartar alterações?</span>
+          <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-bg border-b border-border">
+            <span className="text-sm text-text-secondary">Descartar alterações?</span>
             <div className="flex gap-2">
               <button
                 onClick={handleConfirmClose}
@@ -80,7 +80,7 @@ export function Modal({ isOpen, onClose, title, titleAction, isDirty, footer, ch
               </button>
               <button
                 onClick={() => setShowConfirm(false)}
-                className="px-3 py-1 text-xs text-[#A89BC2] bg-[#1a1230] border border-[#3D2A5C] rounded hover:text-white transition-colors cursor-pointer"
+                className="px-3 py-1 text-xs text-text-secondary bg-surface border border-border rounded hover:text-text-primary transition-colors cursor-pointer"
               >
                 Continuar editando
               </button>
@@ -89,7 +89,7 @@ export function Modal({ isOpen, onClose, title, titleAction, isDirty, footer, ch
         )}
         <div className="p-4 overflow-y-auto flex-1">{children}</div>
         {footer && (
-          <div className="flex-shrink-0 border-t border-[#3D2A5C] px-4 py-3">
+          <div className="flex-shrink-0 border-t border-border px-4 py-3">
             {footer}
           </div>
         )}
