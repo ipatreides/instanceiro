@@ -7,6 +7,7 @@ import type { InstanceSchedule, ScheduleParticipant, Character } from "@/lib/typ
 import type { EligibleFriend } from "@/hooks/use-schedules";
 import { calculateCooldownExpiry, isAvailableDay } from "@/lib/cooldown";
 import { getLeafClasses } from "@/lib/class-tree";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 
 interface ScheduleModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ interface ScheduleModalProps {
   onRemovePlaceholder: (placeholderId: string) => Promise<void>;
   onGetPlaceholders: (scheduleId: string) => Promise<import("@/lib/types").SchedulePlaceholder[]>;
   onExpire: () => Promise<void>;
+  onUpdateTime: (scheduledAt: string) => Promise<void>;
   instanceCooldownType?: string;
   instanceCooldownHours?: number | null;
   instanceAvailableDay?: string | null;
@@ -52,6 +54,7 @@ export function ScheduleModal({
   onRemovePlaceholder,
   onGetPlaceholders,
   onExpire,
+  onUpdateTime,
   instanceCooldownType,
   instanceCooldownHours,
   instanceAvailableDay,
@@ -71,6 +74,8 @@ export function ScheduleModal({
   const [placeholderName, setPlaceholderName] = useState("");
   const [placeholderClass, setPlaceholderClass] = useState("");
   const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [editingTime, setEditingTime] = useState(false);
+  const [newTime, setNewTime] = useState("");
 
   // Reset states when switching between schedules
   const scheduleId = schedule?.id ?? null;
@@ -84,6 +89,8 @@ export function ScheduleModal({
     setPlaceholderName("");
     setPlaceholderClass("");
     setConfirmingCancel(false);
+    setEditingTime(false);
+    setNewTime("");
   }, [scheduleId]);
 
   useEffect(() => {
@@ -92,7 +99,7 @@ export function ScheduleModal({
     onGetPlaceholders(schedule.id).then(setPlaceholders);
   }, [isOpen, schedule?.id, onGetInviteCode, onGetPlaceholders]);
 
-  const isDirty = mode !== "view" || showPlaceholderForm || confirmingCancel;
+  const isDirty = mode !== "view" || showPlaceholderForm || confirmingCancel || editingTime;
 
   if (!schedule) return null;
 
@@ -331,9 +338,20 @@ export function ScheduleModal({
       <div className="flex flex-col gap-4">
         {/* Badges row */}
         <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-xs px-2 py-1 rounded bg-[#2a1f40] text-[#A89BC2] border border-[#3D2A5C]">
-            {formatBrtDateTime(schedule.scheduled_at)}
-          </span>
+          {isCreator && schedule.status === "open" ? (
+            <button
+              type="button"
+              onClick={() => { setEditingTime(true); setNewTime(schedule.scheduled_at); }}
+              className="text-xs px-2 py-1 rounded bg-[#2a1f40] text-[#A89BC2] border border-[#3D2A5C] hover:border-[#7C3AED] hover:text-white transition-colors cursor-pointer"
+              title="Clique para alterar horário"
+            >
+              {formatBrtDateTime(schedule.scheduled_at)} ✎
+            </button>
+          ) : (
+            <span className="text-xs px-2 py-1 rounded bg-[#2a1f40] text-[#A89BC2] border border-[#3D2A5C]">
+              {formatBrtDateTime(schedule.scheduled_at)}
+            </span>
+          )}
           {schedule.instanceStartMap && (
             <span className="text-xs px-2 py-1 rounded bg-[#2a1f40] text-[#D4A843] border border-[#3D2A5C]">
               {schedule.instanceStartMap}
@@ -350,6 +368,44 @@ export function ScheduleModal({
             </span>
           )}
         </div>
+
+        {/* Edit time picker */}
+        {editingTime && (
+          <div className="flex flex-col gap-2 p-3 rounded-lg bg-[#0f0a1a] border border-[#3D2A5C]">
+            <DateTimePicker
+              value={newTime}
+              onChange={setNewTime}
+              label="Novo horário"
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => setEditingTime(false)}
+                disabled={busy}
+                className="px-3 py-1.5 text-xs text-[#A89BC2] bg-[#2a1f40] border border-[#3D2A5C] rounded-lg hover:bg-[#3D2A5C] transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!newTime) return;
+                  setActionLoading(true);
+                  try {
+                    await onUpdateTime(newTime);
+                    setEditingTime(false);
+                  } finally {
+                    setActionLoading(false);
+                  }
+                }}
+                disabled={busy || !newTime}
+                className="px-3 py-1.5 text-xs text-white bg-[#7C3AED] rounded-lg hover:bg-[#6D31D4] transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Creator message */}
         {schedule.message && (

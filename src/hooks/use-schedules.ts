@@ -27,6 +27,7 @@ interface UseSchedulesReturn {
   getEligibleFriends: (instanceId: number) => Promise<EligibleFriend[]>;
   completeSchedule: (scheduleId: string, confirmedParticipants: { userId: string; characterId: string }[]) => Promise<void>;
   expireSchedule: (scheduleId: string) => Promise<void>;
+  updateScheduleTime: (scheduleId: string, scheduledAt: string) => Promise<void>;
   getParticipants: (scheduleId: string) => Promise<ScheduleParticipant[]>;
   generateInviteCode: (scheduleId: string) => Promise<string>;
   getInviteCode: (scheduleId: string) => Promise<string | null>;
@@ -226,6 +227,16 @@ export function useSchedules(): UseSchedulesReturn {
     await fetchAll();
   }, [fetchAll]);
 
+  const updateScheduleTime = useCallback(async (scheduleId: string, scheduledAt: string) => {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("instance_schedules")
+      .update({ scheduled_at: scheduledAt })
+      .eq("id", scheduleId);
+    if (error) throw error;
+    await fetchAll();
+  }, [fetchAll]);
+
   const getParticipants = useCallback(async (scheduleId: string): Promise<ScheduleParticipant[]> => {
     const supabase = createClient();
 
@@ -384,6 +395,7 @@ export function useSchedules(): UseSchedulesReturn {
     getEligibleFriends,
     completeSchedule,
     expireSchedule,
+    updateScheduleTime,
     getParticipants,
     generateInviteCode,
     getInviteCode,

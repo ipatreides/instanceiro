@@ -80,6 +80,7 @@ export default function DashboardPage() {
     getEligibleFriends,
     completeSchedule,
     expireSchedule,
+    updateScheduleTime,
     getParticipants,
     generateInviteCode,
     getInviteCode,
@@ -717,6 +718,10 @@ export default function DashboardPage() {
           if (!selectedSchedule) return;
           await expireSchedule(selectedSchedule.id);
           setSelectedSchedule(null);
+        }}
+        onUpdateTime={async (scheduledAt) => {
+          if (!selectedSchedule) return;
+          await updateScheduleTime(selectedSchedule.id, scheduledAt);
         }}
         onGenerateInviteCode={generateInviteCode}
         onGetInviteCode={getInviteCode}
