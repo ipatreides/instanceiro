@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { FullPageSpinner } from "@/components/ui/spinner";
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState("");
@@ -10,6 +11,7 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [canReset, setCanReset] = useState(false);
+  const [checking, setChecking] = useState(true);
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
@@ -19,11 +21,16 @@ export default function ResetPasswordPage() {
         if (event === "PASSWORD_RECOVERY") {
           setCanReset(true);
         }
+        setChecking(false);
       }
     );
 
+    // Timeout fallback — if no event after 3s, show error
+    const timer = setTimeout(() => setChecking(false), 3000);
+
     return () => {
       subscription.unsubscribe();
+      clearTimeout(timer);
     };
   }, []);
 
@@ -72,6 +79,10 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     );
+  }
+
+  if (checking) {
+    return <FullPageSpinner label="Verificando link..." />;
   }
 
   if (!canReset) {

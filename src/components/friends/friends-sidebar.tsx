@@ -131,7 +131,7 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
                       </div>
                       <button
                         onClick={() => setConfirmRemoveId(f.id)}
-                        className="text-xs text-red-400 hover:text-red-300 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="text-xs text-red-400 hover:text-red-300 cursor-pointer opacity-60 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                       >
                         ×
                       </button>

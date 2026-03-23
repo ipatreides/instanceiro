@@ -11,6 +11,7 @@ import { CharacterBar } from "@/components/characters/character-bar";
 import { CharacterForm } from "@/components/characters/character-form";
 import { CharacterShareTab } from "@/components/characters/character-share-tab";
 import { FriendsSidebar } from "@/components/friends/friends-sidebar";
+import { useFriendships } from "@/hooks/use-friendships";
 import { InstanceColumn } from "@/components/instances/instance-column";
 import { MobileInstanceTabs } from "@/components/instances/mobile-instance-tabs";
 import { InstanceSearch } from "@/components/instances/instance-search";
@@ -21,6 +22,7 @@ import { ScheduleForm } from "@/components/schedules/schedule-form";
 import { useSchedules } from "@/hooks/use-schedules";
 import type { InstanceSchedule, ScheduleParticipant } from "@/lib/types";
 import { Modal } from "@/components/ui/modal";
+import { FullPageSpinner } from "@/components/ui/spinner";
 import type { Character, InstanceState } from "@/lib/types";
 
 interface Profile {
@@ -53,6 +55,7 @@ export default function DashboardPage() {
   const [usernameInput, setUsernameInput] = useState("");
   const [usernameSaving, setUsernameSaving] = useState(false);
   const usernameStatus = useUsernameCheck(usernameInput);
+  const { pendingReceived } = useFriendships();
 
   const { characters, loading: charsLoading, createCharacter, updateCharacter, refetch: refetchCharacters } = useCharacters();
   const {
@@ -251,11 +254,7 @@ export default function DashboardPage() {
   const isLoading = charsLoading || instancesLoading;
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#0f0a1a] flex items-center justify-center">
-        <p className="text-[#A89BC2]">Carregando...</p>
-      </div>
-    );
+    return <FullPageSpinner />;
   }
 
   const allStates = computeStates(now);
@@ -411,12 +410,17 @@ export default function DashboardPage() {
             )}
             <button
               onClick={() => setShowFriends(true)}
-              className="lg:hidden text-sm text-[#A89BC2] hover:text-white transition-colors cursor-pointer"
+              className="lg:hidden text-sm text-[#A89BC2] hover:text-white transition-colors cursor-pointer relative"
               aria-label="Amigos"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
               </svg>
+              {pendingReceived.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
+                  {pendingReceived.length}
+                </span>
+              )}
             </button>
             <button
               onClick={handleLogout}
@@ -537,7 +541,7 @@ export default function DashboardPage() {
         onDeleteCompletion={handleDeleteCompletion}
         onDeactivate={handleDeactivate}
         onActivate={handleActivate}
-        onSchedule={modalState && !modalState.instance.is_solo ? () => {
+        onSchedule={modalState ? () => {
           setSchedulingInstanceId(modalState.instance.id);
           setModalInstanceId(null);
         } : undefined}

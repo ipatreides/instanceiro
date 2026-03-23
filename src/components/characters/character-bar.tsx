@@ -45,6 +45,9 @@ export function CharacterBar({ characters, selectedId, onSelect, onAddClick, onE
             <span className={`text-xs h-4 ${isShared && character.ownerUsername ? (isSelected ? subTextSelected : "text-[#D4A843]/50") : "invisible"}`}>
               {isShared && character.ownerUsername ? `@${character.ownerUsername}` : "\u00A0"}
             </span>
+            {isSelected && !isShared && onEdit && (
+              <span className="text-[10px] opacity-50 mt-0.5">toque para editar</span>
+            )}
           </button>
         );
       })}

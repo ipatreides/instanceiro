@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { FullPageSpinner } from "@/components/ui/spinner";
 import { useUsernameCheck, isValidUsername } from "@/hooks/use-username-check";
 
 export default function ProfilePage() {
@@ -71,11 +72,7 @@ export default function ProfilePage() {
   const canSave = hasChanged && status === "available" && !saving;
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0f0a1a] flex items-center justify-center">
-        <p className="text-[#A89BC2]">Carregando...</p>
-      </div>
-    );
+    return <FullPageSpinner />;
   }
 
   return (

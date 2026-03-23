@@ -83,6 +83,10 @@ export default function SignupPage() {
   };
 
   const handleGoogleLogin = async () => {
+    // Save username to localStorage so dashboard can apply it after OAuth callback
+    if (username && isValidUsername(username) && usernameStatus === "available") {
+      localStorage.setItem("pending_username", username);
+    }
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",
