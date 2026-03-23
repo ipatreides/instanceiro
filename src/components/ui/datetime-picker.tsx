@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 
 interface DateTimePickerProps {
   value: string; // ISO string or empty
@@ -42,6 +42,43 @@ function parseSelected(iso: string): { dayIndex: number; hour: number } | null {
   return { dayIndex: -1, hour: brt.getHours() };
 }
 
+function useDragScroll() {
+  const ref = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+  const startX = useRef(0);
+  const scrollLeft = useRef(0);
+  const moved = useRef(false);
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!ref.current) return;
+    dragging.current = true;
+    moved.current = false;
+    startX.current = e.pageX - ref.current.offsetLeft;
+    scrollLeft.current = ref.current.scrollLeft;
+    ref.current.style.cursor = "grabbing";
+  }, []);
+
+  const onMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!dragging.current || !ref.current) return;
+    e.preventDefault();
+    const x = e.pageX - ref.current.offsetLeft;
+    const walk = x - startX.current;
+    if (Math.abs(walk) > 3) moved.current = true;
+    ref.current.scrollLeft = scrollLeft.current - walk;
+  }, []);
+
+  const onMouseUp = useCallback(() => {
+    if (!ref.current) return;
+    dragging.current = false;
+    ref.current.style.cursor = "";
+  }, []);
+
+  // Prevent click on buttons if we were dragging
+  const shouldPreventClick = useCallback(() => moved.current, []);
+
+  return { ref, onMouseDown, onMouseMove, onMouseUp, onMouseLeave: onMouseUp, shouldPreventClick };
+}
+
 export function DateTimePicker({ value, onChange, minDate, label }: DateTimePickerProps) {
   const now = getBrtNow();
 
@@ -60,6 +97,8 @@ export function DateTimePicker({ value, onChange, minDate, label }: DateTimePick
   const selectedBrt = selectedDate
     ? new Date(selectedDate.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }))
     : null;
+
+  const drag = useDragScroll();
 
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => {
     if (!selectedBrt) return 0;
@@ -95,12 +134,19 @@ export function DateTimePicker({ value, onChange, minDate, label }: DateTimePick
       {label && <label className="text-xs text-[#6B5A8A]">{label}</label>}
 
       {/* Day selector */}
-      <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+      <div
+        ref={drag.ref}
+        className="flex gap-1.5 overflow-x-auto no-scrollbar select-none"
+        onMouseDown={drag.onMouseDown}
+        onMouseMove={drag.onMouseMove}
+        onMouseUp={drag.onMouseUp}
+        onMouseLeave={drag.onMouseLeave}
+      >
         {days.map((day, i) => (
           <button
             key={i}
             type="button"
-            onClick={() => handleDayClick(i)}
+            onClick={() => { if (!drag.shouldPreventClick()) handleDayClick(i); }}
             className={`flex-shrink-0 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
               selectedDayIndex === i
                 ? "bg-[#7C3AED] text-white"
