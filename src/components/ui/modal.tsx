@@ -74,7 +74,7 @@ export function Modal({ isOpen, onClose, title, titleAction, isDirty, footer, ch
             <div className="flex gap-2">
               <button
                 onClick={handleConfirmClose}
-                className="px-3 py-1 text-xs text-red-400 bg-red-900/20 border border-red-900/50 rounded hover:bg-red-900/40 transition-colors cursor-pointer"
+                className="px-3 py-1 text-xs text-status-error bg-status-error/10 border border-status-error/30 rounded hover:bg-status-error/20 transition-colors cursor-pointer"
               >
                 Descartar
               </button>

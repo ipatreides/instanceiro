@@ -131,7 +131,7 @@ export default function SignupPage() {
 
         <div className="bg-surface rounded-xl p-8 border border-border">
           {errorMessage && (
-            <div className="mb-4 p-3 rounded-lg bg-red-900/30 border border-red-500/50 text-red-400 text-sm">
+            <div className="mb-4 p-3 rounded-lg bg-status-error/10 border border-status-error/30 text-status-error text-sm">
               {errorMessage}
             </div>
           )}
@@ -158,33 +158,33 @@ export default function SignupPage() {
                     <span className="text-text-secondary animate-pulse">...</span>
                   )}
                   {usernameStatus === "available" && (
-                    <span className="text-green-400">✓</span>
+                    <span className="text-status-available">✓</span>
                   )}
                   {usernameStatus === "taken" && (
-                    <span className="text-red-400">✗</span>
+                    <span className="text-status-error">✗</span>
                   )}
                   {usernameStatus === "invalid" && username.length > 0 && (
-                    <span className="text-red-400">✗</span>
+                    <span className="text-status-error">✗</span>
                   )}
                 </span>
               </div>
               <div className="h-5">
                 {usernameStatus === "taken" && (
-                  <p className="mt-1 text-red-400 text-xs">Já em uso</p>
+                  <p className="mt-1 text-status-error text-xs">Já em uso</p>
                 )}
                 {usernameStatus === "invalid" && username.length > 0 && (
-                  <p className="mt-1 text-red-400 text-xs">
+                  <p className="mt-1 text-status-error text-xs">
                     {username.length < 3
                       ? "Mínimo 3 caracteres"
                       : "Apenas letras minúsculas e números"}
                   </p>
                 )}
                 {usernameStatus === "available" && (
-                  <p className="mt-1 text-green-400 text-xs">Disponível!</p>
+                  <p className="mt-1 text-status-available text-xs">Disponível!</p>
                 )}
               </div>
               {errors.username && usernameStatus === "idle" && (
-                <p className="mt-1 text-red-400 text-sm">{errors.username}</p>
+                <p className="mt-1 text-status-error text-sm">{errors.username}</p>
               )}
             </div>
 
@@ -201,7 +201,7 @@ export default function SignupPage() {
                 className="w-full bg-surface border border-border text-text-primary placeholder-text-secondary rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-focus-ring focus:outline-none transition-colors"
               />
               {errors.email && (
-                <p className="mt-1 text-red-400 text-sm">{errors.email}</p>
+                <p className="mt-1 text-status-error text-sm">{errors.email}</p>
               )}
             </div>
 
@@ -218,7 +218,7 @@ export default function SignupPage() {
                 className="w-full bg-surface border border-border text-text-primary placeholder-text-secondary rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-focus-ring focus:outline-none transition-colors"
               />
               {errors.password && (
-                <p className="mt-1 text-red-400 text-sm">{errors.password}</p>
+                <p className="mt-1 text-status-error text-sm">{errors.password}</p>
               )}
             </div>
 
@@ -235,7 +235,7 @@ export default function SignupPage() {
                 className="w-full bg-surface border border-border text-text-primary placeholder-text-secondary rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-focus-ring focus:outline-none transition-colors"
               />
               {errors.confirmPassword && (
-                <p className="mt-1 text-red-400 text-sm">{errors.confirmPassword}</p>
+                <p className="mt-1 text-status-error text-sm">{errors.confirmPassword}</p>
               )}
             </div>
 

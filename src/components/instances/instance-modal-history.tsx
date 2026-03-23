@@ -78,7 +78,7 @@ export function InstanceModalHistory({
                   <button
                     onClick={handleSaveEdit}
                     disabled={actionLoading}
-                    className="text-xs text-status-available hover:text-green-300 cursor-pointer disabled:opacity-50"
+                    className="text-xs text-status-available hover:text-status-available-text cursor-pointer disabled:opacity-50"
                   >
                     Salvar
                   </button>
@@ -110,7 +110,7 @@ export function InstanceModalHistory({
                     <button
                       onClick={() => onDeleteCompletion(completion.id)}
                       disabled={actionLoading}
-                      className="text-xs text-status-error hover:text-red-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0 ml-2"
+                      className="text-xs text-status-error hover:text-status-error-text transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0 ml-2"
                       aria-label="Remover conclusão"
                     >
                       Remover

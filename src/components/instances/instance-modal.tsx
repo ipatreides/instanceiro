@@ -158,7 +158,7 @@ export function InstanceModal({
           <button
             onClick={() => handleCompleteParty()}
             disabled={actionLoading || !hasOwnParticipants}
-            className="flex-1 py-2.5 rounded-md bg-status-available hover:bg-green-500 text-white font-semibold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 py-2.5 rounded-md bg-status-available hover:bg-status-available text-white font-semibold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Marcar agora
           </button>
@@ -198,7 +198,7 @@ export function InstanceModal({
             <button
               onClick={handleConfirmMarkDone}
               disabled={actionLoading || !hasOwnParticipants}
-              className="flex-1 py-2.5 rounded-md bg-status-available hover:bg-green-500 text-white font-semibold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-2.5 rounded-md bg-status-available hover:bg-status-available text-white font-semibold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {actionLoading ? "Salvando..." : "Confirmar"}
             </button>
@@ -227,7 +227,7 @@ export function InstanceModal({
       <div className="flex flex-col gap-4">
         {/* Action error */}
         {actionError && (
-          <p className="text-sm text-status-error bg-red-900/20 rounded px-3 py-2">
+          <p className="text-sm text-status-error bg-status-error/10 rounded px-3 py-2">
             {actionError}
           </p>
         )}

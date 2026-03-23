@@ -7,10 +7,10 @@ import ParticipantList, { type Participant } from "./participant-list";
 function DifficultyBadge({ difficulty }: { difficulty: string | null }) {
   if (!difficulty) return null;
   const colors: Record<string, string> = {
-    easy: "bg-green-900 text-green-300",
+    easy: "bg-status-available/20 text-status-available-text",
     normal: "bg-[color-mix(in_srgb,var(--text-secondary)_20%,transparent)] text-text-secondary",
-    hard: "bg-orange-900 text-orange-300",
-    extreme: "bg-red-900 text-red-300",
+    hard: "bg-[color-mix(in_srgb,var(--status-cooldown)_20%,transparent)] text-status-cooldown-text",
+    extreme: "bg-status-error/20 text-status-error-text",
   };
   const colorClass = colors[difficulty.toLowerCase()] ?? "bg-gray-800 text-text-secondary";
   return (

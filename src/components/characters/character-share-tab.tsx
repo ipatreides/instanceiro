@@ -82,7 +82,7 @@ export function CharacterShareTab({ characterId }: CharacterShareTabProps) {
               <span className="text-sm text-text-secondary">@{share.username}</span>
               <button
                 onClick={() => removeShare(share.shared_with_user_id)}
-                className="text-xs text-status-error hover:text-red-300 transition-colors cursor-pointer"
+                className="text-xs text-status-error hover:text-status-error-text transition-colors cursor-pointer"
               >
                 Remover
               </button>

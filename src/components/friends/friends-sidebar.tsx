@@ -76,13 +76,13 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
                     <span className="text-xs text-text-secondary flex-1 truncate">@{f.username}</span>
                     <button
                       onClick={() => acceptRequest(f.id)}
-                      className="text-xs text-status-available hover:text-green-300 cursor-pointer"
+                      className="text-xs text-status-available hover:text-status-available-text cursor-pointer"
                     >
                       ✓
                     </button>
                     <button
                       onClick={() => rejectRequest(f.id)}
-                      className="text-xs text-status-error hover:text-red-300 cursor-pointer"
+                      className="text-xs text-status-error hover:text-status-error-text cursor-pointer"
                     >
                       ✗
                     </button>
@@ -131,17 +131,17 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
                       </div>
                       <button
                         onClick={() => setConfirmRemoveId(f.id)}
-                        className="text-xs text-status-error hover:text-red-300 cursor-pointer opacity-60 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                        className="text-xs text-status-error hover:text-status-error-text cursor-pointer opacity-60 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                       >
                         ×
                       </button>
                     </div>
                     {confirmRemoveId === f.id && (
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-red-900/20 rounded text-xs">
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-status-error/10 rounded text-xs">
                         <span className="text-status-error flex-1">Remover @{f.username}?</span>
                         <button
                           onClick={() => { removeFriend(f.id); setConfirmRemoveId(null); }}
-                          className="text-status-error hover:text-red-300 font-semibold cursor-pointer"
+                          className="text-status-error hover:text-status-error-text font-semibold cursor-pointer"
                         >
                           Sim
                         </button>

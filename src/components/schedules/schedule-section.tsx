@@ -18,7 +18,7 @@ export function ScheduleSection({ schedules, onCardClick }: ScheduleSectionProps
     <div className="flex flex-col gap-3">
       {/* Section header */}
       <div className="flex items-center gap-2">
-        <h2 className="text-base font-semibold text-gray-200">AGENDADAS</h2>
+        <h2 className="text-base font-semibold text-text-primary">AGENDADAS</h2>
         <span className="text-xs text-text-secondary bg-surface px-2 py-0.5 rounded-full">
           {schedules.length}
         </span>

@@ -167,7 +167,7 @@ export default function ParticipantList({
 
       {/* Validation error */}
       {validationError && (
-        <div className="px-3 py-2 rounded bg-red-900/40 border border-red-500/30 text-xs text-red-300">
+        <div className="px-3 py-2 rounded bg-status-error/10 border border-status-error/30 text-xs text-status-error-text">
           {validationError}
         </div>
       )}

@@ -326,7 +326,7 @@ export function ScheduleModal({
                 type="button"
                 onClick={handleCompleteClick}
                 disabled={busy}
-                className="px-4 py-2 text-sm text-white bg-green-700 rounded-lg hover:bg-green-600 transition-colors cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 text-sm text-white bg-status-available rounded-lg hover:bg-status-available/80 transition-colors cursor-pointer disabled:opacity-50"
               >
                 Completar
               </button>
@@ -363,7 +363,7 @@ export function ScheduleModal({
             </span>
           )}
           {isLate && (
-            <span className="text-xs px-2 py-1 rounded bg-red-900/60 text-red-300 border border-red-800 font-semibold">
+            <span className="text-xs px-2 py-1 rounded bg-status-error/20 text-status-error-text border border-status-error/30 font-semibold">
               ATRASADA
             </span>
           )}
@@ -535,7 +535,7 @@ export function ScheduleModal({
                 type="button"
                 onClick={handleConfirmComplete}
                 disabled={busy}
-                className="px-4 py-2 text-sm text-white bg-green-700 rounded-lg hover:bg-green-600 transition-colors cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 text-sm text-white bg-status-available rounded-lg hover:bg-status-available/80 transition-colors cursor-pointer disabled:opacity-50"
               >
                 {busy ? "Confirmando..." : "Confirmar presenca"}
               </button>
@@ -607,7 +607,7 @@ export function ScheduleModal({
                             }
                           }}
                           disabled={busy}
-                          className="text-xs text-status-error hover:text-red-300 cursor-pointer opacity-60 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                          className="text-xs text-status-error hover:text-status-error-text cursor-pointer opacity-60 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity disabled:opacity-50"
                         >
                           {p.user_id === currentUserId ? "Desinscrever" : "Remover"}
                         </button>
@@ -638,7 +638,7 @@ export function ScheduleModal({
                   <button
                     onClick={() => handleRemovePlaceholder(p.id)}
                     disabled={busy}
-                    className="text-xs text-status-error hover:text-red-300 cursor-pointer opacity-60 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                    className="text-xs text-status-error hover:text-status-error-text cursor-pointer opacity-60 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity disabled:opacity-50"
                   >
                     Remover
                   </button>

@@ -153,7 +153,7 @@ export function AccountModal({
                       <button
                         onClick={() => handleDeleteChar(char.id)}
                         disabled={deletingChar === char.id}
-                        className="text-xs text-status-error hover:text-red-300 cursor-pointer disabled:opacity-50"
+                        className="text-xs text-status-error hover:text-status-error-text cursor-pointer disabled:opacity-50"
                       >
                         {deletingChar === char.id ? "..." : "Sim"}
                       </button>
@@ -209,7 +209,7 @@ export function AccountModal({
                 <button
                   onClick={handleDeleteAccount}
                   disabled={deletingAccount}
-                  className="px-3 py-1.5 text-xs text-status-error bg-red-900/20 border border-red-900/50 rounded hover:bg-red-900/40 transition-colors cursor-pointer disabled:opacity-50"
+                  className="px-3 py-1.5 text-xs text-status-error bg-status-error/10 border border-status-error/30 rounded hover:bg-status-error/20 transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {deletingAccount ? "Excluindo..." : "Confirmar"}
                 </button>
