@@ -17,6 +17,7 @@ interface AccountContainerProps {
   onToggleCollapse: () => void;
   onOpenAccountModal: () => void;
   onReorderChars: (orderedCharIds: string[]) => void;
+  dragListeners?: Record<string, unknown>;
 }
 
 function SortableCharCard({
@@ -105,12 +106,14 @@ export function AccountContainer({
   onToggleCollapse,
   onOpenAccountModal,
   onReorderChars,
+  dragListeners,
 }: AccountContainerProps) {
   const charIds = characters.map((c) => `char-${c.id}`);
 
   if (account.is_collapsed) {
     return (
       <div className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2.5 rounded-lg border border-border bg-surface min-h-[100px] gap-1">
+        <span className="text-text-secondary/30 cursor-grab text-xs" {...dragListeners}>⠿</span>
         <button
           onClick={onOpenAccountModal}
           className="text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors truncate max-w-[80px]"
@@ -123,7 +126,7 @@ export function AccountContainer({
         </span>
         <button
           onClick={onToggleCollapse}
-          className="text-text-secondary hover:text-text-secondary transition-colors text-xs mt-1"
+          className="text-text-secondary hover:text-text-primary transition-colors text-xs mt-1"
           aria-label="Expandir"
         >
           ►
@@ -136,14 +139,17 @@ export function AccountContainer({
     <div className="flex-shrink-0 rounded-lg border border-border p-2">
       {/* Header */}
       <div className="flex items-center justify-between gap-2 mb-2 px-1">
-        <button
-          onClick={onOpenAccountModal}
-          className="text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors truncate flex items-center gap-1"
-          title="Gerenciar conta"
-        >
-          {account.name}
-          <span className="text-[10px] opacity-50">⚙</span>
-        </button>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-text-secondary/30 cursor-grab text-xs flex-shrink-0" {...dragListeners}>⠿</span>
+          <button
+            onClick={onOpenAccountModal}
+            className="text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors truncate flex items-center gap-1"
+            title="Gerenciar conta"
+          >
+            {account.name}
+            <span className="text-[10px] opacity-50">⚙</span>
+          </button>
+        </div>
         <button
           onClick={onToggleCollapse}
           className="text-text-secondary hover:text-text-primary transition-colors text-xs flex-shrink-0"

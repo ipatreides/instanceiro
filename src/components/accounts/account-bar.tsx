@@ -60,7 +60,7 @@ function SortableAccountItem({
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} {...attributes}>
       <AccountContainer
         account={account}
         characters={characters}
@@ -70,6 +70,7 @@ function SortableAccountItem({
         onToggleCollapse={onToggleCollapse}
         onOpenAccountModal={onOpenAccountModal}
         onReorderChars={onReorderChars}
+        dragListeners={listeners}
       />
     </div>
   );
