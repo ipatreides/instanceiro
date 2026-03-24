@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { FullPageSpinner } from "@/components/ui/spinner";
 import { useUsernameCheck, isValidUsername } from "@/hooks/use-username-check";
 import { NotificationsSection } from "@/components/profile/notifications-section";
-import { CalendarSection } from "@/components/profile/calendar-section";
+// import { CalendarSection } from "@/components/profile/calendar-section";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -157,9 +157,11 @@ export default function ProfilePage() {
         <div className="mt-6">
           <NotificationsSection />
         </div>
+        {/* Calendar integration disabled — requires Google OAuth verification
         <div className="mt-6">
           <CalendarSection />
         </div>
+        */}
       </main>
     </div>
   );
