@@ -144,6 +144,7 @@ export interface Instance {
   liga_tier: 'A' | 'B' | 'C' | null;
   liga_coins: number | null;
   is_solo: boolean;
+  aliases: string[] | null;
 }
 
 export interface CharacterInstance {

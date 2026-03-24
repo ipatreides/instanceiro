@@ -305,12 +305,14 @@ export default function DashboardPage() {
     if (mapFilters.length > 0 && !mapFilters.some((f) => s.instance.start_map === f.value)) return false;
     if (ligaFilters.length > 0 && !ligaFilters.some((f) => s.instance.liga_tier === f.value)) return false;
 
-    // Free text search
+    // Free text search (accent-insensitive)
     if (searchText.trim()) {
-      const q = searchText.toLowerCase();
+      const normalize = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const q = normalize(searchText);
       if (
-        !s.instance.name.toLowerCase().includes(q) &&
-        !(s.instance.start_map?.toLowerCase().includes(q) ?? false) &&
+        !normalize(s.instance.name).includes(q) &&
+        !normalize(s.instance.aliases?.join(" ") ?? "").includes(q) &&
+        !(s.instance.start_map ? normalize(s.instance.start_map).includes(q) : false) &&
         !(s.instance.liga_tier?.toLowerCase().includes(q) ?? false) &&
         !(s.instance.difficulty?.toLowerCase().includes(q) ?? false)
       ) return false;
