@@ -13,6 +13,7 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
     friends,
     pendingReceived,
     pendingSent,
+    suggestions,
     loading,
     sendRequest,
     acceptRequest,
@@ -157,6 +158,37 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
                 ))
               )}
             </div>
+
+            {/* Suggestions */}
+            {suggestions.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <h3 className="text-xs text-text-secondary uppercase tracking-wide font-semibold">
+                  Sugestoes ({suggestions.length})
+                </h3>
+                {suggestions.map((s) => (
+                  <div key={s.id} className="flex items-center gap-2 bg-surface rounded px-3 py-2">
+                    {s.avatar_url && (
+                      <img src={s.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs text-text-primary block truncate">@{s.username}</span>
+                      {s.display_name && (
+                        <span className="text-xs text-text-secondary block truncate">{s.display_name}</span>
+                      )}
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const result = await sendRequest(s.username);
+                        if (result.error) setError(result.error);
+                      }}
+                      className="text-xs text-primary hover:text-primary-hover cursor-pointer font-semibold"
+                    >
+                      +
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
       </div>

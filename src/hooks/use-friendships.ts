@@ -4,10 +4,18 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Friendship } from "@/lib/types";
 
+export interface SuggestedUser {
+  id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+}
+
 interface UseFriendshipsReturn {
   friends: Friendship[];
   pendingReceived: Friendship[];
   pendingSent: Friendship[];
+  suggestions: SuggestedUser[];
   loading: boolean;
   sendRequest: (username: string) => Promise<{ error?: string }>;
   acceptRequest: (id: string) => Promise<void>;
@@ -17,6 +25,7 @@ interface UseFriendshipsReturn {
 
 export function useFriendships(): UseFriendshipsReturn {
   const [friendships, setFriendships] = useState<Friendship[]>([]);
+  const [suggestions, setSuggestions] = useState<SuggestedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -60,6 +69,24 @@ export function useFriendships(): UseFriendshipsReturn {
     });
 
     setFriendships(enriched);
+
+    // Fetch suggestions: all users with username, excluding self and anyone in friendships
+    const relatedIds = new Set([user.id, ...uniqueIds]);
+    const { data: allProfiles } = await supabase
+      .from("profiles")
+      .select("id, username, display_name, avatar_url")
+      .not("username", "is", null);
+
+    const suggestedUsers = (allProfiles ?? [])
+      .filter((p) => !relatedIds.has(p.id) && p.username)
+      .map((p) => ({
+        id: p.id,
+        username: p.username!,
+        display_name: p.display_name,
+        avatar_url: p.avatar_url,
+      }));
+
+    setSuggestions(suggestedUsers);
   }, []);
 
   useEffect(() => {
@@ -148,6 +175,7 @@ export function useFriendships(): UseFriendshipsReturn {
     friends,
     pendingReceived,
     pendingSent,
+    suggestions,
     loading,
     sendRequest,
     acceptRequest,
