@@ -54,6 +54,7 @@ export function InstanceModal({
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [confirmingMarkDone, setConfirmingMarkDone] = useState(false);
   const [markDoneTime, setMarkDoneTime] = useState("");
+  const [userModified, setUserModified] = useState(false);
 
   const instanceId = stateObj?.instance.id ?? null;
 
@@ -64,6 +65,7 @@ export function InstanceModal({
       setParticipants([]);
       setConfirmingMarkDone(false);
       setMarkDoneTime("");
+      setUserModified(false);
     }
   }, [isOpen]);
 
@@ -72,6 +74,7 @@ export function InstanceModal({
     setActiveTab("details");
     setConfirmingMarkDone(false);
     setMarkDoneTime("");
+    setUserModified(false);
 
     // Auto-populate with selected character
     if (selectedCharId) {
@@ -103,7 +106,7 @@ export function InstanceModal({
     }
   }, [confirmingMarkDone]);
 
-  const isDirty = participants.length > 0 || confirmingMarkDone;
+  const isDirty = userModified || confirmingMarkDone;
 
   if (!stateObj) return null;
   const { instance } = stateObj;
@@ -111,10 +114,12 @@ export function InstanceModal({
 
   function handleAddParticipant(p: Participant) {
     setParticipants((prev) => [...prev, p]);
+    setUserModified(true);
   }
 
   function handleRemoveParticipant(characterId: string) {
     setParticipants((prev) => prev.filter((p) => p.character_id !== characterId));
+    setUserModified(true);
   }
 
   async function handleCompleteParty(completedAt?: string) {
