@@ -97,13 +97,15 @@ export function calculateCooldownExpiry(
     }
 
     case "three_day": {
-      const after72h = new Date(completedAt.getTime() + 72 * 60 * 60 * 1000);
-      return nextResetAfter(after72h);
+      // 3 daily resets: first reset after completion + 2 more days
+      const firstReset = nextResetAfter(completedAt);
+      return new Date(firstReset.getTime() + 2 * 24 * 60 * 60 * 1000);
     }
 
     case "weekly": {
-      const after168h = new Date(completedAt.getTime() + 168 * 60 * 60 * 1000);
-      const baseReset = nextResetAfter(after168h);
+      // 7 daily resets: first reset after completion + 6 more days
+      const firstReset = nextResetAfter(completedAt);
+      const baseReset = new Date(firstReset.getTime() + 6 * 24 * 60 * 60 * 1000);
 
       if (!availableDay) {
         return baseReset;
