@@ -86,9 +86,10 @@ Prevents duplicate notifications for the same cooldown expiry.
 | `user_id` | UUID, FK | → `profiles.id` |
 | `character_id` | UUID, FK | → `characters.id` |
 | `instance_id` | int, FK | → `instances.id` |
+| `type` | text, NOT NULL | `'warning'` or `'available'` |
 | `notified_at` | timestamptz | Default `now()` |
 
-Index: `(user_id, character_id, instance_id, notified_at DESC)` for dedup lookups.
+Index: `(user_id, character_id, instance_id, type, notified_at DESC)` for dedup lookups.
 
 RLS: `user_id = auth.uid()` for SELECT. INSERT via service role (Edge Function).
 
@@ -104,37 +105,49 @@ Triggered by pg_cron every 5 minutes. Uses service role key for Supabase queries
 1. Fetch all rows from discord_notifications WHERE enabled = true
 2. For each user:
    a. Fetch user's active characters
-   b. Fetch instance_completions for hourly instances (id IN [1,2,3,4])
+   b. Fetch instance_completions for hourly instances (cooldown_type = 'hourly')
    c. For each character + hourly instance combo:
       - Skip if no prior completions exist (never completed = don't notify)
-      - Calculate cooldown expiry (same logic as frontend cooldown.ts)
+      - Calculate cooldown expiry
+      - If cooldown expires in ≤5 minutes AND not yet expired:
+        - Check notification_log for type='warning' after last completion
+        - If not notified: add to warning list
       - If cooldown expired (available now):
-        - Check notification_log: was this already notified after the last completion?
-        - If not: add to pending notifications list
-   d. If pending list is non-empty:
-      - Create DM channel: POST /users/@me/channels { recipient_id: discord_user_id }
-      - Send message: POST /channels/{channel.id}/messages { content: ... }
-      - Insert rows into notification_log
+        - Check notification_log for type='available' after last completion
+        - If not notified: add to available list
+   d. Send warning DM if warning list is non-empty
+   e. Send available DM if available list is non-empty
+   f. Insert rows into notification_log with appropriate type
 3. Return summary (sent count, errors)
 ```
 
 ### Dedup Logic
 
-For each (user_id, character_id, instance_id):
+For each (user_id, character_id, instance_id, type):
 - Find the latest `instance_completions.completed_at`
-- Find the latest `notification_log.notified_at`
+- Find the latest `notification_log.notified_at` WHERE `type` matches
 - If `notified_at > completed_at`: already notified for this cooldown cycle, skip
-- If `notified_at < completed_at` or no log entry: cooldown expired after a new completion, notify
+- If `notified_at < completed_at` or no log entry: notify
 
 ### DM Format
 
-One message per user, listing all newly available instances with character names:
+Two notifications per cooldown cycle:
 
+**Warning (≤5 minutes before available):**
+```
+Em breve:
+• Espaco Infinito — spk.Detox (em ~3min)
+• Caverna do Polvo — spk.Lust (em ~5min)
+```
+
+**Available (cooldown expired):**
 ```
 Instancias disponiveis:
 • Espaco Infinito — spk.Detox
 • Caverna do Polvo — spk.Detox, spk.Lust
 ```
+
+Each type is sent at most once per cooldown cycle per instance per character.
 
 ### Error Handling
 
