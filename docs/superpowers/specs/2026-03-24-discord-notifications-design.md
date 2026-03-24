@@ -17,15 +17,23 @@ Two components:
 - **Next.js API route** (`/api/discord-notify-callback`) on Vercel — handles Discord OAuth callback for users who didn't log in via Discord
 - **Supabase Edge Function** (`discord-notify`) — cron worker that checks cooldowns and sends DMs via bot token
 
-## Discord Bot Setup
+## Discord Bot & Server Setup
 
+### Bot
 Create a Discord bot in the Discord Developer Portal:
 1. Create application (or reuse existing Instanceiro Discord app)
 2. Enable the Bot section, create bot, copy bot token
-3. Bot does NOT need to be in any server — it can DM any user by Discord user ID using `POST /users/@me/channels` (Create DM) + `POST /channels/{channel.id}/messages`
-4. Store bot token as Supabase Edge Function secret (`DISCORD_BOT_TOKEN`)
+3. Store bot token as Supabase Edge Function secret (`DISCORD_BOT_TOKEN`) and Vercel env var
 
 No `MESSAGE_CONTENT` or other privileged intents needed — the bot only sends messages, never reads.
+
+### Server
+Create a Discord server "Instanceiro" (minimalista):
+- One text channel (e.g. `#bem-vindo`) with a welcome message explaining the server exists for notifications
+- Bot added to the server with `Send Messages` permission
+- Create a permanent invite link (never expires, unlimited uses)
+
+**Why a server is needed:** Discord bots can only DM users who share at least one server with the bot. This is a Discord platform restriction. The Instanceiro server serves as this shared server.
 
 ## User Flow
 
@@ -33,22 +41,22 @@ No `MESSAGE_CONTENT` or other privileged intents needed — the bot only sends m
 
 1. On the profile page, a "Notificacoes" section detects that the user logged in with Discord
 2. The `discord_user_id` is extracted from `auth.users.raw_user_meta_data`
-3. User sees a toggle: "Notificar quando instancias horarias ficarem disponiveis"
-4. Enabling the toggle inserts a row in `discord_notifications` with the Discord user ID
-5. No extra OAuth flow needed
+3. User sees: "Para receber notificacoes, entre no servidor do Instanceiro:" + invite link button
+4. After joining the server, user enables the toggle "Notificar quando instancias horarias ficarem disponiveis"
+5. Enabling the toggle inserts a row in `discord_notifications` with the Discord user ID
 
 ### Users who logged in via Google (optional Discord link)
 
 1. Profile page shows a "Conectar Discord" button
-2. Clicking opens Discord OAuth with `identify` scope only
-3. After authorization, redirects to `/api/discord-notify-callback` which extracts the Discord user ID
-4. Stores in `discord_notifications` and redirects back to profile
-5. Toggle appears as above
+2. Clicking opens Discord OAuth with `identify` + `guilds.join` scopes
+3. After authorization, the callback auto-adds the user to the Instanceiro server via `PUT /guilds/{guild_id}/members/{user_id}`
+4. Stores `discord_user_id` in `discord_notifications` and redirects back to profile
+5. Toggle appears as above, already enabled
 
 ### Disabling / Disconnecting
 
-- Toggle off: sets `enabled = false` (keeps the row)
-- "Desconectar": deletes the `discord_notifications` row entirely
+- Toggle off: sets `enabled = false` (keeps the row, user stays in server)
+- "Desconectar": deletes the `discord_notifications` row (user may leave server manually if desired)
 
 ## Data Model
 
@@ -139,19 +147,20 @@ Instancias disponiveis:
 
 - Use the same Discord application as the bot
 - Add redirect URI: `https://instanceiro.vercel.app/api/discord-notify-callback`
-- Scope: `identify` only
+- Scopes: `identify` + `guilds.join`
 
 ### Callback (`/api/discord-notify-callback`)
 
 This is a **Next.js API route** on Vercel (not a Supabase Edge Function), because it needs to redirect the user's browser.
 
 1. Receives `code` and `state` params
-2. Validates `state` against session (CSRF protection)
+2. Validates `state` against cookie (CSRF protection)
 3. Exchanges code for token via Discord API
 4. Fetches user info (`GET /users/@me`) to get Discord user ID
-5. Inserts into `discord_notifications` using Supabase service role
-6. Redirects to `/profile?discord=connected`
-7. Discards the Discord token (not stored — only needed the user ID)
+5. Auto-adds user to Instanceiro server: `PUT /guilds/{GUILD_ID}/members/{user_id}` with the OAuth access token
+6. Inserts into `discord_notifications` using authenticated Supabase client
+7. Redirects to `/profile?discord=connected`
+8. Discards the Discord OAuth token (not stored — only needed for user ID and guild join)
 
 ## Profile Page Changes
 
@@ -160,9 +169,15 @@ This is a **Next.js API route** on Vercel (not a Supabase Edge Function), becaus
 **When not connected (Google login, no Discord link):**
 - Heading: "Notificacoes"
 - Description: "Receba uma mensagem no Discord quando suas instancias horarias ficarem disponiveis."
-- Button: "Conectar Discord"
+- Button: "Conectar Discord" (opens OAuth flow with `identify` + `guilds.join`)
 
-**When connected (Discord login auto-detected, or after manual link):**
+**When Discord detected but not in server (Discord login, first time):**
+- Heading: "Notificacoes"
+- Description: "Para receber notificacoes, entre no servidor do Instanceiro no Discord."
+- Button: invite link to Instanceiro server (opens in new tab)
+- Toggle: "Notificacoes de instancias horarias" (on/off, user enables after joining)
+
+**When connected and in server (toggle active):**
 - Toggle: "Notificacoes de instancias horarias" (on/off)
 - Text: "Conectado como [discord username]"
 - Link: "Desconectar" (for manually linked users only — Discord login users can only toggle)
@@ -198,12 +213,15 @@ SELECT cron.schedule(
 - Bot token stored as Supabase Edge Function secret (`DISCORD_BOT_TOKEN`), never in code
 - Service role key in pg_cron SQL is standard Supabase pattern (stored in database, not exposed to clients)
 - RLS prevents users from reading other users' notification settings
-- OAuth `identify` flow uses `state` parameter for CSRF protection
-- Callback only extracts Discord user ID, then discards the OAuth token
+- OAuth flow uses `state` parameter (stored in HttpOnly cookie) for CSRF protection
+- Callback extracts Discord user ID, joins user to server, then discards the OAuth token
+- `guilds.join` scope only used to add user to the Instanceiro server, nothing else
 
 ## Constraints
 
 - Supabase Free Tier: 500k Edge Function invocations/month. Cron at 5min = ~8,640/month.
 - Discord Bot API rate limits: ~5 DMs/second. Negligible at expected scale.
 - Only hourly instances (4 total). Daily/weekly/3-day not included.
-- Bot can DM users without sharing a server (standard Discord bot behavior, unless user has "Allow DMs from server members" disabled AND blocks the bot).
+- Bot requires shared server to DM users. The Instanceiro Discord server serves this purpose.
+- If a user leaves the server, DMs will fail (error 50007) and notifications will be auto-disabled.
+- Users who have "Allow DMs from server members" disabled for the Instanceiro server will not receive DMs.
