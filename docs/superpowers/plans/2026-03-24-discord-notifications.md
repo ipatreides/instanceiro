@@ -10,6 +10,26 @@
 
 **Spec:** `docs/superpowers/specs/2026-03-24-discord-notifications-design.md`
 
+## Review Corrections (apply during implementation)
+
+The following corrections from the plan review MUST be applied:
+
+1. **CSRF `state` parameter in OAuth flow** — The `DISCORD_OAUTH_URL` in `notifications-section.tsx` must include a random `state` parameter stored in a cookie. The callback route must validate `state` against the cookie. Generate state via `crypto.randomUUID()`, set as HttpOnly cookie before redirect, validate in callback.
+
+2. **Query cooldown_hours from database** — The Edge Function must NOT hardcode `COOLDOWN_HOURS`. Instead, query `instances WHERE cooldown_type = 'hourly'` to get IDs and `cooldown_hours` dynamically.
+
+3. **Edge Function auth check** — Replace `authHeader?.includes(serviceKey)` with strict equality: `authHeader !== \`Bearer ${serviceKey}\``.
+
+4. **Move env vars setup (Task 10) before Task 4** — `NEXT_PUBLIC_DISCORD_CLIENT_ID` is needed at build time. Set it up before the UI component that references it.
+
+5. **Move `DISCORD_BOT_TOKEN` inside handler** — In the test route (Task 7), read `process.env.DISCORD_BOT_TOKEN` inside the POST handler, not at module scope.
+
+6. **Remove redundant Supabase secrets** — `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` are only needed on Vercel (for the callback route), not as Supabase secrets. Remove from Task 2 Step 3.
+
+7. **Add `updated_at` trigger** — Add to the migration: `CREATE OR REPLACE FUNCTION update_updated_at() ... CREATE TRIGGER ...` on `discord_notifications`, or remove the `updated_at` column if not needed.
+
+8. **Handle `?discord=connected` query param** — The profile page or `NotificationsSection` should read the query param and show a success toast after OAuth redirect.
+
 ---
 
 ## File Structure
