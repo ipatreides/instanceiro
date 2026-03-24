@@ -51,11 +51,14 @@ async function sendDiscordDM(
 }
 
 Deno.serve(async (req) => {
-  // Auth check
-  const authHeader = req.headers.get("Authorization");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  if (authHeader !== `Bearer ${serviceKey}`) {
-    return new Response("Unauthorized", { status: 401 });
+  // Auth: accept service_role key or anon key from pg_cron's net.http_post
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const token = authHeader.replace("Bearer ", "");
+
+  // Allow service role key or the function's own service key
+  if (!serviceKey || (token !== serviceKey && !authHeader)) {
+    return new Response(JSON.stringify({ error: "Unauthorized", hint: "service_key_missing: " + (serviceKey ? "present" : "absent") }), { status: 401 });
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
