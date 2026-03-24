@@ -13,6 +13,13 @@ export async function GET(request: Request) {
       const target = redirect && redirect.startsWith("/invite/") ? redirect : "/dashboard";
       return NextResponse.redirect(`${origin}${target}`);
     }
+
+    // PKCE code_verifier missing (e.g. Discord mobile opens in different browser)
+    // Redirect to a client-side page that retries the exchange in the browser context
+    const redirect = searchParams.get("redirect") ?? "";
+    return NextResponse.redirect(
+      `${origin}/auth/callback-client?code=${encodeURIComponent(code)}&redirect=${encodeURIComponent(redirect)}`
+    );
   }
 
   return NextResponse.redirect(`${origin}/?error=auth`);
