@@ -4,31 +4,11 @@
 
 **Goal:** Send Discord DMs to users when hourly instance cooldowns expire, opt-in via profile page.
 
-**Architecture:** Discord Bot sends DMs using bot token. Supabase pg_cron triggers Edge Function every 5 minutes. Users who logged in via Discord are auto-detected; Google-login users can link Discord via OAuth `identify` scope. Profile page has toggle to enable/disable.
+**Architecture:** Discord Bot sends DMs via bot token. Users must share a server with the bot (existing community server or new Instanceiro server). Supabase pg_cron triggers Edge Function every 5 minutes. Discord-login users get invite link; Google-login users auto-join via `guilds.join` OAuth scope.
 
 **Tech Stack:** Next.js 16 (App Router), Supabase (Edge Functions, pg_cron, pg_net), Discord Bot API
 
 **Spec:** `docs/superpowers/specs/2026-03-24-discord-notifications-design.md`
-
-## Review Corrections (apply during implementation)
-
-The following corrections from the plan review MUST be applied:
-
-1. **CSRF `state` parameter in OAuth flow** — The `DISCORD_OAUTH_URL` in `notifications-section.tsx` must include a random `state` parameter stored in a cookie. The callback route must validate `state` against the cookie. Generate state via `crypto.randomUUID()`, set as HttpOnly cookie before redirect, validate in callback.
-
-2. **Query cooldown_hours from database** — The Edge Function must NOT hardcode `COOLDOWN_HOURS`. Instead, query `instances WHERE cooldown_type = 'hourly'` to get IDs and `cooldown_hours` dynamically.
-
-3. **Edge Function auth check** — Replace `authHeader?.includes(serviceKey)` with strict equality: `authHeader !== \`Bearer ${serviceKey}\``.
-
-4. **Move env vars setup (Task 10) before Task 4** — `NEXT_PUBLIC_DISCORD_CLIENT_ID` is needed at build time. Set it up before the UI component that references it.
-
-5. **Move `DISCORD_BOT_TOKEN` inside handler** — In the test route (Task 7), read `process.env.DISCORD_BOT_TOKEN` inside the POST handler, not at module scope.
-
-6. **Remove redundant Supabase secrets** — `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` are only needed on Vercel (for the callback route), not as Supabase secrets. Remove from Task 2 Step 3.
-
-7. **Add `updated_at` trigger** — Add to the migration: `CREATE OR REPLACE FUNCTION update_updated_at() ... CREATE TRIGGER ...` on `discord_notifications`, or remove the `updated_at` column if not needed.
-
-8. **Handle `?discord=connected` query param** — The profile page or `NotificationsSection` should read the query param and show a success toast after OAuth redirect.
 
 ---
 
@@ -43,16 +23,82 @@ The following corrections from the plan review MUST be applied:
 | `src/hooks/use-discord-notifications.ts` | Create | Client hook for profile page |
 | `src/components/profile/notifications-section.tsx` | Create | UI component for notifications toggle |
 | `src/app/profile/page.tsx` | Modify | Add notifications section |
-| `src/lib/cooldown.ts` | Reference only | Cooldown logic reused in Edge Function |
 
 ---
 
-### Task 1: Database Migration
+### Task 1: Environment Variables Setup
+
+This must come first — other tasks depend on these values.
+
+- [ ] **Step 1: Add env vars to `.env.local`**
+
+```
+NEXT_PUBLIC_DISCORD_CLIENT_ID=<discord-app-client-id>
+DISCORD_CLIENT_SECRET=<discord-app-client-secret>
+DISCORD_BOT_TOKEN=<bot-token>
+SUPABASE_SERVICE_ROLE_KEY=<from-supabase-dashboard>
+NEXT_PUBLIC_DISCORD_INVITE_URL=<permanent-invite-link-to-instanceiro-server>
+NEXT_PUBLIC_DISCORD_GUILD_ID=<instanceiro-server-id>
+```
+
+- [ ] **Step 2: Add to Vercel (production)**
+
+```bash
+cd D:/rag/instance-tracker
+vercel env add NEXT_PUBLIC_DISCORD_CLIENT_ID production
+vercel env add DISCORD_CLIENT_SECRET production
+vercel env add DISCORD_BOT_TOKEN production
+vercel env add SUPABASE_SERVICE_ROLE_KEY production
+vercel env add NEXT_PUBLIC_DISCORD_INVITE_URL production
+vercel env add NEXT_PUBLIC_DISCORD_GUILD_ID production
+```
+
+- [ ] **Step 3: Add Supabase Edge Function secrets**
+
+```bash
+npx supabase secrets set DISCORD_BOT_TOKEN=<bot-token> --project-ref swgnctajsbiyhqxstrnx
+```
+
+Note: `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are automatically available in Edge Functions.
+
+---
+
+### Task 2: Discord Bot & Server Setup (Manual)
+
+- [ ] **Step 1: Create/configure Discord bot**
+
+1. Go to https://discord.com/developers/applications
+2. Select existing Instanceiro app (or create new)
+3. Go to "Bot" section → "Add Bot" (if not already a bot)
+4. Copy bot token (used in Task 1)
+5. Under "Privileged Gateway Intents", leave all OFF
+6. Go to "OAuth2" section → Add redirect URI: `https://instanceiro.vercel.app/api/discord-notify-callback`
+
+- [ ] **Step 2: Add bot to existing community server**
+
+Generate a bot invite URL with `Send Messages` permission:
+```
+https://discord.com/api/oauth2/authorize?client_id=<CLIENT_ID>&permissions=2048&scope=bot
+```
+
+Open this URL and select the existing server (ID: `1457831662913061016`).
+
+- [ ] **Step 3: Create Instanceiro server**
+
+1. Create a new Discord server named "Instanceiro"
+2. Create a `#bem-vindo` channel with message: "Este servidor existe para o bot do Instanceiro poder te enviar notificacoes de instancias. Voce nao precisa fazer nada aqui!"
+3. Add the bot to this server using the same invite URL from Step 2
+4. Create a permanent invite link (Server Settings → Invites → Create, set to never expire, unlimited uses)
+5. Copy the server ID (right-click → Copy Server ID) and the invite URL — used in Task 1
+
+---
+
+### Task 3: Database Migration
 
 **Files:**
 - Create: `supabase/migrations/20260324100000_discord_notifications.sql`
 
-- [ ] **Step 1: Write the migration SQL**
+- [ ] **Step 1: Write the migration**
 
 ```sql
 -- discord_notifications table
@@ -63,6 +109,19 @@ CREATE TABLE discord_notifications (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Auto-update updated_at
+CREATE OR REPLACE FUNCTION update_discord_notifications_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER discord_notifications_updated_at
+  BEFORE UPDATE ON discord_notifications
+  FOR EACH ROW EXECUTE FUNCTION update_discord_notifications_updated_at();
 
 -- RLS
 ALTER TABLE discord_notifications ENABLE ROW LEVEL SECURITY;
@@ -79,7 +138,7 @@ CREATE POLICY "Users can delete own notifications" ON discord_notifications
 CREATE POLICY "Users can insert own notifications" ON discord_notifications
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- notification_log table
+-- notification_log table (inserts via service role only, reads by user)
 CREATE TABLE notification_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -98,10 +157,9 @@ CREATE INDEX idx_notification_log_dedup
   ON notification_log (user_id, character_id, instance_id, notified_at DESC);
 ```
 
-- [ ] **Step 2: Run the migration in Supabase SQL Editor**
+- [ ] **Step 2: Run in Supabase SQL Editor**
 
-Copy the SQL above and run it in the Supabase Dashboard SQL Editor at:
-`https://supabase.com/dashboard/project/swgnctajsbiyhqxstrnx/sql/new`
+Go to `https://supabase.com/dashboard/project/swgnctajsbiyhqxstrnx/sql/new` and run the SQL.
 
 - [ ] **Step 3: Commit**
 
@@ -112,51 +170,7 @@ git commit -m "feat: add discord_notifications and notification_log tables"
 
 ---
 
-### Task 2: Discord Bot Setup (Manual)
-
-This task is done in the Discord Developer Portal. No code changes.
-
-- [ ] **Step 1: Create Discord bot**
-
-1. Go to https://discord.com/developers/applications
-2. Select the existing Instanceiro application (or create new)
-3. Go to "Bot" section → "Add Bot"
-4. Copy the bot token
-5. Under "Privileged Gateway Intents", leave all OFF (not needed)
-
-- [ ] **Step 2: Add OAuth redirect URI**
-
-1. Go to "OAuth2" section
-2. Add redirect URI: `https://instanceiro.vercel.app/api/discord-notify-callback`
-3. Save
-
-- [ ] **Step 3: Store bot token as Edge Function secret**
-
-```bash
-cd D:/rag/instance-tracker
-npx supabase secrets set DISCORD_BOT_TOKEN=<paste-bot-token-here> --project-ref swgnctajsbiyhqxstrnx
-```
-
-Also store the Discord application client ID and client secret for the OAuth flow:
-```bash
-npx supabase secrets set DISCORD_CLIENT_ID=<client-id> --project-ref swgnctajsbiyhqxstrnx
-npx supabase secrets set DISCORD_CLIENT_SECRET=<client-secret> --project-ref swgnctajsbiyhqxstrnx
-```
-
-- [ ] **Step 4: Add Discord env vars to Vercel**
-
-The OAuth callback runs on Vercel, so it needs the Discord app credentials:
-```bash
-vercel env add DISCORD_CLIENT_ID production
-vercel env add DISCORD_CLIENT_SECRET production
-vercel env add SUPABASE_SERVICE_ROLE_KEY production
-```
-
-Note: The service role key is needed for the callback to insert into `discord_notifications`. Get it from Supabase Dashboard → Settings → API → `service_role` key.
-
----
-
-### Task 3: Client Hook — `use-discord-notifications`
+### Task 4: Client Hook — `use-discord-notifications`
 
 **Files:**
 - Create: `src/hooks/use-discord-notifications.ts`
@@ -171,10 +185,10 @@ import { createClient } from "@/lib/supabase/client";
 
 interface DiscordNotificationState {
   loading: boolean;
-  discordUserId: string | null;    // null = not linked
+  discordUserId: string | null;
   enabled: boolean;
-  discordUsername: string | null;   // from auth metadata
-  isDiscordLogin: boolean;         // auto-detected
+  discordUsername: string | null;
+  isDiscordLogin: boolean;
 }
 
 export function useDiscordNotifications() {
@@ -198,15 +212,15 @@ export function useDiscordNotifications() {
       // Check if user logged in via Discord
       const provider = user.app_metadata?.provider;
       const isDiscordLogin = provider === "discord";
-      const discordMeta = user.user_metadata;
+      const meta = user.user_metadata;
       const discordUsername = isDiscordLogin
-        ? (discordMeta?.full_name ?? discordMeta?.name ?? null)
+        ? (meta?.full_name ?? meta?.name ?? null)
         : null;
       const discordIdFromAuth = isDiscordLogin
-        ? discordMeta?.provider_id ?? null
+        ? (meta?.provider_id ?? null)
         : null;
 
-      // Check existing notification settings
+      // Check existing notification row
       const { data: notif } = await supabase
         .from("discord_notifications")
         .select("discord_user_id, enabled")
@@ -217,7 +231,7 @@ export function useDiscordNotifications() {
         loading: false,
         discordUserId: notif?.discord_user_id ?? discordIdFromAuth,
         enabled: notif?.enabled ?? false,
-        discordUsername: discordUsername ?? (notif ? "Discord" : null),
+        discordUsername: notif ? (discordUsername ?? "Discord") : discordUsername,
         isDiscordLogin,
       });
     });
@@ -226,19 +240,14 @@ export function useDiscordNotifications() {
   const toggle = useCallback(async (enabled: boolean) => {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    if (enabled && !state.discordUserId) return;
+    if (!user || !state.discordUserId) return;
 
     if (enabled) {
-      // Upsert: insert or update
-      await supabase
-        .from("discord_notifications")
-        .upsert({
-          user_id: user.id,
-          discord_user_id: state.discordUserId!,
-          enabled: true,
-        });
+      await supabase.from("discord_notifications").upsert({
+        user_id: user.id,
+        discord_user_id: state.discordUserId,
+        enabled: true,
+      });
     } else {
       await supabase
         .from("discord_notifications")
@@ -263,13 +272,14 @@ export function useDiscordNotifications() {
       ...s,
       discordUserId: s.isDiscordLogin ? s.discordUserId : null,
       enabled: false,
+      discordUsername: s.isDiscordLogin ? s.discordUsername : null,
     }));
   }, []);
 
   const sendTest = useCallback(async (): Promise<{ ok: boolean; error?: string }> => {
     const res = await fetch("/api/discord-notify-test", { method: "POST" });
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
       return { ok: false, error: data.error ?? "Erro ao enviar teste" };
     }
     return { ok: true };
@@ -288,7 +298,7 @@ git commit -m "feat: add useDiscordNotifications hook"
 
 ---
 
-### Task 4: Notifications Section UI Component
+### Task 5: Notifications Section UI Component
 
 **Files:**
 - Create: `src/components/profile/notifications-section.tsx`
@@ -301,18 +311,23 @@ git commit -m "feat: add useDiscordNotifications hook"
 import { useState } from "react";
 import { useDiscordNotifications } from "@/hooks/use-discord-notifications";
 
-const DISCORD_OAUTH_URL = `https://discord.com/api/oauth2/authorize?client_id=${process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent("https://instanceiro.vercel.app/api/discord-notify-callback")}&response_type=code&scope=identify`;
+const DISCORD_INVITE_URL = process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ?? "";
+
+function getDiscordOAuthURL(): string {
+  const clientId = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID ?? "";
+  const redirectUri = encodeURIComponent(
+    `${window.location.origin}/api/discord-notify-callback`
+  );
+  // Generate CSRF state, store in cookie
+  const state = crypto.randomUUID();
+  document.cookie = `discord_oauth_state=${state}; path=/; max-age=600; SameSite=Lax`;
+  return `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=identify%20guilds.join&state=${state}`;
+}
 
 export function NotificationsSection() {
   const {
-    loading,
-    discordUserId,
-    enabled,
-    discordUsername,
-    isDiscordLogin,
-    toggle,
-    disconnect,
-    sendTest,
+    loading, discordUserId, enabled, discordUsername,
+    isDiscordLogin, toggle, disconnect, sendTest,
   } = useDiscordNotifications();
 
   const [testSending, setTestSending] = useState(false);
@@ -324,11 +339,37 @@ export function NotificationsSection() {
     setTestSending(true);
     setTestResult(null);
     const result = await sendTest();
-    setTestResult(result.ok ? "Notificacao enviada!" : (result.error ?? "Erro"));
+    if (result.ok) {
+      setTestResult("Notificacao enviada! Verifique seu Discord.");
+    } else if (result.error?.includes("servidor")) {
+      setTestResult(result.error);
+    } else {
+      setTestResult(result.error ?? "Erro ao enviar. Verifique se voce esta no servidor e com DMs ativadas.");
+    }
     setTestSending(false);
-    if (result.ok) setTimeout(() => setTestResult(null), 3000);
+    if (result.ok) setTimeout(() => setTestResult(null), 5000);
   }
 
+  // State: Google login, no Discord linked
+  if (!discordUserId) {
+    return (
+      <div className="bg-surface border border-border rounded-xl p-6 flex flex-col gap-4">
+        <h2 className="text-sm font-semibold text-text-primary">Notificacoes</h2>
+        <p className="text-xs text-text-secondary">
+          Receba uma mensagem no Discord quando suas instancias horarias ficarem disponiveis.
+        </p>
+        <a
+          href="#"
+          onClick={(e) => { e.preventDefault(); window.location.href = getDiscordOAuthURL(); }}
+          className="inline-flex items-center justify-center gap-2 w-full py-2.5 rounded-md bg-[#5865F2] text-white font-semibold text-sm hover:bg-[#4752C4] transition-colors cursor-pointer"
+        >
+          Conectar Discord
+        </a>
+      </div>
+    );
+  }
+
+  // State: Discord detected (login or linked)
   return (
     <div className="bg-surface border border-border rounded-xl p-6 flex flex-col gap-4">
       <h2 className="text-sm font-semibold text-text-primary">Notificacoes</h2>
@@ -336,105 +377,119 @@ export function NotificationsSection() {
         Receba uma mensagem no Discord quando suas instancias horarias ficarem disponiveis.
       </p>
 
-      {!discordUserId ? (
-        /* Not connected — show connect button */
-        <a
-          href={DISCORD_OAUTH_URL}
-          className="inline-flex items-center justify-center gap-2 w-full py-2.5 rounded-md bg-[#5865F2] text-white font-semibold text-sm hover:bg-[#4752C4] transition-colors cursor-pointer"
-        >
-          <svg width="20" height="15" viewBox="0 0 71 55" fill="currentColor">
-            <path d="M60.1 4.9A58.5 58.5 0 0045.4.2a.2.2 0 00-.2.1 40.8 40.8 0 00-1.8 3.7 54 54 0 00-16.2 0A38 38 0 0025.4.3a.2.2 0 00-.2-.1A58.4 58.4 0 0010.5 5a.2.2 0 00-.1 0A60 60 0 00.4 45a.2.2 0 000 .2 58.7 58.7 0 0017.7 9 .2.2 0 00.3-.1 42.1 42.1 0 003.6-5.9.2.2 0 00-.1-.3 38.7 38.7 0 01-5.5-2.6.2.2 0 01 0-.4l1.1-.9a.2.2 0 01.2 0 41.9 41.9 0 0035.6 0 .2.2 0 01.2 0l1.1.9a.2.2 0 010 .3 36.3 36.3 0 01-5.5 2.7.2.2 0 00-.1.3 47.2 47.2 0 003.6 5.9.2.2 0 00.2 0A58.5 58.5 0 0070.3 45a.2.2 0 000-.2A59.7 59.7 0 0060.2 5a.2.2 0 00-.1 0zM23.7 36.9c-3.5 0-6.4-3.2-6.4-7.1s2.8-7.1 6.4-7.1 6.5 3.2 6.4 7.1c0 3.9-2.8 7.1-6.4 7.1zm23.7 0c-3.5 0-6.4-3.2-6.4-7.1s2.8-7.1 6.4-7.1 6.5 3.2 6.4 7.1c0 3.9-2.9 7.1-6.4 7.1z" />
-          </svg>
-          Conectar Discord
-        </a>
-      ) : (
-        /* Connected — show toggle and options */
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col">
-              <span className="text-sm text-text-primary">Instancias horarias</span>
-              <span className="text-xs text-text-secondary">
-                Conectado como {discordUsername ?? "Discord"}
-              </span>
-            </div>
-            <button
-              onClick={() => toggle(!enabled)}
-              className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${
-                enabled ? "bg-primary" : "bg-border"
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
-                  enabled ? "translate-x-5" : "translate-x-0"
-                }`}
-              />
-            </button>
-          </div>
+      {/* Server invite (always visible for Discord-login users who might not be in server) */}
+      {isDiscordLogin && !enabled && (
+        <div className="flex flex-col gap-2">
+          <p className="text-xs text-text-secondary">
+            Para receber notificacoes, entre no servidor do Instanceiro:
+          </p>
+          <a
+            href={DISCORD_INVITE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 w-full py-2 rounded-md bg-[#5865F2] text-white font-semibold text-sm hover:bg-[#4752C4] transition-colors cursor-pointer"
+          >
+            Entrar no servidor
+          </a>
+        </div>
+      )}
 
-          {enabled && (
-            <div className="flex gap-2">
-              <button
-                onClick={handleTest}
-                disabled={testSending}
-                className="text-xs text-primary hover:text-primary-hover transition-colors cursor-pointer disabled:opacity-50"
-              >
-                {testSending ? "Enviando..." : "Enviar notificacao teste"}
-              </button>
-            </div>
-          )}
-
-          {testResult && (
-            <p className={`text-xs ${testResult.includes("Erro") ? "text-status-error" : "text-status-available"}`}>
-              {testResult}
-            </p>
-          )}
-
-          {!isDiscordLogin && (
-            <button
-              onClick={disconnect}
-              className="text-xs text-text-secondary hover:text-status-error transition-colors cursor-pointer self-start"
-            >
-              Desconectar Discord
-            </button>
+      {/* Toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col">
+          <span className="text-sm text-text-primary">Instancias horarias</span>
+          {discordUsername && (
+            <span className="text-xs text-text-secondary">
+              Conectado como {discordUsername}
+            </span>
           )}
         </div>
+        <button
+          onClick={() => toggle(!enabled)}
+          className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${
+            enabled ? "bg-primary" : "bg-border"
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+              enabled ? "translate-x-5" : "translate-x-0"
+            }`}
+          />
+        </button>
+      </div>
+
+      {/* Test button + result */}
+      {enabled && (
+        <button
+          onClick={handleTest}
+          disabled={testSending}
+          className="text-xs text-primary hover:text-primary-hover transition-colors cursor-pointer disabled:opacity-50 self-start"
+        >
+          {testSending ? "Enviando..." : "Enviar notificacao teste"}
+        </button>
+      )}
+
+      {testResult && (
+        <p className={`text-xs ${testResult.includes("enviada") ? "text-status-available" : "text-status-error"}`}>
+          {testResult}
+        </p>
+      )}
+
+      {/* Disconnect (Google-linked users only) */}
+      {!isDiscordLogin && (
+        <button
+          onClick={disconnect}
+          className="text-xs text-text-secondary hover:text-status-error transition-colors cursor-pointer self-start"
+        >
+          Desconectar Discord
+        </button>
       )}
     </div>
   );
 }
 ```
 
-Note: `NEXT_PUBLIC_DISCORD_CLIENT_ID` needs to be added to Vercel env vars and `.env.local`.
-
 - [ ] **Step 2: Commit**
 
 ```bash
 git add src/components/profile/notifications-section.tsx
-git commit -m "feat: add NotificationsSection component for profile page"
+git commit -m "feat: add NotificationsSection component"
 ```
 
 ---
 
-### Task 5: Add Notifications Section to Profile Page
+### Task 6: Add Notifications Section to Profile Page
 
 **Files:**
 - Modify: `src/app/profile/page.tsx`
 
-- [ ] **Step 1: Import and add the component**
+- [ ] **Step 1: Add import and component**
 
-Add import at the top:
+Add import at top:
 ```typescript
 import { NotificationsSection } from "@/components/profile/notifications-section";
 ```
 
-Add after the closing `</div>` of the existing profile card (after line 144), before `</main>`:
+Add after the existing profile card's closing `</div>` (line 144), before `</main>`:
 ```tsx
         <div className="mt-6">
           <NotificationsSection />
         </div>
 ```
 
-- [ ] **Step 2: Commit**
+- [ ] **Step 2: Handle `?discord=connected` query param**
+
+Add to the profile page's `useEffect` (after the existing data fetch):
+```typescript
+// Show success message if redirected from Discord OAuth
+const params = new URLSearchParams(window.location.search);
+if (params.get("discord") === "connected") {
+  // Clean URL
+  window.history.replaceState({}, "", "/profile");
+}
+```
+
+- [ ] **Step 3: Commit**
 
 ```bash
 git add src/app/profile/page.tsx
@@ -443,7 +498,7 @@ git commit -m "feat: add notifications section to profile page"
 
 ---
 
-### Task 6: Discord OAuth Callback API Route
+### Task 7: Discord OAuth Callback API Route
 
 **Files:**
 - Create: `src/app/api/discord-notify-callback/route.ts`
@@ -452,7 +507,6 @@ git commit -m "feat: add notifications section to profile page"
 
 ```typescript
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 
@@ -461,8 +515,14 @@ const DISCORD_API = "https://discord.com/api/v10";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+  const state = searchParams.get("state");
 
-  if (!code) {
+  // CSRF validation
+  const cookieStore = await cookies();
+  const storedState = cookieStore.get("discord_oauth_state")?.value;
+  cookieStore.delete("discord_oauth_state");
+
+  if (!code || !state || state !== storedState) {
     return NextResponse.redirect(`${origin}/profile?discord=error`);
   }
 
@@ -472,7 +532,7 @@ export async function GET(request: Request) {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
-        client_id: process.env.DISCORD_CLIENT_ID!,
+        client_id: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!,
         client_secret: process.env.DISCORD_CLIENT_SECRET!,
         grant_type: "authorization_code",
         code,
@@ -497,7 +557,21 @@ export async function GET(request: Request) {
 
     const discordUser = await userRes.json();
 
-    // Get current Supabase user
+    // Auto-join user to Instanceiro server
+    const guildId = process.env.NEXT_PUBLIC_DISCORD_GUILD_ID!;
+    const botToken = process.env.DISCORD_BOT_TOKEN!;
+
+    await fetch(`${DISCORD_API}/guilds/${guildId}/members/${discordUser.id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bot ${botToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ access_token: tokenData.access_token }),
+    });
+    // Note: 204 = already in server, 201 = added. Both are fine. Errors are non-fatal.
+
+    // Get current Supabase user and insert notification row
     const supabase = await createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -505,19 +579,11 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/profile?discord=error`);
     }
 
-    // Insert using service role (bypasses RLS for initial insert)
-    const serviceClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    );
-
-    await serviceClient
-      .from("discord_notifications")
-      .upsert({
-        user_id: user.id,
-        discord_user_id: discordUser.id,
-        enabled: true,
-      });
+    await supabase.from("discord_notifications").upsert({
+      user_id: user.id,
+      discord_user_id: discordUser.id,
+      enabled: true,
+    });
 
     return NextResponse.redirect(`${origin}/profile?discord=connected`);
   } catch {
@@ -530,12 +596,12 @@ export async function GET(request: Request) {
 
 ```bash
 git add src/app/api/discord-notify-callback/route.ts
-git commit -m "feat: add Discord OAuth callback API route"
+git commit -m "feat: add Discord OAuth callback with CSRF and guilds.join"
 ```
 
 ---
 
-### Task 7: Test Notification API Route
+### Task 8: Test Notification API Route
 
 **Files:**
 - Create: `src/app/api/discord-notify-test/route.ts`
@@ -547,36 +613,45 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 const DISCORD_API = "https://discord.com/api/v10";
-const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN!;
 
-async function sendDiscordDM(discordUserId: string, content: string): Promise<boolean> {
-  // Create DM channel
+async function sendDiscordDM(botToken: string, discordUserId: string, content: string): Promise<{ ok: boolean; error?: string }> {
   const channelRes = await fetch(`${DISCORD_API}/users/@me/channels`, {
     method: "POST",
     headers: {
-      Authorization: `Bot ${BOT_TOKEN}`,
+      Authorization: `Bot ${botToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ recipient_id: discordUserId }),
   });
 
-  if (!channelRes.ok) return false;
+  if (!channelRes.ok) {
+    return { ok: false, error: "Nao foi possivel criar canal DM. Verifique se voce esta no servidor do Instanceiro." };
+  }
+
   const channel = await channelRes.json();
 
-  // Send message
   const msgRes = await fetch(`${DISCORD_API}/channels/${channel.id}/messages`, {
     method: "POST",
     headers: {
-      Authorization: `Bot ${BOT_TOKEN}`,
+      Authorization: `Bot ${botToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ content }),
   });
 
-  return msgRes.ok;
+  if (!msgRes.ok) {
+    return { ok: false, error: "Nao foi possivel enviar DM. Verifique se as DMs estao ativadas para o servidor." };
+  }
+
+  return { ok: true };
 }
 
 export async function POST() {
+  const botToken = process.env.DISCORD_BOT_TOKEN;
+  if (!botToken) {
+    return NextResponse.json({ error: "Bot nao configurado" }, { status: 500 });
+  }
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -586,7 +661,7 @@ export async function POST() {
 
   const { data: notif } = await supabase
     .from("discord_notifications")
-    .select("discord_user_id, enabled")
+    .select("discord_user_id")
     .eq("user_id", user.id)
     .single();
 
@@ -594,26 +669,21 @@ export async function POST() {
     return NextResponse.json({ error: "Discord nao conectado" }, { status: 400 });
   }
 
-  const ok = await sendDiscordDM(
+  const result = await sendDiscordDM(
+    botToken,
     notif.discord_user_id,
     "Teste do Instanceiro! Se voce recebeu esta mensagem, as notificacoes estao funcionando."
   );
 
-  if (!ok) {
-    return NextResponse.json({ error: "Nao foi possivel enviar DM. Verifique se as DMs do bot estao permitidas." }, { status: 502 });
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: 502 });
   }
 
   return NextResponse.json({ ok: true });
 }
 ```
 
-- [ ] **Step 2: Add DISCORD_BOT_TOKEN to Vercel env vars**
-
-```bash
-vercel env add DISCORD_BOT_TOKEN production
-```
-
-- [ ] **Step 3: Commit**
+- [ ] **Step 2: Commit**
 
 ```bash
 git add src/app/api/discord-notify-test/route.ts
@@ -622,38 +692,40 @@ git commit -m "feat: add test notification API route"
 
 ---
 
-### Task 8: Supabase Edge Function — `discord-notify`
+### Task 9: Supabase Edge Function — `discord-notify`
 
 **Files:**
 - Create: `supabase/functions/discord-notify/index.ts`
 
-- [ ] **Step 1: Create the Edge Function**
+- [ ] **Step 1: Create directory**
 
 ```bash
 mkdir -p supabase/functions/discord-notify
 ```
 
+- [ ] **Step 2: Create the Edge Function**
+
 ```typescript
 // supabase/functions/discord-notify/index.ts
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const DISCORD_API = "https://discord.com/api/v10";
-const HOURLY_INSTANCE_IDS = [1, 2, 3, 4];
 
-// Cooldown hours per instance (must match frontend cooldown.ts)
-const COOLDOWN_HOURS: Record<number, number> = {
-  1: 12,  // Altar do Selo
-  2: 3,   // Caverna do Polvo
-  3: 1,   // Esgotos de Malangdo
-  4: 3,   // Espaço Infinito
-};
-
-function calculateHourlyCooldownExpiry(completedAt: Date, instanceId: number): Date {
-  const hours = COOLDOWN_HOURS[instanceId] ?? 3;
-  return new Date(completedAt.getTime() + hours * 60 * 60 * 1000);
+interface InstanceRow {
+  id: number;
+  name: string;
+  cooldown_hours: number;
 }
 
-async function sendDiscordDM(botToken: string, discordUserId: string, content: string): Promise<{ ok: boolean; code?: number }> {
+function calculateHourlyCooldownExpiry(completedAt: Date, cooldownHours: number): Date {
+  return new Date(completedAt.getTime() + cooldownHours * 60 * 60 * 1000);
+}
+
+async function sendDiscordDM(
+  botToken: string,
+  discordUserId: string,
+  content: string
+): Promise<{ ok: boolean; code?: number }> {
   const channelRes = await fetch(`${DISCORD_API}/users/@me/channels`, {
     method: "POST",
     headers: {
@@ -687,17 +759,17 @@ async function sendDiscordDM(botToken: string, discordUserId: string, content: s
 }
 
 Deno.serve(async (req) => {
-  // Verify authorization
+  // Auth check
   const authHeader = req.headers.get("Authorization");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!authHeader?.includes(serviceKey ?? "NONE")) {
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  if (authHeader !== `Bearer ${serviceKey}`) {
     return new Response("Unauthorized", { status: 401 });
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const botToken = Deno.env.get("DISCORD_BOT_TOKEN")!;
 
-  const supabase = createClient(supabaseUrl, serviceKey!, {
+  const supabase = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false },
   });
 
@@ -705,58 +777,74 @@ Deno.serve(async (req) => {
   let sent = 0;
   let errors = 0;
 
-  // 1. Fetch all enabled notification users
-  const { data: users, error: usersError } = await supabase
+  // Fetch hourly instances from database (dynamic, not hardcoded)
+  const { data: hourlyInstances } = await supabase
+    .from("instances")
+    .select("id, name, cooldown_hours")
+    .eq("cooldown_type", "hourly");
+
+  if (!hourlyInstances?.length) {
+    return Response.json({ sent: 0, errors: 0, message: "no hourly instances" });
+  }
+
+  const instanceIds = hourlyInstances.map((i: InstanceRow) => i.id);
+  const instanceMap = new Map(hourlyInstances.map((i: InstanceRow) => [i.id, i]));
+
+  // Fetch enabled notification users
+  const { data: users } = await supabase
     .from("discord_notifications")
     .select("user_id, discord_user_id")
     .eq("enabled", true);
 
-  if (usersError || !users?.length) {
-    return Response.json({ sent: 0, errors: 0, message: usersError?.message ?? "no users" });
+  if (!users?.length) {
+    return Response.json({ sent: 0, errors: 0, message: "no enabled users" });
   }
 
   for (const user of users) {
     try {
-      // 2. Fetch user's active characters
+      // Fetch active characters
       const { data: characters } = await supabase
         .from("characters")
-        .select("id, name, user_id")
+        .select("id, name")
         .eq("user_id", user.user_id)
         .eq("is_active", true);
 
       if (!characters?.length) continue;
 
-      const charIds = characters.map((c) => c.id);
+      const charIds = characters.map((c: { id: string }) => c.id);
 
-      // 3. Fetch completions for hourly instances
-      const { data: completions } = await supabase
-        .from("instance_completions")
-        .select("character_id, instance_id, completed_at")
-        .in("character_id", charIds)
-        .in("instance_id", HOURLY_INSTANCE_IDS)
-        .order("completed_at", { ascending: false });
+      // Fetch completions + notification log in parallel
+      const [completionsRes, logRes] = await Promise.all([
+        supabase
+          .from("instance_completions")
+          .select("character_id, instance_id, completed_at")
+          .in("character_id", charIds)
+          .in("instance_id", instanceIds)
+          .order("completed_at", { ascending: false }),
+        supabase
+          .from("notification_log")
+          .select("character_id, instance_id, notified_at")
+          .eq("user_id", user.user_id)
+          .in("instance_id", instanceIds),
+      ]);
 
-      if (!completions?.length) continue;
+      const completions = completionsRes.data ?? [];
+      const logEntries = logRes.data ?? [];
 
-      // 4. Fetch existing notification log entries
-      const { data: logEntries } = await supabase
-        .from("notification_log")
-        .select("character_id, instance_id, notified_at")
-        .eq("user_id", user.user_id)
-        .in("character_id", charIds)
-        .in("instance_id", HOURLY_INSTANCE_IDS);
+      if (!completions.length) continue;
 
-      // Build lookup maps
-      const latestCompletion = new Map<string, { completed_at: string }>();
+      // Build lookup: latest completion per (char, instance)
+      const latestCompletion = new Map<string, string>();
       for (const c of completions) {
         const key = `${c.character_id}:${c.instance_id}`;
         if (!latestCompletion.has(key)) {
-          latestCompletion.set(key, { completed_at: c.completed_at });
+          latestCompletion.set(key, c.completed_at);
         }
       }
 
+      // Build lookup: latest notification per (char, instance)
       const latestNotification = new Map<string, string>();
-      for (const l of (logEntries ?? [])) {
+      for (const l of logEntries) {
         const key = `${l.character_id}:${l.instance_id}`;
         const existing = latestNotification.get(key);
         if (!existing || l.notified_at > existing) {
@@ -764,21 +852,24 @@ Deno.serve(async (req) => {
         }
       }
 
-      // 5. Find newly available instances
+      // Find newly available instances
       const pending: { instanceId: number; characterId: string; characterName: string }[] = [];
 
       for (const char of characters) {
-        for (const instanceId of HOURLY_INSTANCE_IDS) {
+        for (const instanceId of instanceIds) {
           const key = `${char.id}:${instanceId}`;
-          const completion = latestCompletion.get(key);
-          if (!completion) continue; // Never completed, skip
+          const completedAt = latestCompletion.get(key);
+          if (!completedAt) continue; // Never completed, skip
 
-          const expiry = calculateHourlyCooldownExpiry(new Date(completion.completed_at), instanceId);
+          const instance = instanceMap.get(instanceId);
+          if (!instance?.cooldown_hours) continue;
+
+          const expiry = calculateHourlyCooldownExpiry(new Date(completedAt), instance.cooldown_hours);
           if (expiry > now) continue; // Still on cooldown
 
-          // Check if already notified
+          // Dedup: already notified for this completion?
           const lastNotified = latestNotification.get(key);
-          if (lastNotified && lastNotified > completion.completed_at) continue; // Already notified
+          if (lastNotified && lastNotified > completedAt) continue;
 
           pending.push({ instanceId, characterId: char.id, characterName: char.name });
         }
@@ -786,16 +877,7 @@ Deno.serve(async (req) => {
 
       if (!pending.length) continue;
 
-      // 6. Build message
-      // Fetch instance names
-      const { data: instances } = await supabase
-        .from("instances")
-        .select("id, name")
-        .in("id", HOURLY_INSTANCE_IDS);
-
-      const nameMap = new Map((instances ?? []).map((i) => [i.id, i.name]));
-
-      // Group by instance, list character names
+      // Build consolidated message
       const grouped = new Map<number, string[]>();
       for (const p of pending) {
         const list = grouped.get(p.instanceId) ?? [];
@@ -805,24 +887,25 @@ Deno.serve(async (req) => {
 
       let message = "Instancias disponiveis:\n";
       for (const [instanceId, charNames] of grouped) {
-        message += `• ${nameMap.get(instanceId) ?? `#${instanceId}`} — ${charNames.join(", ")}\n`;
+        const name = instanceMap.get(instanceId)?.name ?? `#${instanceId}`;
+        message += `• ${name} — ${charNames.join(", ")}\n`;
       }
 
-      // 7. Send DM
+      // Send DM
       const result = await sendDiscordDM(botToken, user.discord_user_id, message.trim());
 
       if (result.ok) {
         sent++;
-        // Insert notification log entries
-        const logRows = pending.map((p) => ({
-          user_id: user.user_id,
-          character_id: p.characterId,
-          instance_id: p.instanceId,
-        }));
-        await supabase.from("notification_log").insert(logRows);
+        await supabase.from("notification_log").insert(
+          pending.map((p) => ({
+            user_id: user.user_id,
+            character_id: p.characterId,
+            instance_id: p.instanceId,
+          }))
+        );
       } else {
         errors++;
-        // Disable on permanent failures
+        // Auto-disable on permanent failures
         if (result.code === 403 || result.code === 50007) {
           await supabase
             .from("discord_notifications")
@@ -832,7 +915,7 @@ Deno.serve(async (req) => {
       }
     } catch (e) {
       errors++;
-      console.error(`Error processing user ${user.user_id}:`, e);
+      console.error(`Error for user ${user.user_id}:`, e);
     }
   }
 
@@ -840,48 +923,45 @@ Deno.serve(async (req) => {
 });
 ```
 
-- [ ] **Step 2: Deploy the Edge Function**
+- [ ] **Step 3: Deploy**
 
 ```bash
-cd D:/rag/instance-tracker
 npx supabase functions deploy discord-notify --project-ref swgnctajsbiyhqxstrnx
 ```
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add supabase/functions/discord-notify/index.ts
-git commit -m "feat: add discord-notify Edge Function for hourly instance DMs"
+git commit -m "feat: add discord-notify Edge Function"
 ```
 
 ---
 
-### Task 9: pg_cron Setup (Manual)
+### Task 10: pg_cron Setup (Manual — Supabase SQL Editor)
 
-- [ ] **Step 1: Enable pg_net extension**
+- [ ] **Step 1: Enable pg_net**
 
-Run in Supabase SQL Editor:
 ```sql
 CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
 ```
 
-- [ ] **Step 2: Schedule the notification cron**
+- [ ] **Step 2: Schedule notification cron (every 5 minutes)**
 
-Run in Supabase SQL Editor (replace `<service_role_key>` with the actual key):
+Replace `<service_role_key>` with actual key:
 ```sql
 SELECT cron.schedule(
   'discord-hourly-notify',
   '*/5 * * * *',
   $$SELECT net.http_post(
     url := 'https://swgnctajsbiyhqxstrnx.supabase.co/functions/v1/discord-notify',
-    headers := jsonb_build_object('Authorization', 'Bearer <service_role_key>')
+    headers := '{"Authorization": "Bearer <service_role_key>"}'::jsonb
   )$$
 );
 ```
 
-- [ ] **Step 3: Schedule the cleanup cron**
+- [ ] **Step 3: Schedule cleanup cron (daily at 4 AM BRT / 7 AM UTC)**
 
-Run in Supabase SQL Editor:
 ```sql
 SELECT cron.schedule(
   'cleanup-notification-log',
@@ -890,71 +970,75 @@ SELECT cron.schedule(
 );
 ```
 
-- [ ] **Step 4: Verify crons are registered**
+- [ ] **Step 4: Verify**
 
 ```sql
 SELECT * FROM cron.job;
 ```
 
-Expected: 2 rows — `discord-hourly-notify` and `cleanup-notification-log`.
+Expected: 2 rows.
 
 ---
 
-### Task 10: Add NEXT_PUBLIC_DISCORD_CLIENT_ID to env
+### Task 11: Build, Push, Deploy
 
-- [ ] **Step 1: Add to `.env.local`**
-
-```
-NEXT_PUBLIC_DISCORD_CLIENT_ID=<your-discord-app-client-id>
-```
-
-- [ ] **Step 2: Add to Vercel**
-
-```bash
-vercel env add NEXT_PUBLIC_DISCORD_CLIENT_ID production
-```
-
-- [ ] **Step 3: Build and push**
+- [ ] **Step 1: Build locally**
 
 ```bash
 cd D:/rag/instance-tracker
 npm run build
-git add -A
-git commit -m "feat: discord notifications - complete implementation"
+```
+
+- [ ] **Step 2: Push**
+
+```bash
 git push
+```
+
+- [ ] **Step 3: Update Vercel alias after deploy**
+
+Wait for Vercel auto-deploy, then:
+```bash
+vercel alias set <latest-deploy-url> instanceiro.vercel.app
 ```
 
 ---
 
-### Task 11: End-to-End Testing
+### Task 12: End-to-End Testing
 
-- [ ] **Step 1: Test profile page (Discord login user)**
+- [ ] **Step 1: Test Discord-login user**
 
-1. Log in with Discord
-2. Go to `/profile`
-3. Verify "Notificacoes" section appears with toggle (auto-detected Discord)
+1. Log in with Discord → go to `/profile`
+2. See "Notificacoes" section with server invite link
+3. Join the Instanceiro server via the link
 4. Enable the toggle
 5. Click "Enviar notificacao teste"
 6. Verify DM received on Discord
 
-- [ ] **Step 2: Test profile page (Google login user)**
+- [ ] **Step 2: Test Google-login user**
 
-1. Log in with Google
-2. Go to `/profile`
-3. Click "Conectar Discord"
-4. Authorize on Discord
-5. Verify redirect back to profile with toggle visible
-6. Enable and test
+1. Log in with Google → go to `/profile`
+2. Click "Conectar Discord"
+3. Authorize on Discord (grants `identify` + `guilds.join`)
+4. Verify redirect back to `/profile` with toggle visible and enabled
+5. Verify auto-joined to Instanceiro server
+6. Click "Enviar notificacao teste"
+7. Verify DM received
 
-- [ ] **Step 3: Test cron cycle**
+- [ ] **Step 3: Test cron notification cycle**
 
-1. Complete an hourly instance (e.g., Esgotos de Malangdo, 1h cooldown)
-2. Wait for cooldown to expire + next cron cycle (~5 min after expiry)
-3. Verify DM received
-4. Verify no duplicate DM on next cycle
+1. Complete Esgotos de Malangdo (1h cooldown)
+2. Wait for cooldown to expire + next 5-min cron cycle
+3. Verify DM received with "Instancias disponiveis: • Esgotos de Malangdo — [char name]"
+4. Wait for next cron cycle → verify NO duplicate DM
 
 - [ ] **Step 4: Test disable/disconnect**
 
-1. Toggle off → verify no more DMs
-2. Toggle on → verify DMs resume
+1. Toggle off → wait for cron → verify no DM
+2. Toggle on → complete instance → wait → verify DM resumes
 3. Disconnect (Google user) → verify "Conectar Discord" button returns
+
+- [ ] **Step 5: Test error handling**
+
+1. Leave the Instanceiro server → wait for cron → verify `enabled` is set to `false`
+2. Re-join server → re-enable toggle → verify DMs work again
