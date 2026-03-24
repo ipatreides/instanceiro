@@ -144,6 +144,7 @@ CREATE TABLE notification_log (
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   character_id UUID NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
   instance_id INT NOT NULL REFERENCES instances(id),
+  type TEXT NOT NULL CHECK (type IN ('warning', 'available')),
   notified_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -152,9 +153,9 @@ ALTER TABLE notification_log ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own notification log" ON notification_log
   FOR SELECT USING (auth.uid() = user_id);
 
--- Index for dedup lookups
+-- Index for dedup lookups (includes type)
 CREATE INDEX idx_notification_log_dedup
-  ON notification_log (user_id, character_id, instance_id, notified_at DESC);
+  ON notification_log (user_id, character_id, instance_id, type, notified_at DESC);
 ```
 
 - [ ] **Step 2: Run in Supabase SQL Editor**
@@ -823,7 +824,7 @@ Deno.serve(async (req) => {
           .order("completed_at", { ascending: false }),
         supabase
           .from("notification_log")
-          .select("character_id, instance_id, notified_at")
+          .select("character_id, instance_id, type, notified_at")
           .eq("user_id", user.user_id)
           .in("instance_id", instanceIds),
       ]);
@@ -842,18 +843,20 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Build lookup: latest notification per (char, instance)
-      const latestNotification = new Map<string, string>();
+      // Build lookup: latest notification per (char, instance, type)
+      const latestNotificationByType = new Map<string, string>();
       for (const l of logEntries) {
-        const key = `${l.character_id}:${l.instance_id}`;
-        const existing = latestNotification.get(key);
+        const keyWarning = `${l.character_id}:${l.instance_id}:${l.type}`;
+        const existing = latestNotificationByType.get(keyWarning);
         if (!existing || l.notified_at > existing) {
-          latestNotification.set(key, l.notified_at);
+          latestNotificationByType.set(keyWarning, l.notified_at);
         }
       }
 
-      // Find newly available instances
-      const pending: { instanceId: number; characterId: string; characterName: string }[] = [];
+      // Find warnings (≤5min to available) and newly available instances
+      const WARNING_THRESHOLD_MS = 5 * 60 * 1000;
+      const warnings: { instanceId: number; characterId: string; characterName: string; minutesLeft: number }[] = [];
+      const available: { instanceId: number; characterId: string; characterName: string }[] = [];
 
       for (const char of characters) {
         for (const instanceId of instanceIds) {
@@ -865,44 +868,89 @@ Deno.serve(async (req) => {
           if (!instance?.cooldown_hours) continue;
 
           const expiry = calculateHourlyCooldownExpiry(new Date(completedAt), instance.cooldown_hours);
-          if (expiry > now) continue; // Still on cooldown
+          const timeLeft = expiry.getTime() - now.getTime();
 
-          // Dedup: already notified for this completion?
-          const lastNotified = latestNotification.get(key);
-          if (lastNotified && lastNotified > completedAt) continue;
-
-          pending.push({ instanceId, characterId: char.id, characterName: char.name });
+          if (timeLeft > 0 && timeLeft <= WARNING_THRESHOLD_MS) {
+            // Warning: ≤5 min until available
+            const lastNotified = latestNotificationByType.get(`${key}:warning`);
+            if (!lastNotified || lastNotified < completedAt) {
+              warnings.push({
+                instanceId,
+                characterId: char.id,
+                characterName: char.name,
+                minutesLeft: Math.ceil(timeLeft / 60000),
+              });
+            }
+          } else if (timeLeft <= 0) {
+            // Available now
+            const lastNotified = latestNotificationByType.get(`${key}:available`);
+            if (!lastNotified || lastNotified < completedAt) {
+              available.push({ instanceId, characterId: char.id, characterName: char.name });
+            }
+          }
         }
       }
 
-      if (!pending.length) continue;
+      // Send warning DM
+      if (warnings.length > 0) {
+        const grouped = new Map<number, { chars: string[]; minutes: number }>();
+        for (const w of warnings) {
+          const entry = grouped.get(w.instanceId) ?? { chars: [], minutes: w.minutesLeft };
+          entry.chars.push(w.characterName);
+          grouped.set(w.instanceId, entry);
+        }
 
-      // Build consolidated message
-      const grouped = new Map<number, string[]>();
-      for (const p of pending) {
-        const list = grouped.get(p.instanceId) ?? [];
-        list.push(p.characterName);
-        grouped.set(p.instanceId, list);
+        let msg = "Em breve:\n";
+        for (const [instanceId, { chars, minutes }] of grouped) {
+          const name = instanceMap.get(instanceId)?.name ?? `#${instanceId}`;
+          msg += `• ${name} — ${chars.join(", ")} (em ~${minutes}min)\n`;
+        }
+
+        const result = await sendDiscordDM(botToken, user.discord_user_id, msg.trim());
+        if (result.ok) {
+          sent++;
+          await supabase.from("notification_log").insert(
+            warnings.map((w) => ({
+              user_id: user.user_id,
+              character_id: w.characterId,
+              instance_id: w.instanceId,
+              type: "warning",
+            }))
+          );
+        } else if (result.code === 403 || result.code === 50007) {
+          await supabase.from("discord_notifications")
+            .update({ enabled: false }).eq("user_id", user.user_id);
+          continue; // Skip available DM too
+        }
       }
 
-      let message = "Instancias disponiveis:\n";
-      for (const [instanceId, charNames] of grouped) {
-        const name = instanceMap.get(instanceId)?.name ?? `#${instanceId}`;
-        message += `• ${name} — ${charNames.join(", ")}\n`;
-      }
+      // Send available DM
+      if (available.length > 0) {
+        const grouped = new Map<number, string[]>();
+        for (const a of available) {
+          const list = grouped.get(a.instanceId) ?? [];
+          list.push(a.characterName);
+          grouped.set(a.instanceId, list);
+        }
 
-      // Send DM
-      const result = await sendDiscordDM(botToken, user.discord_user_id, message.trim());
+        let msg = "Instancias disponiveis:\n";
+        for (const [instanceId, charNames] of grouped) {
+          const name = instanceMap.get(instanceId)?.name ?? `#${instanceId}`;
+          msg += `• ${name} — ${charNames.join(", ")}\n`;
+        }
 
-      if (result.ok) {
-        sent++;
-        await supabase.from("notification_log").insert(
-          pending.map((p) => ({
-            user_id: user.user_id,
-            character_id: p.characterId,
-            instance_id: p.instanceId,
-          }))
-        );
+        const result = await sendDiscordDM(botToken, user.discord_user_id, msg.trim());
+        if (result.ok) {
+          sent++;
+          await supabase.from("notification_log").insert(
+            available.map((a) => ({
+              user_id: user.user_id,
+              character_id: a.characterId,
+              instance_id: a.instanceId,
+              type: "available",
+            }))
+          );
+        }
       } else {
         errors++;
         // Auto-disable on permanent failures
@@ -1025,12 +1073,14 @@ vercel alias set <latest-deploy-url> instanceiro.vercel.app
 6. Click "Enviar notificacao teste"
 7. Verify DM received
 
-- [ ] **Step 3: Test cron notification cycle**
+- [ ] **Step 3: Test cron notification cycle (two DMs)**
 
 1. Complete Esgotos de Malangdo (1h cooldown)
-2. Wait for cooldown to expire + next 5-min cron cycle
-3. Verify DM received with "Instancias disponiveis: • Esgotos de Malangdo — [char name]"
-4. Wait for next cron cycle → verify NO duplicate DM
+2. Wait ~55 minutes (5 min before cooldown expires) + next cron cycle
+3. Verify **warning DM** received: "Em breve: • Esgotos de Malangdo — [char name] (em ~Xmin)"
+4. Wait for cooldown to fully expire + next cron cycle
+5. Verify **available DM** received: "Instancias disponiveis: • Esgotos de Malangdo — [char name]"
+6. Wait for next cron cycle → verify NO duplicate DMs
 
 - [ ] **Step 4: Test disable/disconnect**
 
