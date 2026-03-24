@@ -27,13 +27,15 @@ Create a Discord bot in the Discord Developer Portal:
 
 No `MESSAGE_CONTENT` or other privileged intents needed — the bot only sends messages, never reads.
 
-### Server
-Create a Discord server "Instanceiro" (minimalista):
-- One text channel (e.g. `#bem-vindo`) with a welcome message explaining the server exists for notifications
-- Bot added to the server with `Send Messages` permission
-- Create a permanent invite link (never expires, unlimited uses)
+### Servers
+Discord bots can only DM users who share at least one server with the bot. The bot must be added to both servers:
 
-**Why a server is needed:** Discord bots can only DM users who share at least one server with the bot. This is a Discord platform restriction. The Instanceiro server serves as this shared server.
+1. **Existing server** (ID: `1457831662913061016`) — current community. Members already here can receive DMs immediately.
+2. **Instanceiro server** (new, minimalista) — for users who aren't in the existing server. One text channel (e.g. `#bem-vindo`) with a welcome message. Google-login users are auto-joined via `guilds.join` scope. Discord-login users get an invite link.
+
+Bot needs `Send Messages` permission in both servers. Create a permanent invite link for the new Instanceiro server (never expires, unlimited uses).
+
+The Edge Function env var `DISCORD_GUILD_ID` references the **new Instanceiro server** (used for `guilds.join` auto-add). The existing server is not used for auto-add — its members already have access.
 
 ## User Flow
 
