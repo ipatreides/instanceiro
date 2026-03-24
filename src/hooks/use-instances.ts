@@ -333,16 +333,27 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
   const completeParty = useCallback(
     async (instanceId: number, ownCharIds: string[], friends: {character_id: string, user_id: string}[], completedAt?: string) => {
       const supabase = createClient();
+      const ts = completedAt ?? new Date().toISOString();
       const { error } = await supabase.rpc("complete_instance_party", {
         p_instance_id: instanceId,
-        p_completed_at: completedAt ?? new Date().toISOString(),
+        p_completed_at: ts,
         p_own_character_ids: ownCharIds,
         p_friends: friends,
       });
       if (error) throw error;
-      await fetchAll();
+
+      // Optimistic update: add completions for own characters immediately
+      if (characterId && ownCharIds.includes(characterId)) {
+        setCompletions((prev) => [
+          { id: crypto.randomUUID(), character_id: characterId, instance_id: instanceId, completed_at: ts },
+          ...prev,
+        ]);
+      }
+
+      // Also refetch in the background to get the real data
+      fetchAll();
     },
-    [fetchAll]
+    [characterId, fetchAll]
   );
 
   return {
