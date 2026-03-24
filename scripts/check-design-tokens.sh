@@ -1,7 +1,8 @@
 #!/bin/bash
 # Pre-commit hook: block hardcoded colors in src/ that should use design tokens.
 # Allowed exceptions: globals.css (token definitions), icon.svg (favicon),
-# login-button.tsx (third-party brand colors).
+# login-button.tsx (third-party brand colors),
+# notifications-section.tsx (Discord brand colors).
 
 set -euo pipefail
 
@@ -9,7 +10,8 @@ set -euo pipefail
 STAGED=$(git diff --cached --name-only --diff-filter=ACM -- 'src/**/*.ts' 'src/**/*.tsx' | \
   grep -v 'globals\.css$' | \
   grep -v 'icon\.svg$' | \
-  grep -v 'login-button\.tsx$' || true)
+  grep -v 'login-button\.tsx$' | \
+  grep -v 'notifications-section\.tsx$' || true)
 
 if [ -z "$STAGED" ]; then
   exit 0
