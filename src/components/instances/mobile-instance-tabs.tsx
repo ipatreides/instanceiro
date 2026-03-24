@@ -18,9 +18,10 @@ interface MobileInstanceTabsProps {
   statesByType: Map<CooldownType, InstanceState[]>;
   now: Date;
   onCardClick: (state: InstanceState) => void;
+  forceShowInactive?: boolean;
 }
 
-export function MobileInstanceTabs({ statesByType, now, onCardClick }: MobileInstanceTabsProps) {
+export function MobileInstanceTabs({ statesByType, now, onCardClick, forceShowInactive }: MobileInstanceTabsProps) {
   const [activeTab, setActiveTab] = useState<CooldownType>(COOLDOWN_ORDER[0]);
   const drag = useDragScroll();
 
@@ -57,6 +58,7 @@ export function MobileInstanceTabs({ statesByType, now, onCardClick }: MobileIns
         states={statesByType.get(activeTab) ?? []}
         now={now}
         onCardClick={onCardClick}
+        forceShowInactive={forceShowInactive}
       />
     </div>
   );

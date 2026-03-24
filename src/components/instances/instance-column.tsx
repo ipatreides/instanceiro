@@ -10,6 +10,7 @@ interface InstanceColumnProps {
   states: InstanceState[];
   now?: Date;
   onCardClick?: (state: InstanceState) => void;
+  forceShowInactive?: boolean;
 }
 
 const COOLDOWN_LABELS: Record<CooldownType, string> = {
@@ -31,7 +32,7 @@ function sortStates(states: InstanceState[]): InstanceState[] {
   });
 }
 
-export function InstanceColumn({ cooldownType, states, now, onCardClick }: InstanceColumnProps) {
+export function InstanceColumn({ cooldownType, states, now, onCardClick, forceShowInactive }: InstanceColumnProps) {
   const emptyMsg = useMemo(
     () => EMPTY_MESSAGES[Math.floor(Math.random() * EMPTY_MESSAGES.length)],
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -77,7 +78,7 @@ export function InstanceColumn({ cooldownType, states, now, onCardClick }: Insta
                 <span className={`transition-transform ${showInactive ? "rotate-180" : ""}`}>▾</span>
                 {inactive.length} inativa{inactive.length > 1 ? "s" : ""}
               </button>
-              {showInactive && inactive.map((state) => (
+              {(showInactive || forceShowInactive) && inactive.map((state) => (
                 <InstanceCard
                   key={state.instance.id}
                   state={state}

@@ -41,26 +41,42 @@ export function useNotifications(): UseNotificationsReturn {
   useEffect(() => {
     let cancelled = false;
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
-    fetchNotifications().then(() => {
-      if (!cancelled) setLoading(false);
-    });
-
-    const debouncedFetch = () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => fetchNotifications(), 300);
-    };
+    let channelRef: ReturnType<typeof supabase.channel> | null = null;
 
     const supabase = createClient();
-    const channel = supabase
-      .channel("notifications-changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, debouncedFetch)
-      .subscribe();
+
+    // Get user ID to scope the realtime filter
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (cancelled) return;
+
+      fetchNotifications().then(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+      const debouncedFetch = () => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => fetchNotifications(), 300);
+      };
+
+      const filterOpts: { event: "*"; schema: "public"; table: "notifications"; filter?: string } = {
+        event: "*",
+        schema: "public",
+        table: "notifications",
+      };
+      if (user) {
+        filterOpts.filter = `user_id=eq.${user.id}`;
+      }
+
+      channelRef = supabase
+        .channel("notifications-changes")
+        .on("postgres_changes", filterOpts, debouncedFetch)
+        .subscribe();
+    });
 
     return () => {
       cancelled = true;
       if (debounceTimer) clearTimeout(debounceTimer);
-      supabase.removeChannel(channel);
+      if (channelRef) supabase.removeChannel(channelRef);
     };
   }, [fetchNotifications]);
 

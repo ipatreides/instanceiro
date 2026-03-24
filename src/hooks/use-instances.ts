@@ -98,6 +98,15 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
         table: "character_instances",
         filter: `character_id=eq.${characterId}`,
       }, () => fetchAll())
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "instances",
+      }, () => {
+        // Invalidate static cache when game data changes (new instances added, etc.)
+        cachedInstances = null;
+        fetchAll();
+      })
       .subscribe();
 
     return () => {

@@ -50,36 +50,7 @@ export function useCharacters(): UseCharactersReturn {
       return;
     }
 
-    const own: Character[] = (ownChars ?? []).map((c) => ({
-      ...c,
-      isShared: false,
-      ownerUsername: null,
-    }));
-
-    // Fetch shared characters via SECURITY DEFINER function
-    const { data: sharedChars } = await supabase.rpc("get_shared_characters");
-
-    const shared: Character[] = ((sharedChars ?? []) as Record<string, unknown>[]).map((c) => ({
-      ...c,
-      isShared: true,
-      ownerUsername: null,
-    } as Character));
-
-    // Fetch owner usernames for shared characters
-    if (shared.length > 0) {
-      const ownerIds = [...new Set(shared.map((c) => c.user_id))];
-      const { data: ownerProfiles } = await supabase
-        .from("profiles")
-        .select("id, username")
-        .in("id", ownerIds);
-
-      const usernameMap = new Map((ownerProfiles ?? []).map((p: { id: string; username: string }) => [p.id, p.username]));
-      for (const c of shared) {
-        c.ownerUsername = usernameMap.get(c.user_id) ?? null;
-      }
-    }
-
-    setCharacters([...own, ...shared]);
+    setCharacters(ownChars ?? []);
   }, []);
 
   const refetch = useCallback(async () => {
@@ -90,10 +61,29 @@ export function useCharacters(): UseCharactersReturn {
 
   useEffect(() => {
     let cancelled = false;
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
     fetchCharacters().then(() => {
       if (!cancelled) setLoading(false);
     });
-    return () => { cancelled = true; };
+
+    const debouncedFetch = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => fetchCharacters(), 300);
+    };
+
+    // Subscribe to realtime changes on own characters + shares
+    const supabase = createClient();
+    const channel = supabase
+      .channel("characters-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "characters" }, debouncedFetch)
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
   }, [fetchCharacters]);
 
   const createCharacter = useCallback(

@@ -25,7 +25,6 @@ interface AccountBarProps {
   selectedCharId: string | null;
   onSelectChar: (char: Character) => void;
   onEditChar: (char: Character) => void;
-  onToggleCollapse: (accountId: string) => void;
   onOpenAccountModal: (account: Account) => void;
   onCreateAccount: () => void;
   onReorderAccounts: (orderedIds: string[]) => void;
@@ -41,7 +40,6 @@ function SortableAccountItem({
   selectedCharId,
   onSelectChar,
   onEditChar,
-  onToggleCollapse,
   onOpenAccountModal,
   onReorderChars,
 }: {
@@ -50,7 +48,6 @@ function SortableAccountItem({
   selectedCharId: string | null;
   onSelectChar: (char: Character) => void;
   onEditChar: (char: Character) => void;
-  onToggleCollapse: () => void;
   onOpenAccountModal: () => void;
   onReorderChars: (orderedCharIds: string[]) => void;
 }) {
@@ -72,7 +69,6 @@ function SortableAccountItem({
         selectedCharId={selectedCharId}
         onSelectChar={onSelectChar}
         onEditChar={onEditChar}
-        onToggleCollapse={onToggleCollapse}
         onOpenAccountModal={onOpenAccountModal}
         onReorderChars={onReorderChars}
         dragListeners={listeners}
@@ -87,7 +83,6 @@ export function AccountBar({
   selectedCharId,
   onSelectChar,
   onEditChar,
-  onToggleCollapse,
   onOpenAccountModal,
   onCreateAccount,
   onReorderAccounts,
@@ -159,7 +154,6 @@ export function AccountBar({
               selectedCharId={selectedCharId}
               onSelectChar={onSelectChar}
               onEditChar={onEditChar}
-              onToggleCollapse={() => onToggleCollapse(account.id)}
               onOpenAccountModal={() => onOpenAccountModal(account)}
               onReorderChars={(orderedCharIds) =>
                 onReorderCharacters(account.id, orderedCharIds)

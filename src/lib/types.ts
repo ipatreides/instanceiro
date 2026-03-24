@@ -21,7 +21,6 @@ export interface Account {
   server_id: number;
   name: string;
   sort_order: number;
-  is_collapsed: boolean;
   created_at: string;
 }
 
@@ -37,15 +36,6 @@ export interface Character {
   is_active: boolean;
   created_at: string;
   updated_at: string;
-  isShared?: boolean;
-  ownerUsername?: string | null;
-}
-
-export interface CharacterShare {
-  character_id: string;
-  shared_with_user_id: string;
-  created_at: string;
-  username?: string;
 }
 
 export interface Friendship {
@@ -66,6 +56,7 @@ export interface InstanceSchedule {
   created_by: string;
   scheduled_at: string;
   status: 'open' | 'completed' | 'expired';
+  title: string | null;
   message: string | null;
   created_at: string;
   // Joined

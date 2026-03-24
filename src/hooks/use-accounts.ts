@@ -9,7 +9,7 @@ interface UseAccountsReturn {
   servers: Server[];
   loading: boolean;
   createAccount: (name: string, serverId: number) => Promise<Account>;
-  updateAccount: (id: string, data: { name?: string; is_collapsed?: boolean }) => Promise<void>;
+  updateAccount: (id: string, data: { name?: string }) => Promise<void>;
   deleteAccount: (id: string) => Promise<void>;
   reorderAccounts: (orderedIds: string[]) => Promise<void>;
   reorderCharacters: (accountId: string, orderedCharIds: string[]) => Promise<void>;
@@ -64,10 +64,29 @@ export function useAccounts(): UseAccountsReturn {
 
   useEffect(() => {
     let cancelled = false;
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
     Promise.all([fetchAccounts(), fetchServers()]).then(() => {
       if (!cancelled) setLoading(false);
     });
-    return () => { cancelled = true; };
+
+    const debouncedFetch = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => fetchAccounts(), 300);
+    };
+
+    // Subscribe to realtime changes on accounts (multi-tab sync)
+    const supabase = createClient();
+    const channel = supabase
+      .channel("accounts-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "accounts" }, debouncedFetch)
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
   }, [fetchAccounts, fetchServers]);
 
   const createAccount = useCallback(
@@ -103,7 +122,7 @@ export function useAccounts(): UseAccountsReturn {
   );
 
   const updateAccount = useCallback(
-    async (id: string, data: { name?: string; is_collapsed?: boolean }): Promise<void> => {
+    async (id: string, data: { name?: string }): Promise<void> => {
       // Optimistic update
       setAccounts((prev) =>
         prev.map((a) =>
@@ -111,7 +130,6 @@ export function useAccounts(): UseAccountsReturn {
             ? {
                 ...a,
                 ...(data.name !== undefined && { name: data.name }),
-                ...(data.is_collapsed !== undefined && { is_collapsed: data.is_collapsed }),
               }
             : a
         )
@@ -120,8 +138,6 @@ export function useAccounts(): UseAccountsReturn {
       const supabase = createClient();
       const updatePayload: Record<string, unknown> = {};
       if (data.name !== undefined) updatePayload.name = data.name;
-      if (data.is_collapsed !== undefined) updatePayload.is_collapsed = data.is_collapsed;
-
       const { error } = await supabase
         .from("accounts")
         .update(updatePayload)

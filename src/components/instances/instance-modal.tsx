@@ -26,7 +26,7 @@ export interface InstanceModalProps {
   onDeleteCompletion: (completionId: string) => void;
   onDeactivate: () => void;
   onActivate: () => void;
-  onSchedule?: () => void;
+  onSchedule?: (participants: Participant[]) => void;
   getEligibleFriends: (instanceId: number) => Promise<EligibleFriend[]>;
   actionLoading?: boolean;
   actionError?: string | null;
@@ -75,8 +75,9 @@ export function InstanceModal({
 
     // Auto-populate with selected character
     if (selectedCharId) {
-      const char = characters.find((c) => c.id === selectedCharId && !c.isShared);
+      const char = characters.find((c) => c.id === selectedCharId);
       if (char) {
+        const account = accounts?.find((a) => a.id === char.account_id);
         setParticipants([{
           type: "own",
           character_id: char.id,
@@ -84,6 +85,8 @@ export function InstanceModal({
           character_name: char.name,
           character_class: char.class,
           character_level: char.level,
+          account_id: char.account_id,
+          server_id: account?.server_id,
         }]);
       } else {
         setParticipants([]);
@@ -174,7 +177,7 @@ export function InstanceModal({
           </button>
           {onSchedule && (
             <button
-              onClick={onSchedule}
+              onClick={() => onSchedule(participants)}
               className="py-2.5 px-4 rounded-md bg-surface border border-border text-primary-secondary font-semibold text-sm hover:border-primary-secondary transition-colors cursor-pointer"
             >
               Agendar

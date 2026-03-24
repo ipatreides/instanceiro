@@ -23,7 +23,6 @@ interface AccountContainerProps {
   selectedCharId: string | null;
   onSelectChar: (char: Character) => void;
   onEditChar: (char: Character) => void;
-  onToggleCollapse: () => void;
   onOpenAccountModal: () => void;
   onReorderChars: (orderedCharIds: string[]) => void;
   dragListeners?: Record<string, unknown>;
@@ -48,16 +47,10 @@ function SortableCharCard({
     transition,
   };
 
-  const isShared = character.isShared ?? false;
-
-  const selectedClass = isShared
-    ? "bg-primary-secondary border-primary-secondary text-bg"
-    : "bg-primary border-primary text-bg";
-  const unselectedClass = isShared
-    ? "bg-surface border-primary-secondary/40 text-primary-secondary hover:border-primary-secondary hover:text-text-primary"
-    : "bg-surface border-border text-text-secondary hover:border-primary-hover hover:text-text-primary";
-  const subTextSelected = isShared ? "text-bg/70" : "text-primary-secondary";
-  const subTextUnselected = isShared ? "text-primary-secondary/60" : "text-text-secondary";
+  const selectedClass = "bg-primary border-primary text-bg";
+  const unselectedClass = "bg-surface border-border text-text-secondary hover:border-primary-hover hover:text-text-primary";
+  const subTextSelected = "text-primary-secondary";
+  const subTextUnselected = "text-text-secondary";
 
   return (
     <button
@@ -66,7 +59,7 @@ function SortableCharCard({
       {...attributes}
       {...listeners}
       onClick={() => {
-        if (isSelected && !isShared) {
+        if (isSelected) {
           onEdit(character);
         } else {
           onSelect(character);
@@ -93,15 +86,6 @@ function SortableCharCard({
       >
         Nv. {character.level}
       </span>
-      {isShared && character.ownerUsername && (
-        <span
-          className={`text-xs ${
-            isSelected ? subTextSelected : "text-primary-secondary/50"
-          }`}
-        >
-          @{character.ownerUsername}
-        </span>
-      )}
     </button>
   );
 }
@@ -112,7 +96,6 @@ export function AccountContainer({
   selectedCharId,
   onSelectChar,
   onEditChar,
-  onToggleCollapse,
   onOpenAccountModal,
   onReorderChars,
   dragListeners,
@@ -139,33 +122,6 @@ export function AccountContainer({
     }
   }
 
-  if (account.is_collapsed) {
-    return (
-      <div
-        className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2.5 rounded-lg border border-border bg-surface min-h-[100px] gap-1 cursor-grab active:cursor-grabbing"
-        {...dragListeners}
-      >
-        <button
-          onClick={onOpenAccountModal}
-          className="text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors truncate max-w-[80px]"
-          title={account.name}
-        >
-          {account.name}
-        </button>
-        <span className="text-[10px] text-text-secondary">
-          ({characters.length})
-        </span>
-        <button
-          onClick={onToggleCollapse}
-          className="text-text-secondary hover:text-text-primary transition-colors text-xs mt-1"
-          aria-label="Expandir"
-        >
-          ►
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className="flex-shrink-0 rounded-lg border border-border p-2">
       {/* Header — drag handle for the whole account */}
@@ -180,13 +136,6 @@ export function AccountContainer({
         >
           {account.name}
           <span className="text-[10px] opacity-50">⚙</span>
-        </button>
-        <button
-          onClick={onToggleCollapse}
-          className="text-text-secondary hover:text-text-primary transition-colors text-xs flex-shrink-0"
-          aria-label="Recolher"
-        >
-          ▼
         </button>
       </div>
 

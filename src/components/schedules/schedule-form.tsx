@@ -6,18 +6,20 @@ import { DateTimePicker } from "@/components/ui/datetime-picker";
 interface ScheduleFormProps {
   minDate?: string;
   initialTime?: string; // ISO string for editing existing schedule
-  onSubmit: (scheduledAt: string, message?: string) => void | Promise<void>;
+  onSubmit: (scheduledAt: string, message?: string, title?: string) => void | Promise<void>;
   onCancel: () => void;
   onDirtyChange?: (dirty: boolean) => void;
   submitLabel?: string;
+  error?: string | null;
 }
 
-export function ScheduleForm({ minDate, initialTime, onSubmit, onCancel, onDirtyChange, submitLabel }: ScheduleFormProps) {
+export function ScheduleForm({ minDate, initialTime, onSubmit, onCancel, onDirtyChange, submitLabel, error }: ScheduleFormProps) {
   const [scheduledTime, setScheduledTime] = useState(initialTime ?? "");
+  const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const isDirty = scheduledTime !== (initialTime ?? "") || message.trim().length > 0;
+  const isDirty = scheduledTime !== (initialTime ?? "") || title.trim().length > 0 || message.trim().length > 0;
   useEffect(() => { onDirtyChange?.(isDirty); }, [isDirty, onDirtyChange]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,7 +27,7 @@ export function ScheduleForm({ minDate, initialTime, onSubmit, onCancel, onDirty
     if (!scheduledTime) return;
     setLoading(true);
     try {
-      await onSubmit(scheduledTime, message.trim() || undefined);
+      await onSubmit(scheduledTime, message.trim() || undefined, title.trim() || undefined);
     } finally {
       setLoading(false);
     }
@@ -33,6 +35,19 @@ export function ScheduleForm({ minDate, initialTime, onSubmit, onCancel, onDirty
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <label className="text-xs text-text-secondary">Título (opcional)</label>
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Ex: Farm de cartas, Guild run..."
+          disabled={loading}
+          maxLength={60}
+          className="bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary transition-colors"
+        />
+      </div>
+
       <DateTimePicker
         value={scheduledTime}
         onChange={setScheduledTime}
@@ -52,6 +67,12 @@ export function ScheduleForm({ minDate, initialTime, onSubmit, onCancel, onDirty
           style={{ colorScheme: "dark" }}
         />
       </div>
+
+      {error && (
+        <p className="text-sm text-status-error bg-status-error/10 rounded px-3 py-2">
+          {error}
+        </p>
+      )}
 
       <div className="flex gap-2 justify-end">
         <button

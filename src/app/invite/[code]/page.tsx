@@ -124,7 +124,7 @@ export default function InvitePage() {
   }
 
   const participantCount = data.participants.length + data.placeholders.length + 1; // +1 creator
-  const ownChars = characters.filter((c) => !c.isShared);
+  const ownChars = characters;
 
   const handleJoinWithExisting = async () => {
     if (!selectedCharId) return;

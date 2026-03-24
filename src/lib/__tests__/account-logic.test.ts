@@ -15,12 +15,6 @@ describe("Account logic", () => {
     expect(result).toEqual([{ id: "a", sort_order: 0 }]);
   });
 
-  it("collapse state toggles correctly", () => {
-    const account = { is_collapsed: false };
-    const toggled = { ...account, is_collapsed: !account.is_collapsed };
-    expect(toggled.is_collapsed).toBe(true);
-  });
-
   it("new account gets max sort_order + 1", () => {
     const accounts = [{ sort_order: 0 }, { sort_order: 2 }, { sort_order: 1 }];
     const maxOrder = Math.max(...accounts.map((a) => a.sort_order)) + 1;

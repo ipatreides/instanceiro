@@ -19,7 +19,8 @@ export interface EligibleFriend {
 interface UseSchedulesReturn {
   schedules: InstanceSchedule[];
   loading: boolean;
-  createSchedule: (instanceId: number, characterId: string, scheduledAt: string, message?: string) => Promise<string>;
+  createSchedule: (instanceId: number, characterId: string, scheduledAt: string, message?: string, title?: string) => Promise<string>;
+  updateScheduleTitle: (scheduleId: string, title: string) => Promise<void>;
   joinSchedule: (scheduleId: string, characterId: string, message?: string) => Promise<void>;
   leaveSchedule: (scheduleId: string, characterId: string) => Promise<void>;
   removeParticipant: (scheduleId: string, characterId: string) => Promise<void>;
@@ -34,6 +35,8 @@ interface UseSchedulesReturn {
   addPlaceholder: (scheduleId: string, characterName: string, characterClass: string) => Promise<void>;
   removePlaceholder: (placeholderId: string) => Promise<void>;
   getPlaceholders: (scheduleId: string) => Promise<SchedulePlaceholder[]>;
+  getScheduledCharacterIds: (instanceId: number) => Promise<Set<string>>;
+  getScheduledCharsWithTimes: (instanceId: number) => Promise<{ character_id: string; scheduled_at: string }[]>;
 }
 
 export function useSchedules(): UseSchedulesReturn {
@@ -123,7 +126,7 @@ export function useSchedules(): UseSchedulesReturn {
     };
   }, [fetchAll]);
 
-  const createSchedule = useCallback(async (instanceId: number, characterId: string, scheduledAt: string, message?: string) => {
+  const createSchedule = useCallback(async (instanceId: number, characterId: string, scheduledAt: string, message?: string, title?: string) => {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Not authenticated");
@@ -136,6 +139,7 @@ export function useSchedules(): UseSchedulesReturn {
         created_by: user.id,
         scheduled_at: scheduledAt,
         message: message || null,
+        title: title || null,
       })
       .select("id")
       .single();
@@ -143,6 +147,16 @@ export function useSchedules(): UseSchedulesReturn {
     if (error) throw error;
     await fetchAll();
     return data.id;
+  }, [fetchAll]);
+
+  const updateScheduleTitle = useCallback(async (scheduleId: string, title: string) => {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("instance_schedules")
+      .update({ title: title || null })
+      .eq("id", scheduleId);
+    if (error) throw error;
+    await fetchAll();
   }, [fetchAll]);
 
   const joinSchedule = useCallback(async (scheduleId: string, characterId: string, message?: string) => {
@@ -384,10 +398,23 @@ export function useSchedules(): UseSchedulesReturn {
     if (error) throw error;
   }, []);
 
+  const getScheduledCharacterIds = useCallback(async (instanceId: number): Promise<Set<string>> => {
+    const supabase = createClient();
+    const { data } = await supabase.rpc("get_scheduled_character_ids", { p_instance_id: instanceId });
+    return new Set((data as string[] | null) ?? []);
+  }, []);
+
+  const getScheduledCharsWithTimes = useCallback(async (instanceId: number): Promise<{ character_id: string; scheduled_at: string }[]> => {
+    const supabase = createClient();
+    const { data } = await supabase.rpc("get_scheduled_characters_with_times", { p_instance_id: instanceId });
+    return (data ?? []) as { character_id: string; scheduled_at: string }[];
+  }, []);
+
   return {
     schedules,
     loading,
     createSchedule,
+    updateScheduleTitle,
     joinSchedule,
     leaveSchedule,
     removeParticipant,
@@ -402,5 +429,7 @@ export function useSchedules(): UseSchedulesReturn {
     addPlaceholder,
     removePlaceholder,
     getPlaceholders,
+    getScheduledCharacterIds,
+    getScheduledCharsWithTimes,
   };
 }

@@ -77,10 +77,16 @@ export default function ParticipantList({
     [participants],
   );
 
-  // Own characters not yet added (non-shared)
+  // Account IDs already in the party (one char per account in RO)
+  const participantAccountIds = useMemo(
+    () => new Set(participants.filter((p) => p.type === "own" && p.account_id).map((p) => p.account_id)),
+    [participants],
+  );
+
+  // Own characters not yet added, excluding chars from accounts already in party
   const availableOwn = useMemo(
-    () => characters.filter((c) => !c.isShared && !participantIds.has(c.id)),
-    [characters, participantIds],
+    () => characters.filter((c) => !participantIds.has(c.id) && !participantAccountIds.has(c.account_id)),
+    [characters, participantIds, participantAccountIds],
   );
 
   // Friends not yet added, sorted: available first, cooldown last

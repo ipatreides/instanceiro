@@ -35,22 +35,32 @@ export function ScheduleCard({ schedule, onClick }: ScheduleCardProps) {
           : "border-border"
       }`}
     >
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0 flex flex-col gap-0.5">
+      <div className="flex flex-col gap-0.5">
+        {/* Line 1: Instance name + date */}
+        <div className="flex items-center justify-between gap-2">
           <span className="text-sm font-bold text-text-primary truncate">
             {schedule.instanceName ?? "Instância"}
           </span>
+          <span className="text-xs text-text-secondary flex-shrink-0">
+            {formatScheduledDate(schedule.scheduled_at)}
+          </span>
+        </div>
+
+        {/* Line 2: Title */}
+        {schedule.title && (
+          <span className="text-xs text-primary-secondary truncate">
+            {schedule.title}
+          </span>
+        )}
+
+        {/* Line 3: Organizer + participant count */}
+        <div className="flex items-center justify-between gap-2">
           {schedule.creatorUsername && (
             <span className="text-xs text-text-secondary truncate">
               @{schedule.creatorUsername}
             </span>
           )}
-        </div>
-        <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
-          <span className="text-xs text-text-secondary">
-            {formatScheduledDate(schedule.scheduled_at)}
-          </span>
-          <span className="text-xs text-primary-secondary bg-surface px-1.5 py-0.5 rounded-full font-medium">
+          <span className="text-xs text-primary-secondary bg-surface px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">
             {participantCount}/12
           </span>
         </div>

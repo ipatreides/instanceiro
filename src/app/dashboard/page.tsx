@@ -7,12 +7,13 @@ import { useUsernameCheck } from "@/hooks/use-username-check";
 import { useCharacters } from "@/hooks/use-characters";
 import { useInstances } from "@/hooks/use-instances";
 import { useCooldownTimer } from "@/hooks/use-cooldown-timer";
+import { calculateCooldownExpiry } from "@/lib/cooldown";
+import type { CooldownType } from "@/lib/types";
 import { useAccounts } from "@/hooks/use-accounts";
 import { AccountBar } from "@/components/accounts/account-bar";
 import { AccountModal } from "@/components/accounts/account-modal";
 import { CreateAccountModal } from "@/components/accounts/create-account-modal";
 import { CharacterForm } from "@/components/characters/character-form";
-import { CharacterShareTab } from "@/components/characters/character-share-tab";
 import { FriendsSidebar } from "@/components/friends/friends-sidebar";
 import { useFriendships } from "@/hooks/use-friendships";
 import { useNotifications } from "@/hooks/use-notifications";
@@ -46,7 +47,6 @@ export default function DashboardPage() {
   const [searchFilters, setSearchFilters] = useState<import("@/components/instances/instance-search").SearchFilter[]>([]);
   const [showNewChar, setShowNewChar] = useState(false);
   const [editingChar, setEditingChar] = useState<Character | null>(null);
-  const [editTab, setEditTab] = useState<"data" | "share">("data");
   const [deletingChar, setDeletingChar] = useState<Character | null>(null);
   const [modalInstanceId, setModalInstanceId] = useState<number | null>(null);
   const [showFriends, setShowFriends] = useState(false);
@@ -59,7 +59,9 @@ export default function DashboardPage() {
   const [scheduleParticipants, setScheduleParticipants] = useState<ScheduleParticipant[]>([]);
   const [participantsLoading, setParticipantsLoading] = useState(false);
   const [schedulingInstanceId, setSchedulingInstanceId] = useState<number | null>(null);
+  const [schedulingParticipants, setSchedulingParticipants] = useState<import("@/components/instances/participant-list").Participant[]>([]);
   const [pendingScheduleId, setPendingScheduleId] = useState<string | null>(null);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [needsUsername, setNeedsUsername] = useState(false);
   const [usernameInput, setUsernameInput] = useState("");
@@ -95,19 +97,26 @@ export default function DashboardPage() {
     completeSchedule,
     expireSchedule,
     updateScheduleTime,
+    updateScheduleTitle,
     getParticipants,
     generateInviteCode,
     getInviteCode,
     addPlaceholder,
     removePlaceholder,
     getPlaceholders,
+    getScheduledCharacterIds,
+    getScheduledCharsWithTimes,
   } = useSchedules();
   const now = useCooldownTimer();
 
-  // Close schedule modal if the schedule was completed/expired (realtime update)
+  // Sync selectedSchedule with latest data from schedules (realtime updates)
   useEffect(() => {
-    if (selectedSchedule && !schedules.some((s) => s.id === selectedSchedule.id)) {
+    if (!selectedSchedule) return;
+    const updated = schedules.find((s) => s.id === selectedSchedule.id);
+    if (!updated) {
       setSelectedSchedule(null);
+    } else if (updated !== selectedSchedule) {
+      setSelectedSchedule(updated);
     }
   }, [schedules, selectedSchedule]);
 
@@ -244,7 +253,6 @@ export default function DashboardPage() {
 
   const handleEditCharacter = (character: Character) => {
     setEditingChar(character);
-    setEditTab("data");
   };
 
   const handleUpdateCharacter = async (data: {
@@ -284,6 +292,8 @@ export default function DashboardPage() {
       .map((m) => ({ label: m as string, value: m as string, type: "map" as const })),
     ...["A", "B", "C"].map((t) => ({ label: `Liga ${t}`, value: t, type: "liga" as const })),
   ];
+
+  const isSearching = searchText.trim().length > 0 || searchFilters.length > 0;
 
   // Filter by search: tags are AND across types, OR within same type
   const filteredStates = allStates.filter((s) => {
@@ -464,10 +474,6 @@ export default function DashboardPage() {
           selectedCharId={selectedCharId}
           onSelectChar={handleSelectCharacter}
           onEditChar={handleEditCharacter}
-          onToggleCollapse={(accountId) => {
-            const acc = accounts.find(a => a.id === accountId);
-            if (acc) updateAccount(accountId, { is_collapsed: !acc.is_collapsed });
-          }}
           onOpenAccountModal={(account) => setAccountModalAccount(account)}
           onCreateAccount={() => setShowCreateAccount(true)}
           onReorderAccounts={reorderAccounts}
@@ -523,6 +529,7 @@ export default function DashboardPage() {
                 statesByType={statesByType}
                 now={now}
                 onCardClick={handleCardClick}
+                forceShowInactive={isSearching}
               />
 
               {/* Tablet: 2 columns */}
@@ -534,6 +541,7 @@ export default function DashboardPage() {
                     states={statesByType.get(type) ?? []}
                     now={now}
                     onCardClick={handleCardClick}
+                    forceShowInactive={isSearching}
                   />
                 ))}
               </div>
@@ -547,6 +555,7 @@ export default function DashboardPage() {
                     states={statesByType.get(type) ?? []}
                     now={now}
                     onCardClick={handleCardClick}
+                    forceShowInactive={isSearching}
                   />
                 ))}
               </div>
@@ -577,7 +586,7 @@ export default function DashboardPage() {
         isOpen={modalInstanceId !== null}
         onClose={handleModalClose}
         instance={modalState}
-        characters={characters.filter(c => !c.isShared)}
+        characters={characters}
         accounts={accounts}
         selectedCharId={selectedCharId}
         allCompletions={completions}
@@ -586,7 +595,7 @@ export default function DashboardPage() {
           setActionLoading(true);
           setActionError(null);
           try {
-            // If instance is inactive, activate it first
+            // If instance is inactive for the selected character, activate it first
             const state = allStates.find((s) => s.instance.id === modalInstanceId);
             if (state?.status === "inactive") {
               await toggleActive(modalInstanceId, true);
@@ -603,8 +612,9 @@ export default function DashboardPage() {
         onDeleteCompletion={handleDeleteCompletion}
         onDeactivate={handleDeactivate}
         onActivate={handleActivate}
-        onSchedule={modalState ? () => {
+        onSchedule={modalState ? (modalParticipants) => {
           setSchedulingInstanceId(modalState.instance.id);
+          setSchedulingParticipants(modalParticipants);
           setModalInstanceId(null);
         } : undefined}
         getEligibleFriends={getEligibleFriends}
@@ -645,51 +655,19 @@ export default function DashboardPage() {
         ) : undefined}
       >
         {editingChar && (
-          <div className="flex flex-col gap-4">
-            {/* Tabs */}
-            <div className="flex gap-1 border-b border-border">
-              <button
-                onClick={() => setEditTab("data")}
-                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
-                  editTab === "data"
-                    ? "border-primary text-text-primary"
-                    : "border-transparent text-text-secondary hover:text-text-primary"
-                }`}
-              >
-                Dados
-              </button>
-              <button
-                onClick={() => setEditTab("share")}
-                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
-                  editTab === "share"
-                    ? "border-primary text-text-primary"
-                    : "border-transparent text-text-secondary hover:text-text-primary"
-                }`}
-              >
-                Compartilhamento
-              </button>
-            </div>
-
-            {/* Tab content */}
-            {editTab === "data" && (
-              <CharacterForm
-                key={editingChar.id}
-                onSubmit={handleUpdateCharacter}
-                onCancel={() => setEditingChar(null)}
-                onDirtyChange={setCharFormDirty}
-                initialValues={{
-                  name: editingChar.name,
-                  class_name: editingChar.class,
-                  class_path: editingChar.class_path,
-                  level: editingChar.level,
-                }}
-                submitLabel="Salvar"
-              />
-            )}
-            {editTab === "share" && (
-              <CharacterShareTab characterId={editingChar.id} />
-            )}
-          </div>
+          <CharacterForm
+            key={editingChar.id}
+            onSubmit={handleUpdateCharacter}
+            onCancel={() => setEditingChar(null)}
+            onDirtyChange={setCharFormDirty}
+            initialValues={{
+              name: editingChar.name,
+              class_name: editingChar.class,
+              class_path: editingChar.class_path,
+              level: editingChar.level,
+            }}
+            submitLabel="Salvar"
+          />
         )}
       </Modal>
 
@@ -776,7 +754,7 @@ export default function DashboardPage() {
         participants={scheduleParticipants}
         loading={participantsLoading}
         currentUserId={userId}
-        characters={characters.filter((c) => !c.isShared)}
+        characters={characters}
         onJoin={async (characterId, message) => {
           if (!selectedSchedule) return;
           await joinSchedule(selectedSchedule.id, characterId, message);
@@ -819,29 +797,74 @@ export default function DashboardPage() {
           if (!selectedSchedule) return;
           await updateScheduleTime(selectedSchedule.id, scheduledAt);
         }}
+        onUpdateTitle={async (title) => {
+          if (!selectedSchedule) return;
+          await updateScheduleTitle(selectedSchedule.id, title);
+        }}
         onGenerateInviteCode={generateInviteCode}
         onGetInviteCode={getInviteCode}
         onAddPlaceholder={addPlaceholder}
         onRemovePlaceholder={removePlaceholder}
         onGetPlaceholders={getPlaceholders}
+        getScheduledCharsWithTimes={getScheduledCharsWithTimes}
       />
 
       {/* Schedule creation modal */}
       <Modal
         isOpen={schedulingInstanceId !== null}
-        onClose={() => setSchedulingInstanceId(null)}
+        onClose={() => { setSchedulingInstanceId(null); setScheduleError(null); }}
         title="Agendar Instância"
         isDirty={scheduleFormDirty}
       >
         <ScheduleForm
-          onSubmit={async (scheduledAt, message) => {
+          onSubmit={async (scheduledAt, message, title) => {
             if (!schedulingInstanceId || !selectedCharId) return;
-            const scheduleId = await createSchedule(schedulingInstanceId, selectedCharId, scheduledAt, message ?? undefined);
+            // Check cooldown-aware conflicts
+            const instance = allStates.find((s) => s.instance.id === schedulingInstanceId)?.instance;
+            const existingSchedules = await getScheduledCharsWithTimes(schedulingInstanceId);
+            const allParticipantIds = [selectedCharId, ...schedulingParticipants.map((p) => p.character_id)];
+            const newTime = new Date(scheduledAt);
+
+            const conflicting = allParticipantIds.filter((charId) => {
+              // Find existing schedules for this character
+              const charSchedules = existingSchedules.filter((s) => s.character_id === charId);
+              return charSchedules.some((existing) => {
+                if (!instance) return true; // safety: block if no instance data
+                const existingTime = new Date(existing.scheduled_at);
+                // Two schedules conflict if they're in the same cooldown period
+                const expiryFromExisting = calculateCooldownExpiry(existingTime, instance.cooldown_type, instance.cooldown_hours, instance.available_day);
+                const expiryFromNew = calculateCooldownExpiry(newTime, instance.cooldown_type, instance.cooldown_hours, instance.available_day);
+                // Conflict: new is before existing's expiry AND existing is before new's expiry
+                return newTime < expiryFromExisting && existingTime < expiryFromNew;
+              });
+            });
+
+            if (conflicting.length > 0) {
+              setScheduleError("Um ou mais personagens já estão agendados para esta instância no mesmo período de cooldown.");
+              return;
+            }
+            setScheduleError(null);
+            const scheduleId = await createSchedule(schedulingInstanceId, selectedCharId, scheduledAt, message ?? undefined, title ?? undefined);
+            // Add participants that were in the instance modal
+            for (const p of schedulingParticipants) {
+              if (p.character_id === selectedCharId) continue; // already the creator
+              try {
+                if (p.type === "own") {
+                  await joinSchedule(scheduleId, p.character_id);
+                } else {
+                  await inviteFriend(scheduleId, p.character_id, p.user_id);
+                }
+              } catch {
+                // Best-effort: don't block schedule creation if adding fails
+              }
+            }
             setSchedulingInstanceId(null);
+            setSchedulingParticipants([]);
             setPendingScheduleId(scheduleId);
           }}
-          onCancel={() => setSchedulingInstanceId(null)}
+          onCancel={() => { setSchedulingInstanceId(null); setSchedulingParticipants([]); setScheduleError(null); }}
           onDirtyChange={setScheduleFormDirty}
+          error={scheduleError}
         />
       </Modal>
 
