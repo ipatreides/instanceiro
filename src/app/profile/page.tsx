@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { FullPageSpinner } from "@/components/ui/spinner";
 import { useUsernameCheck, isValidUsername } from "@/hooks/use-username-check";
 import { NotificationsSection } from "@/components/profile/notifications-section";
+import { CalendarSection } from "@/components/profile/calendar-section";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -45,6 +46,9 @@ export default function ProfilePage() {
       const params = new URLSearchParams(window.location.search);
       if (params.get("discord") === "connected") {
         // Clean URL
+        window.history.replaceState({}, "", "/profile");
+      }
+      if (params.get("calendar") === "connected") {
         window.history.replaceState({}, "", "/profile");
       }
     });
@@ -152,6 +156,9 @@ export default function ProfilePage() {
         </div>
         <div className="mt-6">
           <NotificationsSection />
+        </div>
+        <div className="mt-6">
+          <CalendarSection />
         </div>
       </main>
     </div>
