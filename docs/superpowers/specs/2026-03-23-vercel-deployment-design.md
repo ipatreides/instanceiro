@@ -59,6 +59,10 @@ Google Cloud Console OAuth redirect URI (`https://swgnctajsbiyhqxstrnx.supabase.
 - Verify Supabase data fetching works (instances load, cooldowns calculate)
 - Test on mobile viewport
 
+### 7. Pin Node.js Version
+
+Add `engines` field to `package.json` to match local development version (Node 24.x). This ensures Vercel uses the same runtime and avoids build inconsistencies.
+
 ## Constraints
 
 - Vercel Free Tier: 100 GB bandwidth/month, 6000 build minutes/month
