@@ -4,6 +4,19 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { InstanceSchedule, ScheduleParticipant, SchedulePlaceholder } from "@/lib/types";
 
+function fireCalendarSync(body: {
+  action: "create" | "update" | "delete" | "delete_all";
+  scheduleId: string;
+  userId?: string;
+  data?: { instanceName: string; title?: string; scheduledAt: string; participants: string[]; message?: string; };
+}) {
+  fetch("/api/calendar/sync", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).catch(() => {}); // Best-effort, swallow errors
+}
+
 export interface EligibleFriend {
   user_id: string;
   username: string;
@@ -146,6 +159,7 @@ export function useSchedules(): UseSchedulesReturn {
 
     if (error) throw error;
     await fetchAll();
+    fireCalendarSync({ action: "create", scheduleId: data.id, userId: user.id });
     return data.id;
   }, [fetchAll]);
 
@@ -157,6 +171,7 @@ export function useSchedules(): UseSchedulesReturn {
       .eq("id", scheduleId);
     if (error) throw error;
     await fetchAll();
+    fireCalendarSync({ action: "update", scheduleId });
   }, [fetchAll]);
 
   const joinSchedule = useCallback(async (scheduleId: string, characterId: string, message?: string) => {
@@ -174,16 +189,24 @@ export function useSchedules(): UseSchedulesReturn {
       });
 
     if (error) throw error;
+    fireCalendarSync({ action: "create", scheduleId, userId: user.id });
+    fireCalendarSync({ action: "update", scheduleId });
   }, []);
 
   const leaveSchedule = useCallback(async (scheduleId: string, characterId: string) => {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
     await supabase
       .from("schedule_participants")
       .delete()
       .eq("schedule_id", scheduleId)
       .eq("character_id", characterId);
+
+    if (user) {
+      fireCalendarSync({ action: "delete", scheduleId, userId: user.id });
+    }
+    fireCalendarSync({ action: "update", scheduleId });
   }, []);
 
   const removeParticipant = useCallback(async (scheduleId: string, characterId: string) => {
@@ -193,6 +216,7 @@ export function useSchedules(): UseSchedulesReturn {
       .delete()
       .eq("schedule_id", scheduleId)
       .eq("character_id", characterId);
+    fireCalendarSync({ action: "update", scheduleId });
   }, []);
 
   const completeSchedule = useCallback(async (scheduleId: string, confirmedParticipants: { userId: string; characterId: string }[]) => {
@@ -230,6 +254,7 @@ export function useSchedules(): UseSchedulesReturn {
 
     if (statusError) throw statusError;
     await fetchAll();
+    fireCalendarSync({ action: "delete_all", scheduleId });
   }, [fetchAll]);
 
   const expireSchedule = useCallback(async (scheduleId: string) => {
@@ -239,6 +264,7 @@ export function useSchedules(): UseSchedulesReturn {
       .update({ status: "expired" })
       .eq("id", scheduleId);
     await fetchAll();
+    fireCalendarSync({ action: "delete_all", scheduleId });
   }, [fetchAll]);
 
   const updateScheduleTime = useCallback(async (scheduleId: string, scheduledAt: string) => {
@@ -249,6 +275,7 @@ export function useSchedules(): UseSchedulesReturn {
       .eq("id", scheduleId);
     if (error) throw error;
     await fetchAll();
+    fireCalendarSync({ action: "update", scheduleId });
   }, [fetchAll]);
 
   const getParticipants = useCallback(async (scheduleId: string): Promise<ScheduleParticipant[]> => {
@@ -396,6 +423,8 @@ export function useSchedules(): UseSchedulesReturn {
       p_user_id: targetUserId,
     });
     if (error) throw error;
+    fireCalendarSync({ action: "create", scheduleId, userId: targetUserId });
+    fireCalendarSync({ action: "update", scheduleId });
   }, []);
 
   const getScheduledCharacterIds = useCallback(async (instanceId: number): Promise<Set<string>> => {
