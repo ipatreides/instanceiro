@@ -37,7 +37,7 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isProtectedRoute =
-    pathname.startsWith("/dashboard") || pathname.startsWith("/onboarding") || pathname.startsWith("/invite");
+    pathname.startsWith("/dashboard") || pathname.startsWith("/invite");
 
   // Unauthenticated user trying to access protected routes → redirect to /
   if (!user && isProtectedRoute) {
@@ -53,16 +53,7 @@ export async function updateSession(request: NextRequest) {
 
   // Authenticated user
   if (user) {
-    // Fetch onboarding status from profiles table
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("onboarding_completed")
-      .eq("id", user.id)
-      .single();
-
-    const onboardingCompleted = profile?.onboarding_completed ?? false;
-
-    // Authenticated user on landing page → redirect based on onboarding status
+    // Authenticated user on landing page → redirect to dashboard
     if (pathname === "/") {
       const url = request.nextUrl.clone();
       const redirect = request.nextUrl.searchParams.get("redirect");
@@ -70,15 +61,8 @@ export async function updateSession(request: NextRequest) {
         url.pathname = redirect;
         url.searchParams.delete("redirect");
       } else {
-        url.pathname = onboardingCompleted ? "/dashboard" : "/onboarding";
+        url.pathname = "/dashboard";
       }
-      return NextResponse.redirect(url);
-    }
-
-    // Authenticated user on /dashboard who hasn't completed onboarding → redirect to /onboarding
-    if (pathname.startsWith("/dashboard") && !onboardingCompleted) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/onboarding";
       return NextResponse.redirect(url);
     }
   }
