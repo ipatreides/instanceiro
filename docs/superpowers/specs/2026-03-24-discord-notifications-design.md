@@ -2,21 +2,53 @@
 
 ## Overview
 
-Send Discord DMs to users when their hourly instance cooldowns expire. Users opt-in via a Discord OAuth flow on their profile page. A Supabase pg_cron job triggers an Edge Function every 5 minutes to check and send notifications.
+Send Discord DMs to users when their hourly instance cooldowns expire. Uses a Discord Bot to send messages. Users opt-in on their profile page. A Supabase pg_cron job triggers an Edge Function every 5 minutes to check and send notifications.
 
 ## Scope
 
 - **Only hourly instances** (4 total: Altar do Selo, Caverna do Polvo, Esgotos de Malangdo, Espaço Infinito)
 - Global toggle per user (on/off), no per-instance configuration
 - One consolidated DM per user per check cycle
+- Only instances with at least one prior completion trigger notifications (never-completed = don't notify)
+
+## Architecture
+
+Two components:
+- **Next.js API route** (`/api/discord-notify-callback`) on Vercel — handles Discord OAuth callback for users who didn't log in via Discord
+- **Supabase Edge Function** (`discord-notify`) — cron worker that checks cooldowns and sends DMs via bot token
+
+## Discord Bot Setup
+
+Create a Discord bot in the Discord Developer Portal:
+1. Create application (or reuse existing Instanceiro Discord app)
+2. Enable the Bot section, create bot, copy bot token
+3. Bot does NOT need to be in any server — it can DM any user by Discord user ID using `POST /users/@me/channels` (Create DM) + `POST /channels/{channel.id}/messages`
+4. Store bot token as Supabase Edge Function secret (`DISCORD_BOT_TOKEN`)
+
+No `MESSAGE_CONTENT` or other privileged intents needed — the bot only sends messages, never reads.
 
 ## User Flow
 
-1. On the profile page, a "Notificações" section shows a "Conectar Discord" button
-2. Clicking opens Discord OAuth requesting `identify` + `dm_channels.messages.write` scopes
-3. After authorization, a toggle "Notificar quando instâncias horárias ficarem disponíveis" appears and is enabled by default
-4. User can disable/re-enable at any time on the profile page
-5. User can disconnect Discord notifications entirely (removes stored tokens)
+### Users who logged in via Discord (auto-detect)
+
+1. On the profile page, a "Notificacoes" section detects that the user logged in with Discord
+2. The `discord_user_id` is extracted from `auth.users.raw_user_meta_data`
+3. User sees a toggle: "Notificar quando instancias horarias ficarem disponiveis"
+4. Enabling the toggle inserts a row in `discord_notifications` with the Discord user ID
+5. No extra OAuth flow needed
+
+### Users who logged in via Google (optional Discord link)
+
+1. Profile page shows a "Conectar Discord" button
+2. Clicking opens Discord OAuth with `identify` scope only
+3. After authorization, redirects to `/api/discord-notify-callback` which extracts the Discord user ID
+4. Stores in `discord_notifications` and redirects back to profile
+5. Toggle appears as above
+
+### Disabling / Disconnecting
+
+- Toggle off: sets `enabled = false` (keeps the row)
+- "Desconectar": deletes the `discord_notifications` row entirely
 
 ## Data Model
 
@@ -25,15 +57,14 @@ Send Discord DMs to users when their hourly instance cooldowns expire. Users opt
 | Column | Type | Notes |
 |--------|------|-------|
 | `user_id` | UUID, PK, FK | → `profiles.id` |
-| `discord_user_id` | text, NOT NULL | Discord user ID from OAuth |
-| `access_token` | text, NOT NULL | Discord OAuth access token (encrypted) |
-| `refresh_token` | text, NOT NULL | Discord OAuth refresh token (encrypted) |
-| `token_expires_at` | timestamptz, NOT NULL | When access_token expires |
+| `discord_user_id` | text, NOT NULL | Discord user ID |
 | `enabled` | boolean, NOT NULL | Default `true` |
 | `created_at` | timestamptz | Default `now()` |
 | `updated_at` | timestamptz | Default `now()` |
 
-RLS: `user_id = auth.uid()` for SELECT/UPDATE/DELETE. INSERT restricted to the auth callback Edge Function (service role).
+No tokens stored — the bot token is a single Edge Function secret. This is simpler and more secure than storing per-user OAuth tokens.
+
+RLS: `user_id = auth.uid()` for SELECT/UPDATE/DELETE. INSERT via service role or auth callback.
 
 ### `notification_log`
 
@@ -49,50 +80,30 @@ Prevents duplicate notifications for the same cooldown expiry.
 
 Index: `(user_id, character_id, instance_id, notified_at DESC)` for dedup lookups.
 
-RLS: user_id = auth.uid() for SELECT. INSERT restricted to Edge Function (service role).
+RLS: `user_id = auth.uid()` for SELECT. INSERT via service role (Edge Function).
 
-Auto-cleanup: pg_cron job deletes rows older than 24 hours (hourly cooldowns are max 12h, so 24h is safe).
-
-## Discord OAuth Setup
-
-### Application
-
-Reuse the existing Discord application from Supabase Auth, or create a dedicated one. Needs:
-- OAuth2 redirect URI: `https://instanceiro.vercel.app/api/discord-notify-callback`
-- Scopes: `identify`, `dm_channels.messages.write`
-
-### OAuth Flow
-
-1. Profile page generates authorization URL with state parameter (CSRF protection) and PKCE code_verifier
-2. User authorizes on Discord
-3. Discord redirects to `/api/discord-notify-callback` with code
-4. Callback Edge Function exchanges code for tokens, fetches Discord user ID, stores in `discord_notifications`
-5. Redirects back to profile page with success indicator
-
-### Token Refresh
-
-Discord access tokens expire after ~7 days. The `discord-notify` Edge Function checks `token_expires_at` before sending. If expired, uses `refresh_token` to get a new pair. If refresh fails (user revoked), sets `enabled = false` and skips.
+Auto-cleanup: pg_cron job deletes rows older than 24 hours.
 
 ## Edge Function: `discord-notify`
 
-Triggered by pg_cron every 5 minutes.
+Triggered by pg_cron every 5 minutes. Uses service role key for Supabase queries and bot token for Discord API.
 
 ### Algorithm
 
 ```
 1. Fetch all rows from discord_notifications WHERE enabled = true
 2. For each user:
-   a. Fetch user's characters (active only)
+   a. Fetch user's active characters
    b. Fetch instance_completions for hourly instances (id IN [1,2,3,4])
    c. For each character + hourly instance combo:
+      - Skip if no prior completions exist (never completed = don't notify)
       - Calculate cooldown expiry (same logic as frontend cooldown.ts)
-      - If expired (available now):
+      - If cooldown expired (available now):
         - Check notification_log: was this already notified after the last completion?
         - If not: add to pending notifications list
    d. If pending list is non-empty:
-      - Refresh token if needed
-      - Build consolidated message
-      - Send DM via Discord API
+      - Create DM channel: POST /users/@me/channels { recipient_id: discord_user_id }
+      - Send message: POST /channels/{channel.id}/messages { content: ... }
       - Insert rows into notification_log
 3. Return summary (sent count, errors)
 ```
@@ -107,7 +118,7 @@ For each (user_id, character_id, instance_id):
 
 ### DM Format
 
-One message per user, listing all newly available instances grouped by character:
+One message per user, listing all newly available instances with character names:
 
 ```
 Instancias disponiveis:
@@ -118,29 +129,52 @@ Instancias disponiveis:
 ### Error Handling
 
 - Discord API 429 (rate limited): log and retry on next cron cycle
-- Discord API 403 (user blocked DMs / revoked): set `enabled = false`, log
-- Token refresh failure: set `enabled = false`, log
-- Individual user failure doesn't block other users
+- Discord API 403 (user blocked bot DMs): set `enabled = false`, log
+- Discord API 50007 (cannot send to user): set `enabled = false`, log
+- Individual user failure does not block other users
+
+## Discord OAuth Flow (Google-login users only)
+
+### Setup
+
+- Use the same Discord application as the bot
+- Add redirect URI: `https://instanceiro.vercel.app/api/discord-notify-callback`
+- Scope: `identify` only
+
+### Callback (`/api/discord-notify-callback`)
+
+This is a **Next.js API route** on Vercel (not a Supabase Edge Function), because it needs to redirect the user's browser.
+
+1. Receives `code` and `state` params
+2. Validates `state` against session (CSRF protection)
+3. Exchanges code for token via Discord API
+4. Fetches user info (`GET /users/@me`) to get Discord user ID
+5. Inserts into `discord_notifications` using Supabase service role
+6. Redirects to `/profile?discord=connected`
+7. Discards the Discord token (not stored — only needed the user ID)
 
 ## Profile Page Changes
 
 ### Notifications Section
 
-Below existing profile content, add:
-
-**When not connected:**
+**When not connected (Google login, no Discord link):**
 - Heading: "Notificacoes"
 - Description: "Receba uma mensagem no Discord quando suas instancias horarias ficarem disponiveis."
 - Button: "Conectar Discord"
 
-**When connected:**
-- Toggle: "Notificacoes de instancias horarias" (on/off, controls `enabled` column)
+**When connected (Discord login auto-detected, or after manual link):**
+- Toggle: "Notificacoes de instancias horarias" (on/off)
 - Text: "Conectado como [discord username]"
-- Link: "Desconectar" (deletes the `discord_notifications` row)
+- Link: "Desconectar" (for manually linked users only — Discord login users can only toggle)
+- Button: "Enviar notificacao teste" — sends a test DM to verify it works
 
 ## pg_cron Configuration
 
 ```sql
+-- Enable pg_net extension (required for HTTP calls from pg_cron)
+CREATE EXTENSION IF NOT EXISTS pg_net;
+
+-- Notify cron: every 5 minutes
 SELECT cron.schedule(
   'discord-hourly-notify',
   '*/5 * * * *',
@@ -149,27 +183,27 @@ SELECT cron.schedule(
     headers := '{"Authorization": "Bearer <service_role_key>"}'::jsonb
   )$$
 );
-```
 
-Cleanup job:
-```sql
+-- Cleanup: daily at 4 AM BRT (7 AM UTC)
 SELECT cron.schedule(
   'cleanup-notification-log',
-  '0 4 * * *',
+  '0 7 * * *',
   $$DELETE FROM notification_log WHERE notified_at < now() - interval '24 hours'$$
 );
 ```
 
 ## Security
 
-- Discord tokens encrypted at rest (pgsodium `crypto_aead_det_encrypt` or application-level encryption in the Edge Function before storing)
-- Encryption key stored as Edge Function secret, not in code
-- RLS prevents users from reading other users' tokens
-- OAuth uses PKCE for code exchange
-- State parameter for CSRF protection on OAuth flow
+- **No user tokens stored** — bot token is a single secret in Edge Function environment
+- Bot token stored as Supabase Edge Function secret (`DISCORD_BOT_TOKEN`), never in code
+- Service role key in pg_cron SQL is standard Supabase pattern (stored in database, not exposed to clients)
+- RLS prevents users from reading other users' notification settings
+- OAuth `identify` flow uses `state` parameter for CSRF protection
+- Callback only extracts Discord user ID, then discards the OAuth token
 
 ## Constraints
 
-- Supabase Free Tier: 500k Edge Function invocations/month. Cron at 5min = ~8,640/month. Well within limits.
-- Discord API rate limits: ~5 DMs/second. Negligible concern at expected scale.
+- Supabase Free Tier: 500k Edge Function invocations/month. Cron at 5min = ~8,640/month.
+- Discord Bot API rate limits: ~5 DMs/second. Negligible at expected scale.
 - Only hourly instances (4 total). Daily/weekly/3-day not included.
+- Bot can DM users without sharing a server (standard Discord bot behavior, unless user has "Allow DMs from server members" disabled AND blocks the bot).
