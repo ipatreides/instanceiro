@@ -88,17 +88,19 @@ export function InstanceModalDetails({
         )}
       </div>
 
-      {/* Participant list */}
-      <ParticipantList
-        characters={characters}
-        accounts={accounts}
-        instanceId={instanceId}
-        getEligibleFriends={getEligibleFriends}
-        participants={participants}
-        lockedCharId={lockedCharId}
-        onAdd={onAddParticipant}
-        onRemove={onRemoveParticipant}
-      />
+      {/* Participant list (hidden for solo instances) */}
+      {!instance.is_solo && (
+        <ParticipantList
+          characters={characters}
+          accounts={accounts}
+          instanceId={instanceId}
+          getEligibleFriends={getEligibleFriends}
+          participants={participants}
+          lockedCharId={lockedCharId}
+          onAdd={onAddParticipant}
+          onRemove={onRemoveParticipant}
+        />
+      )}
     </div>
   );
 }

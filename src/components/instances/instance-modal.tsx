@@ -180,7 +180,7 @@ export function InstanceModal({
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
             </svg>
           </button>
-          {onSchedule && (
+          {onSchedule && !instance.is_solo && (
             <button
               onClick={() => onSchedule(participants)}
               className="py-2.5 px-4 rounded-md bg-surface border border-border text-primary-secondary font-semibold text-sm hover:border-primary-secondary transition-colors cursor-pointer"
