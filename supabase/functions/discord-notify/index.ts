@@ -262,5 +262,127 @@ Deno.serve(async (req) => {
     }
   }
 
-  return Response.json({ sent, errors, checked: users.length });
+  // === SCHEDULE NOTIFICATIONS ===
+  // Notify participants of upcoming schedules (5 min warning + start time)
+
+  const WARNING_THRESHOLD_SCHEDULE = 5 * 60 * 1000;
+
+  const { data: openSchedules } = await supabase
+    .from("instance_schedules")
+    .select("id, instance_id, character_id, created_by, scheduled_at, title, message, status")
+    .eq("status", "open");
+
+  if (openSchedules?.length) {
+    // Get instance names
+    const scheduleInstanceIds = [...new Set(openSchedules.map((s) => s.instance_id))];
+    const { data: schedInstances } = await supabase
+      .from("instances")
+      .select("id, name")
+      .in("id", scheduleInstanceIds);
+    const schedInstanceMap = new Map((schedInstances ?? []).map((i) => [i.id, i.name]));
+
+    for (const schedule of openSchedules) {
+      const scheduledAt = new Date(schedule.scheduled_at);
+      const timeUntil = scheduledAt.getTime() - now.getTime();
+
+      // Only process schedules within the warning window or past due
+      if (timeUntil > WARNING_THRESHOLD_SCHEDULE) continue;
+
+      // Determine notification type
+      let notifType: "warning" | "available" | null = null;
+      let minutesLeft = 0;
+      if (timeUntil > 0 && timeUntil <= WARNING_THRESHOLD_SCHEDULE) {
+        notifType = "warning";
+        minutesLeft = Math.ceil(timeUntil / 60000);
+      } else if (timeUntil <= 0 && timeUntil > -10 * 60 * 1000) {
+        // Only send "start" notification within 10 min after scheduled time
+        notifType = "available";
+      }
+
+      if (!notifType) continue;
+
+      // Get all participant user_ids (creator + joined)
+      const { data: participants } = await supabase
+        .from("schedule_participants")
+        .select("user_id, character_id")
+        .eq("schedule_id", schedule.id);
+
+      const allUserIds = [
+        schedule.created_by,
+        ...(participants ?? []).map((p) => p.user_id),
+      ];
+      const uniqueUserIds = [...new Set(allUserIds)];
+
+      // Get character names for the message
+      const allCharIds = [
+        schedule.character_id,
+        ...(participants ?? []).map((p) => p.character_id),
+      ];
+      const { data: charData } = await supabase
+        .from("characters")
+        .select("id, name")
+        .in("id", allCharIds);
+      const charNames = (charData ?? []).map((c) => c.name);
+
+      // Check which participants have discord notifications enabled
+      const { data: notifUsers } = await supabase
+        .from("discord_notifications")
+        .select("user_id, discord_user_id")
+        .in("user_id", uniqueUserIds)
+        .eq("enabled", true);
+
+      if (!notifUsers?.length) continue;
+
+      // Check dedup: has this schedule+type already been notified?
+      const { data: existingLogs } = await supabase
+        .from("notification_log")
+        .select("user_id")
+        .eq("schedule_id", schedule.id)
+        .eq("type", notifType);
+
+      const alreadyNotified = new Set((existingLogs ?? []).map((l) => l.user_id));
+
+      const instanceName = schedInstanceMap.get(schedule.instance_id) ?? "Instancia";
+      const title = schedule.title
+        ? `${schedule.title} — ${instanceName}`
+        : instanceName;
+
+      for (const notifUser of notifUsers) {
+        if (alreadyNotified.has(notifUser.user_id)) continue;
+
+        try {
+          let msg: string;
+          if (notifType === "warning") {
+            msg = `Agendamento em ~${minutesLeft}min:\n• ${title}\n• Participantes: ${charNames.join(", ")}`;
+            if (schedule.message) msg += `\n• Mensagem: ${schedule.message}`;
+          } else {
+            msg = `Hora do agendamento!\n• ${title}\n• Participantes: ${charNames.join(", ")}`;
+            if (schedule.message) msg += `\n• Mensagem: ${schedule.message}`;
+          }
+
+          const result = await sendDiscordDM(botToken, notifUser.discord_user_id, msg);
+          if (result.ok) {
+            sent++;
+            await supabase.from("notification_log").insert({
+              user_id: notifUser.user_id,
+              character_id: schedule.character_id, // Use creator's char as reference
+              instance_id: schedule.instance_id,
+              schedule_id: schedule.id,
+              type: notifType,
+            });
+          } else if (result.code === 403 || result.code === 50007) {
+            await supabase.from("discord_notifications")
+              .update({ enabled: false }).eq("user_id", notifUser.user_id);
+          } else {
+            errors++;
+          }
+        } catch (e) {
+          errors++;
+          console.error(`Schedule notify error for user ${notifUser.user_id}:`, e);
+        }
+      }
+    }
+  }
+
+  return Response.json({ sent, errors, checked: users?.length ?? 0 });
 });
