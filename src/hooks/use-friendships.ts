@@ -77,8 +77,9 @@ export function useFriendships(): UseFriendshipsReturn {
       .select("id, username, display_name, avatar_url")
       .not("username", "is", null);
 
+    const hiddenUsernames = new Set(["potato", "test1"]);
     const suggestedUsers = (allProfiles ?? [])
-      .filter((p) => !relatedIds.has(p.id) && p.username)
+      .filter((p) => !relatedIds.has(p.id) && p.username && !hiddenUsernames.has(p.username))
       .map((p) => ({
         id: p.id,
         username: p.username!,
