@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { FullPageSpinner } from "@/components/ui/spinner";
 import { useUsernameCheck, isValidUsername } from "@/hooks/use-username-check";
+import { NotificationsSection } from "@/components/profile/notifications-section";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -39,6 +40,13 @@ export default function ProfilePage() {
           }
           setLoading(false);
         });
+
+      // Show success message if redirected from Discord OAuth
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("discord") === "connected") {
+        // Clean URL
+        window.history.replaceState({}, "", "/profile");
+      }
     });
   }, [router]);
 
@@ -141,6 +149,9 @@ export default function ProfilePage() {
           >
             {saving ? "Salvando..." : "Salvar"}
           </button>
+        </div>
+        <div className="mt-6">
+          <NotificationsSection />
         </div>
       </main>
     </div>
