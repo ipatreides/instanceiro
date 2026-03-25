@@ -62,8 +62,8 @@ export function NotificationsSection() {
   if (!discordUserId) {
     return (
       <div className="bg-surface border border-border rounded-xl p-6 flex flex-col gap-4">
-        <h2 className="text-sm font-semibold text-text-primary">Notificacoes</h2>
-        <p className="text-xs text-text-secondary">
+        <h2 className="text-[22px] font-semibold text-text-primary">Notificacoes</h2>
+        <p className="text-sm text-text-secondary">
           Receba mensagens no Discord sobre instancias horarias e agendamentos.
         </p>
         <a
@@ -81,15 +81,15 @@ export function NotificationsSection() {
 
   return (
     <div className="bg-surface border border-border rounded-xl p-6 flex flex-col gap-4">
-      <h2 className="text-sm font-semibold text-text-primary">Notificacoes</h2>
-      <p className="text-xs text-text-secondary">
+      <h2 className="text-[22px] font-semibold text-text-primary">Notificacoes</h2>
+      <p className="text-sm text-text-secondary">
         Receba mensagens no Discord sobre instancias horarias e agendamentos.
       </p>
 
       {/* Server invite for Discord-login users */}
       {isDiscordLogin && !anyEnabled && (
         <div className="flex flex-col gap-2">
-          <p className="text-xs text-text-secondary">
+          <p className="text-sm text-text-secondary">
             Para receber notificacoes, entre no servidor do Instanceiro:
           </p>
           <a
@@ -105,25 +105,25 @@ export function NotificationsSection() {
 
       {/* Connected info */}
       {discordUsername && (
-        <span className="text-xs text-text-secondary">
+        <span className="text-sm text-text-secondary">
           Conectado como {discordUsername}
         </span>
       )}
 
       {/* Hourly toggle */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between py-1">
         <div className="flex flex-col">
-          <span className="text-sm text-text-primary">Instancias horarias</span>
-          <span className="text-xs text-text-secondary">Aviso quando cooldown expirar</span>
+          <span className="text-sm font-medium text-text-primary">Instancias horarias</span>
+          <span className="text-[13px] text-text-secondary">Aviso quando cooldown expirar</span>
         </div>
         <Toggle enabled={hourlyEnabled} onToggle={() => toggleHourly(!hourlyEnabled)} />
       </div>
 
       {/* Schedule toggle */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between py-1">
         <div className="flex flex-col">
-          <span className="text-sm text-text-primary">Agendamentos</span>
-          <span className="text-xs text-text-secondary">Aviso antes do horario agendado</span>
+          <span className="text-sm font-medium text-text-primary">Agendamentos</span>
+          <span className="text-[13px] text-text-secondary">Aviso antes do horario agendado</span>
         </div>
         <Toggle enabled={scheduleEnabled} onToggle={() => toggleSchedule(!scheduleEnabled)} />
       </div>
@@ -133,14 +133,14 @@ export function NotificationsSection() {
         <button
           onClick={handleTest}
           disabled={testSending}
-          className="text-xs text-primary hover:text-primary-hover transition-colors cursor-pointer disabled:opacity-50 self-start"
+          className="text-[13px] text-primary hover:text-primary-hover transition-colors cursor-pointer disabled:opacity-50 self-start"
         >
           {testSending ? "Enviando..." : "Enviar notificacao teste"}
         </button>
       )}
 
       {testResult && (
-        <p className={`text-xs ${testResult.includes("enviada") ? "text-status-available" : "text-status-error"}`}>
+        <p className={`text-[13px] ${testResult.includes("enviada") ? "text-status-available" : "text-status-error"}`}>
           {testResult}
         </p>
       )}
@@ -149,7 +149,7 @@ export function NotificationsSection() {
       {!isDiscordLogin && (
         <button
           onClick={disconnect}
-          className="text-xs text-text-secondary hover:text-status-error transition-colors cursor-pointer self-start"
+          className="text-[13px] text-text-secondary hover:text-status-error transition-colors cursor-pointer self-start"
         >
           Desconectar Discord
         </button>
