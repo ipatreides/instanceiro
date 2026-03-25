@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useFriendships } from "@/hooks/use-friendships";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 
@@ -9,12 +9,16 @@ interface FriendsSidebarProps {
   onClose?: () => void;
 }
 
-function OnlineDot({ online }: { online: boolean }) {
-  return (
-    <span
-      className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${online ? "bg-status-available" : "bg-border"}`}
-    />
-  );
+function formatLastSeen(isoDate: string | null): string | null {
+  if (!isoDate) return null;
+  const diff = Date.now() - new Date(isoDate).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "agora";
+  if (minutes < 60) return `${minutes}min atras`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h atras`;
+  const days = Math.floor(hours / 24);
+  return `${days}d atras`;
 }
 
 export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
@@ -30,13 +34,30 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
     removeFriend,
   } = useFriendships();
 
-  const { isOnline } = useOnlineStatus();
+  const { isOnline, getLastSeen, fetchLastSeen } = useOnlineStatus();
 
-  // Sort friends: online first
+  // Fetch last_seen for friends
+  useEffect(() => {
+    const offlineFriendIds = friends
+      .filter((f) => !isOnline(f.other_user_id))
+      .map((f) => f.other_user_id);
+    if (offlineFriendIds.length > 0) {
+      fetchLastSeen(offlineFriendIds);
+    }
+  }, [friends, isOnline, fetchLastSeen]);
+
+  // Sort friends: online first, then by last_seen descending
   const sortedFriends = [...friends].sort((a, b) => {
     const aOnline = isOnline(a.other_user_id) ? 1 : 0;
     const bOnline = isOnline(b.other_user_id) ? 1 : 0;
-    return bOnline - aOnline;
+    if (aOnline !== bOnline) return bOnline - aOnline;
+    // Both offline: sort by last_seen (most recent first)
+    const aLastSeen = getLastSeen(a.other_user_id);
+    const bLastSeen = getLastSeen(b.other_user_id);
+    if (aLastSeen && bLastSeen) return bLastSeen.localeCompare(aLastSeen);
+    if (aLastSeen) return -1;
+    if (bLastSeen) return 1;
+    return 0;
   });
 
   const [username, setUsername] = useState("");
@@ -147,9 +168,11 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
                       </div>
                       <div className="flex-1 min-w-0">
                         <span className="text-xs text-text-primary block truncate">@{f.username}</span>
-                        {f.display_name && (
-                          <span className="text-xs text-text-secondary block truncate">{f.display_name}</span>
-                        )}
+                        <span className="text-xs text-text-secondary block truncate">
+                          {isOnline(f.other_user_id)
+                            ? "online"
+                            : formatLastSeen(getLastSeen(f.other_user_id)) ?? f.display_name ?? ""}
+                        </span>
                       </div>
                       <button
                         onClick={() => setConfirmRemoveId(f.id)}
