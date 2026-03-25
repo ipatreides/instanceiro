@@ -73,6 +73,7 @@ export default function ProfilePage() {
             setCurrentUsername(data.username);
             setDisplayName(data.display_name);
             setEditDisplayName(data.display_name ?? "");
+            setEditValue(data.username ?? "");
             setAvatarUrl(data.avatar_url);
           }
           setLoading(false);
