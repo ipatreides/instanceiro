@@ -1,22 +1,57 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { FullPageSpinner } from "@/components/ui/spinner";
-import { useUsernameCheck, isValidUsername } from "@/hooks/use-username-check";
+import { useUsernameCheck } from "@/hooks/use-username-check";
 import { NotificationsSection } from "@/components/profile/notifications-section";
 // import { CalendarSection } from "@/components/profile/calendar-section";
 
+const AVATAR_SIZE = 128;
+const AVATAR_QUALITY = 0.85;
+
+async function resizeImage(file: File): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = AVATAR_SIZE;
+      canvas.height = AVATAR_SIZE;
+      const ctx = canvas.getContext("2d")!;
+
+      // Crop to square (center)
+      const size = Math.min(img.width, img.height);
+      const sx = (img.width - size) / 2;
+      const sy = (img.height - size) / 2;
+
+      ctx.drawImage(img, sx, sy, size, size, 0, 0, AVATAR_SIZE, AVATAR_SIZE);
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("Failed to resize"))),
+        "image/jpeg",
+        AVATAR_QUALITY
+      );
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 export default function ProfilePage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [currentUsername, setCurrentUsername] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [editDisplayName, setEditDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<Blob | null>(null);
   const [editValue, setEditValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const status = useUsernameCheck(editValue, currentUsername);
 
@@ -27,6 +62,7 @@ export default function ProfilePage() {
         router.push("/");
         return;
       }
+      setUserId(user.id);
       supabase
         .from("profiles")
         .select("username, display_name, avatar_url")
@@ -36,56 +72,109 @@ export default function ProfilePage() {
           if (data) {
             setCurrentUsername(data.username);
             setDisplayName(data.display_name);
+            setEditDisplayName(data.display_name ?? "");
             setAvatarUrl(data.avatar_url);
-            setEditValue(data.username ?? "");
           }
           setLoading(false);
         });
 
-      // Show success message if redirected from Discord OAuth
       const params = new URLSearchParams(window.location.search);
-      if (params.get("discord") === "connected") {
-        // Clean URL
-        window.history.replaceState({}, "", "/profile");
-      }
-      if (params.get("calendar") === "connected") {
+      if (params.get("discord") === "connected" || params.get("calendar") === "connected") {
         window.history.replaceState({}, "", "/profile");
       }
     });
   }, [router]);
 
+  async function handleAvatarSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const resized = await resizeImage(file);
+      setAvatarFile(resized);
+      setAvatarPreview(URL.createObjectURL(resized));
+      setSaved(false);
+    } catch {
+      // Ignore resize errors
+    }
+  }
+
   async function handleSave() {
-    if (status !== "available" || saving) return;
+    if (saving) return;
     setSaving(true);
     setSaved(false);
+
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) { setSaving(false); return; }
+
+    const updates: Record<string, unknown> = {};
+
+    // Username change
+    if (editValue !== (currentUsername ?? "") && status === "available") {
+      updates.username = editValue;
+    }
+
+    // Display name change
+    if (editDisplayName.trim() !== (displayName ?? "")) {
+      updates.display_name = editDisplayName.trim() || null;
+    }
+
+    // Avatar upload
+    if (avatarFile) {
+      setUploadingAvatar(true);
+      const path = `${user.id}/avatar.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, avatarFile, { upsert: true, contentType: "image/jpeg" });
+
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+        updates.avatar_url = `${urlData.publicUrl}?v=${Date.now()}`;
+      }
+      setUploadingAvatar(false);
+    }
+
+    if (Object.keys(updates).length === 0) {
+      setSaving(false);
+      return;
+    }
 
     const { error } = await supabase
       .from("profiles")
-      .update({ username: editValue })
+      .update(updates)
       .eq("id", user.id);
 
     if (!error) {
-      setCurrentUsername(editValue);
+      if (updates.username) setCurrentUsername(updates.username as string);
+      if (updates.display_name !== undefined) setDisplayName(updates.display_name as string | null);
+      if (updates.avatar_url) {
+        setAvatarUrl(updates.avatar_url as string);
+        setAvatarPreview(null);
+        setAvatarFile(null);
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     }
     setSaving(false);
   }
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleUsernameChange(e: React.ChangeEvent<HTMLInputElement>) {
     setEditValue(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ""));
     setSaved(false);
   }
 
-  const hasChanged = editValue !== (currentUsername ?? "");
-  const canSave = hasChanged && status === "available" && !saving;
+  const usernameChanged = editValue !== (currentUsername ?? "");
+  const nameChanged = editDisplayName.trim() !== (displayName ?? "");
+  const avatarChanged = avatarFile !== null;
+  const hasChanges = (usernameChanged && status === "available") || nameChanged || avatarChanged;
+  const canSave = hasChanges && !saving;
 
   if (loading) {
     return <FullPageSpinner />;
   }
+
+  const displayedAvatar = avatarPreview ?? avatarUrl;
 
   return (
     <div className="min-h-screen bg-bg">
@@ -104,15 +193,51 @@ export default function ProfilePage() {
 
       <main className="max-w-2xl mx-auto px-5 py-8">
         <div className="bg-surface border border-border rounded-xl p-6 flex flex-col gap-6">
-          {/* User info */}
-          <div className="flex items-center gap-4">
-            {avatarUrl && (
-              <img src={avatarUrl} alt="Avatar" className="w-12 h-12 rounded-full object-cover" />
-            )}
-            <div>
-              <p className="text-text-primary font-semibold">{displayName}</p>
-              <p className="text-text-secondary text-sm">@{currentUsername ?? "sem username"}</p>
+          {/* Avatar */}
+          <div className="flex flex-col items-center gap-3">
+            <div className="relative group">
+              {displayedAvatar ? (
+                <img
+                  src={displayedAvatar}
+                  alt="Avatar"
+                  className="w-20 h-20 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-border flex items-center justify-center text-text-secondary text-2xl font-semibold">
+                  {(displayName ?? "?")[0]?.toUpperCase()}
+                </div>
+              )}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" />
+                </svg>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarSelect}
+                className="hidden"
+              />
             </div>
+            {uploadingAvatar && <p className="text-xs text-text-secondary">Enviando...</p>}
+          </div>
+
+          {/* Display name */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-text-secondary">Nome</label>
+            <input
+              type="text"
+              value={editDisplayName}
+              onChange={(e) => { setEditDisplayName(e.target.value); setSaved(false); }}
+              maxLength={50}
+              placeholder="Seu nome"
+              className="w-full bg-surface border border-border rounded-md px-3 py-2.5 text-text-primary text-sm placeholder-text-secondary focus:outline-none focus:border-primary transition-colors"
+            />
           </div>
 
           {/* Username edit */}
@@ -123,13 +248,13 @@ export default function ProfilePage() {
               <input
                 type="text"
                 value={editValue}
-                onChange={handleChange}
+                onChange={handleUsernameChange}
                 maxLength={20}
                 className="w-full bg-surface border border-border rounded-md pl-8 pr-10 py-2.5 text-text-primary text-sm placeholder-text-secondary focus:outline-none focus:border-primary transition-colors"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">
                 {status === "checking" && <span className="text-text-secondary animate-pulse">...</span>}
-                {status === "available" && hasChanged && <span className="text-status-available">✓</span>}
+                {status === "available" && usernameChanged && <span className="text-status-available">✓</span>}
                 {status === "taken" && <span className="text-status-error">✗</span>}
                 {status === "invalid" && editValue.length > 0 && <span className="text-status-error">✗</span>}
               </span>
