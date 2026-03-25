@@ -62,6 +62,7 @@ export function useFriendships(): UseFriendshipsReturn {
       const profile = profileMap.get(otherId);
       return {
         ...f,
+        other_user_id: otherId,
         username: profile?.username ?? "???",
         display_name: profile?.display_name ?? null,
         avatar_url: profile?.avatar_url ?? null,

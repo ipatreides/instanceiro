@@ -44,6 +44,7 @@ export interface Friendship {
   addressee_id: string;
   status: 'pending' | 'accepted';
   created_at: string;
+  other_user_id: string;
   username?: string;
   display_name?: string | null;
   avatar_url?: string | null;

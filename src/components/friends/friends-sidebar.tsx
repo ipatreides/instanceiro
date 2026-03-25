@@ -2,10 +2,19 @@
 
 import { useState } from "react";
 import { useFriendships } from "@/hooks/use-friendships";
+import { useOnlineStatus } from "@/hooks/use-online-status";
 
 interface FriendsSidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
+}
+
+function OnlineDot({ online }: { online: boolean }) {
+  return (
+    <span
+      className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${online ? "bg-status-available" : "bg-border"}`}
+    />
+  );
 }
 
 export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
@@ -20,6 +29,15 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
     rejectRequest,
     removeFriend,
   } = useFriendships();
+
+  const { isOnline } = useOnlineStatus();
+
+  // Sort friends: online first
+  const sortedFriends = [...friends].sort((a, b) => {
+    const aOnline = isOnline(a.other_user_id) ? 1 : 0;
+    const bOnline = isOnline(b.other_user_id) ? 1 : 0;
+    return bOnline - aOnline;
+  });
 
   const [username, setUsername] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -115,15 +133,18 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
               <h3 className="text-xs text-text-secondary uppercase tracking-wide font-semibold">
                 Amigos ({friends.length})
               </h3>
-              {friends.length === 0 ? (
+              {sortedFriends.length === 0 ? (
                 <p className="text-xs text-text-secondary italic">Nenhum amigo ainda</p>
               ) : (
-                friends.map((f) => (
+                sortedFriends.map((f) => (
                   <div key={f.id} className="flex flex-col gap-1">
                     <div className="group flex items-center gap-2 bg-surface rounded px-3 py-2">
-                      {f.avatar_url && (
-                        <img src={f.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
-                      )}
+                      <div className="relative flex-shrink-0">
+                        {f.avatar_url && (
+                          <img src={f.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover" />
+                        )}
+                        <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-surface ${isOnline(f.other_user_id) ? "bg-status-available" : "bg-border"}`} />
+                      </div>
                       <div className="flex-1 min-w-0">
                         <span className="text-xs text-text-primary block truncate">@{f.username}</span>
                         {f.display_name && (
