@@ -85,15 +85,21 @@ Deno.serve(async (req) => {
   const instanceIds = hourlyInstances.map((i: InstanceRow) => i.id);
   const instanceMap = new Map(hourlyInstances.map((i: InstanceRow) => [i.id, i]));
 
-  // Fetch enabled notification users
-  const { data: users } = await supabase
+  // Fetch notification users (either hourly or schedule enabled)
+  const { data: allNotifUsers } = await supabase
     .from("discord_notifications")
-    .select("user_id, discord_user_id")
-    .eq("enabled", true);
+    .select("user_id, discord_user_id, hourly_enabled, schedule_enabled")
+    .or("hourly_enabled.eq.true,schedule_enabled.eq.true");
 
-  if (!users?.length) {
+  const hourlyUsers = (allNotifUsers ?? []).filter((u) => u.hourly_enabled);
+  const scheduleUsers = (allNotifUsers ?? []).filter((u) => u.schedule_enabled);
+
+  if (!hourlyUsers.length && !scheduleUsers.length) {
     return Response.json({ sent: 0, errors: 0, message: "no enabled users" });
   }
+
+  // Use hourlyUsers for the hourly instance section below
+  const users = hourlyUsers;
 
   for (const user of users) {
     try {
@@ -324,12 +330,8 @@ Deno.serve(async (req) => {
         .in("id", allCharIds);
       const charNames = (charData ?? []).map((c) => c.name);
 
-      // Check which participants have discord notifications enabled
-      const { data: notifUsers } = await supabase
-        .from("discord_notifications")
-        .select("user_id, discord_user_id")
-        .in("user_id", uniqueUserIds)
-        .eq("enabled", true);
+      // Check which participants have schedule notifications enabled
+      const notifUsers = scheduleUsers.filter((u) => uniqueUserIds.includes(u.user_id));
 
       if (!notifUsers?.length) continue;
 

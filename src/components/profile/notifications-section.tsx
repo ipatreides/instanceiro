@@ -10,16 +10,32 @@ function getDiscordOAuthURL(): string {
   const redirectUri = encodeURIComponent(
     `${window.location.origin}/api/discord-notify-callback`
   );
-  // Generate CSRF state, store in cookie
   const state = crypto.randomUUID();
   document.cookie = `discord_oauth_state=${state}; path=/; max-age=600; SameSite=Lax`;
   return `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=identify%20guilds.join&state=${state}`;
 }
 
+function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${
+        enabled ? "bg-primary" : "bg-border"
+      }`}
+    >
+      <span
+        className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+          enabled ? "translate-x-5" : "translate-x-0"
+        }`}
+      />
+    </button>
+  );
+}
+
 export function NotificationsSection() {
   const {
-    loading, discordUserId, enabled, discordUsername,
-    isDiscordLogin, toggle, disconnect, sendTest,
+    loading, discordUserId, hourlyEnabled, scheduleEnabled, discordUsername,
+    isDiscordLogin, toggleHourly, toggleSchedule, disconnect, sendTest,
   } = useDiscordNotifications();
 
   const [testSending, setTestSending] = useState(false);
@@ -42,13 +58,13 @@ export function NotificationsSection() {
     if (result.ok) setTimeout(() => setTestResult(null), 5000);
   }
 
-  // State: Google login, no Discord linked
+  // Not connected
   if (!discordUserId) {
     return (
       <div className="bg-surface border border-border rounded-xl p-6 flex flex-col gap-4">
         <h2 className="text-sm font-semibold text-text-primary">Notificacoes</h2>
         <p className="text-xs text-text-secondary">
-          Receba uma mensagem no Discord quando suas instancias horarias ficarem disponiveis.
+          Receba mensagens no Discord sobre instancias horarias e agendamentos.
         </p>
         <a
           href="#"
@@ -61,16 +77,17 @@ export function NotificationsSection() {
     );
   }
 
-  // State: Discord detected (login or linked)
+  const anyEnabled = hourlyEnabled || scheduleEnabled;
+
   return (
     <div className="bg-surface border border-border rounded-xl p-6 flex flex-col gap-4">
       <h2 className="text-sm font-semibold text-text-primary">Notificacoes</h2>
       <p className="text-xs text-text-secondary">
-        Receba uma mensagem no Discord quando suas instancias horarias ficarem disponiveis.
+        Receba mensagens no Discord sobre instancias horarias e agendamentos.
       </p>
 
-      {/* Server invite (always visible for Discord-login users who might not be in server) */}
-      {isDiscordLogin && !enabled && (
+      {/* Server invite for Discord-login users */}
+      {isDiscordLogin && !anyEnabled && (
         <div className="flex flex-col gap-2">
           <p className="text-xs text-text-secondary">
             Para receber notificacoes, entre no servidor do Instanceiro:
@@ -86,32 +103,33 @@ export function NotificationsSection() {
         </div>
       )}
 
-      {/* Toggle */}
+      {/* Connected info */}
+      {discordUsername && (
+        <span className="text-xs text-text-secondary">
+          Conectado como {discordUsername}
+        </span>
+      )}
+
+      {/* Hourly toggle */}
       <div className="flex items-center justify-between">
         <div className="flex flex-col">
           <span className="text-sm text-text-primary">Instancias horarias</span>
-          {discordUsername && (
-            <span className="text-xs text-text-secondary">
-              Conectado como {discordUsername}
-            </span>
-          )}
+          <span className="text-xs text-text-secondary">Aviso quando cooldown expirar</span>
         </div>
-        <button
-          onClick={() => toggle(!enabled)}
-          className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${
-            enabled ? "bg-primary" : "bg-border"
-          }`}
-        >
-          <span
-            className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
-              enabled ? "translate-x-5" : "translate-x-0"
-            }`}
-          />
-        </button>
+        <Toggle enabled={hourlyEnabled} onToggle={() => toggleHourly(!hourlyEnabled)} />
       </div>
 
-      {/* Test button + result */}
-      {enabled && (
+      {/* Schedule toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col">
+          <span className="text-sm text-text-primary">Agendamentos</span>
+          <span className="text-xs text-text-secondary">Aviso antes do horario agendado</span>
+        </div>
+        <Toggle enabled={scheduleEnabled} onToggle={() => toggleSchedule(!scheduleEnabled)} />
+      </div>
+
+      {/* Test button */}
+      {anyEnabled && (
         <button
           onClick={handleTest}
           disabled={testSending}
@@ -127,7 +145,7 @@ export function NotificationsSection() {
         </p>
       )}
 
-      {/* Disconnect (Google-linked users only) */}
+      {/* Disconnect */}
       {!isDiscordLogin && (
         <button
           onClick={disconnect}

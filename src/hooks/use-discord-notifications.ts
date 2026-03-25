@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 interface DiscordNotificationState {
   loading: boolean;
   discordUserId: string | null;
-  enabled: boolean;
+  hourlyEnabled: boolean;
+  scheduleEnabled: boolean;
   discordUsername: string | null;
   isDiscordLogin: boolean;
 }
@@ -15,7 +16,8 @@ export function useDiscordNotifications() {
   const [state, setState] = useState<DiscordNotificationState>({
     loading: true,
     discordUserId: null,
-    enabled: false,
+    hourlyEnabled: false,
+    scheduleEnabled: false,
     discordUsername: null,
     isDiscordLogin: false,
   });
@@ -29,7 +31,6 @@ export function useDiscordNotifications() {
         return;
       }
 
-      // Check if user logged in via Discord
       const provider = user.app_metadata?.provider;
       const isDiscordLogin = provider === "discord";
       const meta = user.user_metadata;
@@ -40,24 +41,24 @@ export function useDiscordNotifications() {
         ? (meta?.provider_id ?? null)
         : null;
 
-      // Check existing notification row
       const { data: notif } = await supabase
         .from("discord_notifications")
-        .select("discord_user_id, enabled")
+        .select("discord_user_id, hourly_enabled, schedule_enabled")
         .eq("user_id", user.id)
         .maybeSingle();
 
       setState({
         loading: false,
         discordUserId: notif?.discord_user_id ?? discordIdFromAuth,
-        enabled: notif?.enabled ?? false,
+        hourlyEnabled: notif?.hourly_enabled ?? false,
+        scheduleEnabled: notif?.schedule_enabled ?? false,
         discordUsername: notif ? (discordUsername ?? "Discord") : discordUsername,
         isDiscordLogin,
       });
     });
   }, []);
 
-  const toggle = useCallback(async (enabled: boolean) => {
+  const toggleHourly = useCallback(async (enabled: boolean) => {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user || !state.discordUserId) return;
@@ -66,16 +67,37 @@ export function useDiscordNotifications() {
       await supabase.from("discord_notifications").upsert({
         user_id: user.id,
         discord_user_id: state.discordUserId,
-        enabled: true,
+        hourly_enabled: true,
       });
     } else {
       await supabase
         .from("discord_notifications")
-        .update({ enabled: false })
+        .update({ hourly_enabled: false })
         .eq("user_id", user.id);
     }
 
-    setState((s) => ({ ...s, enabled }));
+    setState((s) => ({ ...s, hourlyEnabled: enabled }));
+  }, [state.discordUserId]);
+
+  const toggleSchedule = useCallback(async (enabled: boolean) => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || !state.discordUserId) return;
+
+    if (enabled) {
+      await supabase.from("discord_notifications").upsert({
+        user_id: user.id,
+        discord_user_id: state.discordUserId,
+        schedule_enabled: true,
+      });
+    } else {
+      await supabase
+        .from("discord_notifications")
+        .update({ schedule_enabled: false })
+        .eq("user_id", user.id);
+    }
+
+    setState((s) => ({ ...s, scheduleEnabled: enabled }));
   }, [state.discordUserId]);
 
   const disconnect = useCallback(async () => {
@@ -91,7 +113,8 @@ export function useDiscordNotifications() {
     setState((s) => ({
       ...s,
       discordUserId: s.isDiscordLogin ? s.discordUserId : null,
-      enabled: false,
+      hourlyEnabled: false,
+      scheduleEnabled: false,
       discordUsername: s.isDiscordLogin ? s.discordUsername : null,
     }));
   }, []);
@@ -105,5 +128,5 @@ export function useDiscordNotifications() {
     return { ok: true };
   }, []);
 
-  return { ...state, toggle, disconnect, sendTest };
+  return { ...state, toggleHourly, toggleSchedule, disconnect, sendTest };
 }
