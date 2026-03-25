@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { FullPageSpinner } from "@/components/ui/spinner";
 import { useUsernameCheck } from "@/hooks/use-username-check";
 import { NotificationsSection } from "@/components/profile/notifications-section";
+import { Avatar } from "@/components/ui/avatar";
 // import { CalendarSection } from "@/components/profile/calendar-section";
 
 const AVATAR_SIZE = 128;
@@ -184,12 +185,6 @@ export default function ProfilePage() {
 
   const displayedAvatar = avatarRemoved ? null : (avatarPreview ?? avatarUrl);
 
-  // Generate initials from display name
-  const initials = (editDisplayName.trim() || displayName || "?")
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? "")
-    .join("");
 
   return (
     <div className="min-h-screen bg-bg">
@@ -211,17 +206,7 @@ export default function ProfilePage() {
           {/* Avatar */}
           <div className="flex flex-col items-center gap-3">
             <div className="relative group">
-              {displayedAvatar ? (
-                <img
-                  src={displayedAvatar}
-                  alt="Avatar"
-                  className="w-20 h-20 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center text-primary text-2xl font-semibold">
-                  {initials}
-                </div>
-              )}
+              <Avatar src={displayedAvatar} name={editDisplayName.trim() || displayName} size="lg" />
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useFriendships } from "@/hooks/use-friendships";
 import { useOnlineStatus } from "@/hooks/use-online-status";
+import { Avatar } from "@/components/ui/avatar";
 
 interface FriendsSidebarProps {
   isOpen?: boolean;
@@ -110,9 +111,7 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
                 </h3>
                 {pendingReceived.map((f) => (
                   <div key={f.id} className="flex items-center gap-2 bg-surface rounded px-3 py-2">
-                    {f.avatar_url && (
-                      <img src={f.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
-                    )}
+                    <Avatar src={f.avatar_url} name={f.display_name ?? f.username} size="xs" />
                     <span className="text-xs text-text-secondary flex-1 truncate">@{f.username}</span>
                     <button
                       onClick={() => acceptRequest(f.id)}
@@ -139,9 +138,7 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
                 </h3>
                 {pendingSent.map((f) => (
                   <div key={f.id} className="flex items-center gap-2 bg-surface rounded px-3 py-2">
-                    {f.avatar_url && (
-                      <img src={f.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
-                    )}
+                    <Avatar src={f.avatar_url} name={f.display_name ?? f.username} size="xs" />
                     <span className="text-xs text-text-secondary flex-1 truncate">@{f.username}</span>
                     <span className="text-xs text-text-secondary italic">pendente</span>
                   </div>
@@ -161,9 +158,7 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
                   <div key={f.id} className="flex flex-col gap-1">
                     <div className="group flex items-center gap-2 bg-surface rounded px-3 py-2">
                       <div className="relative flex-shrink-0">
-                        {f.avatar_url && (
-                          <img src={f.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover" />
-                        )}
+                        <Avatar src={f.avatar_url} name={f.display_name ?? f.username} size="xs" />
                         <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-surface ${isOnline(f.other_user_id) ? "bg-status-available" : "bg-border"}`} />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -211,9 +206,7 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
                 </h3>
                 {suggestions.map((s) => (
                   <div key={s.id} className="flex items-center gap-2 bg-surface rounded px-3 py-2">
-                    {s.avatar_url && (
-                      <img src={s.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
-                    )}
+                    <Avatar src={s.avatar_url} name={s.display_name ?? s.username} size="xs" />
                     <div className="flex-1 min-w-0">
                       <span className="text-xs text-text-primary block truncate">@{s.username}</span>
                       {s.display_name && (

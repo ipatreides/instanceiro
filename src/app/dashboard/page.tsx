@@ -28,6 +28,7 @@ import { ScheduleForm } from "@/components/schedules/schedule-form";
 import { useSchedules } from "@/hooks/use-schedules";
 import type { InstanceSchedule, ScheduleParticipant } from "@/lib/types";
 import { Modal } from "@/components/ui/modal";
+import { Avatar } from "@/components/ui/avatar";
 import { FullPageSpinner, Spinner } from "@/components/ui/spinner";
 import { Logo } from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -421,13 +422,7 @@ export default function DashboardPage() {
         <div className="max-w-6xl mx-auto px-5 py-3 flex items-center justify-between">
           <Logo size="md" />
           <div className="flex items-center gap-3">
-            {profile?.avatar_url && (
-              <img
-                src={profile.avatar_url}
-                alt="Avatar"
-                className="w-7 h-7 rounded-full object-cover"
-              />
-            )}
+            <Avatar src={profile?.avatar_url} name={profile?.display_name} size="sm" />
             {profile?.username && (
               <a
                 href="/profile"
