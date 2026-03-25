@@ -52,6 +52,7 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarRemoved, setAvatarRemoved] = useState(false);
 
   const status = useUsernameCheck(editValue, currentUsername);
 
@@ -121,6 +122,11 @@ export default function ProfilePage() {
       updates.display_name = editDisplayName.trim() || null;
     }
 
+    // Avatar removal
+    if (avatarRemoved && !avatarFile) {
+      updates.avatar_url = null;
+    }
+
     // Avatar upload
     if (avatarFile) {
       setUploadingAvatar(true);
@@ -149,10 +155,11 @@ export default function ProfilePage() {
     if (!error) {
       if (updates.username) setCurrentUsername(updates.username as string);
       if (updates.display_name !== undefined) setDisplayName(updates.display_name as string | null);
-      if (updates.avatar_url) {
-        setAvatarUrl(updates.avatar_url as string);
+      if ("avatar_url" in updates) {
+        setAvatarUrl(updates.avatar_url as string | null);
         setAvatarPreview(null);
         setAvatarFile(null);
+        setAvatarRemoved(false);
       }
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -167,7 +174,7 @@ export default function ProfilePage() {
 
   const usernameChanged = editValue !== (currentUsername ?? "");
   const nameChanged = editDisplayName.trim() !== (displayName ?? "");
-  const avatarChanged = avatarFile !== null;
+  const avatarChanged = avatarFile !== null || avatarRemoved;
   const hasChanges = (usernameChanged && status === "available") || nameChanged || avatarChanged;
   const canSave = hasChanges && !saving;
 
@@ -175,7 +182,14 @@ export default function ProfilePage() {
     return <FullPageSpinner />;
   }
 
-  const displayedAvatar = avatarPreview ?? avatarUrl;
+  const displayedAvatar = avatarRemoved ? null : (avatarPreview ?? avatarUrl);
+
+  // Generate initials from display name
+  const initials = (editDisplayName.trim() || displayName || "?")
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("");
 
   return (
     <div className="min-h-screen bg-bg">
@@ -204,8 +218,8 @@ export default function ProfilePage() {
                   className="w-20 h-20 rounded-full object-cover"
                 />
               ) : (
-                <div className="w-20 h-20 rounded-full bg-border flex items-center justify-center text-text-secondary text-2xl font-semibold">
-                  {(displayName ?? "?")[0]?.toUpperCase()}
+                <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center text-primary text-2xl font-semibold">
+                  {initials}
                 </div>
               )}
               <button
@@ -224,6 +238,22 @@ export default function ProfilePage() {
                 onChange={handleAvatarSelect}
                 className="hidden"
               />
+            </div>
+            <div className="flex gap-3 text-[13px]">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="text-primary hover:text-primary-hover transition-colors cursor-pointer"
+              >
+                Alterar foto
+              </button>
+              {displayedAvatar && (
+                <button
+                  onClick={() => { setAvatarRemoved(true); setAvatarFile(null); setAvatarPreview(null); setSaved(false); }}
+                  className="text-text-secondary hover:text-status-error transition-colors cursor-pointer"
+                >
+                  Remover foto
+                </button>
+              )}
             </div>
             {uploadingAvatar && <p className="text-xs text-text-secondary">Enviando...</p>}
           </div>
