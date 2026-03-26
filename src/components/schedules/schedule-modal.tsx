@@ -8,6 +8,9 @@ import type { EligibleFriend } from "@/hooks/use-schedules";
 import { calculateCooldownExpiry } from "@/lib/cooldown";
 import { getLeafClasses } from "@/lib/class-tree";
 import { DateTimePicker } from "@/components/ui/datetime-picker";
+import { SlotTypeIcon } from "@/components/ui/slot-type-icon";
+import { SLOT_TYPES, SLOT_TYPE_LABELS, SLOT_TYPE_DESCRIPTIONS, SLOT_TYPE_COLORS } from "@/lib/class-roles";
+import type { SlotType } from "@/lib/class-roles";
 
 interface ScheduleModalProps {
   isOpen: boolean;
@@ -22,9 +25,7 @@ interface ScheduleModalProps {
   onInvite: (characterId: string, userId: string) => Promise<void>;
   getEligibleFriends: (instanceId: number) => Promise<EligibleFriend[]>;
   onComplete: (confirmedParticipants: { userId: string; characterId: string }[]) => Promise<void>;
-  onGenerateInviteCode: (scheduleId: string) => Promise<string>;
-  onGetInviteCode: (scheduleId: string) => Promise<string | null>;
-  onAddPlaceholder: (scheduleId: string, name: string, className: string) => Promise<void>;
+  onAddPlaceholder: (scheduleId: string, slotType: SlotType, slotLabel: string, slotClass: string | null) => Promise<void>;
   onRemovePlaceholder: (placeholderId: string) => Promise<void>;
   onGetPlaceholders: (scheduleId: string) => Promise<import("@/lib/types").SchedulePlaceholder[]>;
   onExpire: () => Promise<void>;
@@ -50,8 +51,6 @@ export function ScheduleModal({
   onInvite,
   getEligibleFriends,
   onComplete,
-  onGenerateInviteCode,
-  onGetInviteCode,
   onAddPlaceholder,
   onRemovePlaceholder,
   onGetPlaceholders,
@@ -72,11 +71,9 @@ export function ScheduleModal({
   const [eligibleFriends, setEligibleFriends] = useState<EligibleFriend[]>([]);
   const [friendsLoaded, setFriendsLoaded] = useState(false);
   const [search, setSearch] = useState("");
-  const [inviteCode, setInviteCode] = useState<string | null>(null);
-  const [inviteCopied, setInviteCopied] = useState(false);
   const [placeholders, setPlaceholders] = useState<import("@/lib/types").SchedulePlaceholder[]>([]);
   const [showPlaceholderForm, setShowPlaceholderForm] = useState(false);
-  const [placeholderName, setPlaceholderName] = useState("");
+  const [placeholderSlotType, setPlaceholderSlotType] = useState<SlotType>("dps_fisico");
   const [placeholderClass, setPlaceholderClass] = useState("");
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [editingTime, setEditingTime] = useState(false);
@@ -93,7 +90,7 @@ export function ScheduleModal({
     setCheckedParticipants({});
     setSearch("");
     setShowPlaceholderForm(false);
-    setPlaceholderName("");
+    setPlaceholderSlotType("dps_fisico");
     setPlaceholderClass("");
     setConfirmingCancel(false);
     setEditingTime(false);
@@ -105,9 +102,8 @@ export function ScheduleModal({
 
   useEffect(() => {
     if (!isOpen || !schedule) return;
-    onGetInviteCode(schedule.id).then(setInviteCode);
     onGetPlaceholders(schedule.id).then(setPlaceholders);
-  }, [isOpen, schedule?.id, onGetInviteCode, onGetPlaceholders]);
+  }, [isOpen, schedule?.id, onGetPlaceholders]);
 
   // Load eligible friends for inline list (creator only)
   useEffect(() => {
@@ -245,29 +241,6 @@ export function ScheduleModal({
     }
   };
 
-  const handleGenerateInvite = async () => {
-    if (!schedule) return;
-    setActionLoading(true);
-    try {
-      const code = await onGenerateInviteCode(schedule.id);
-      setInviteCode(code);
-      const url = `${window.location.origin}/invite/${code}`;
-      await navigator.clipboard.writeText(url);
-      setInviteCopied(true);
-      setTimeout(() => setInviteCopied(false), 2000);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleCopyInvite = async () => {
-    if (!inviteCode) return;
-    const url = `${window.location.origin}/invite/${inviteCode}`;
-    await navigator.clipboard.writeText(url);
-    setInviteCopied(true);
-    setTimeout(() => setInviteCopied(false), 2000);
-  };
-
   const handleExpire = async () => {
     setActionLoading(true);
     try {
@@ -278,15 +251,16 @@ export function ScheduleModal({
   };
 
   const handleAddPlaceholder = async () => {
-    if (!schedule || !placeholderName.trim() || !placeholderClass.trim()) return;
+    if (!schedule) return;
     setActionLoading(true);
     try {
-      await onAddPlaceholder(schedule.id, placeholderName.trim(), placeholderClass.trim());
+      const label = placeholderSlotType === "class" ? placeholderClass.trim() : SLOT_TYPE_LABELS[placeholderSlotType];
+      const slotClass = placeholderSlotType === "class" ? placeholderClass.trim() : null;
+      await onAddPlaceholder(schedule.id, placeholderSlotType, label, slotClass);
+      setShowPlaceholderForm(false);
+      setPlaceholderClass("");
       const updated = await onGetPlaceholders(schedule.id);
       setPlaceholders(updated);
-      setPlaceholderName("");
-      setPlaceholderClass("");
-      setShowPlaceholderForm(false);
     } finally {
       setActionLoading(false);
     }
@@ -336,28 +310,6 @@ export function ScheduleModal({
   // Footer for creator in view mode
   const footer = mode === "view" && schedule.status === "open" ? (
     <div className="flex items-center gap-2">
-      {/* Left: invite link */}
-      {isCreator && (
-        <div className="flex-shrink-0">
-          {inviteCode ? (
-            <button
-              onClick={handleCopyInvite}
-              className="px-3 py-2 text-xs text-primary-secondary bg-surface border border-primary-secondary/30 rounded-lg hover:border-primary-secondary transition-colors cursor-pointer whitespace-nowrap"
-            >
-              {inviteCopied ? "Copiado!" : "Copiar link"}
-            </button>
-          ) : (
-            <button
-              onClick={handleGenerateInvite}
-              disabled={busy}
-              className="px-3 py-2 text-xs text-primary-secondary bg-surface border border-primary-secondary/30 rounded-lg hover:border-primary-secondary transition-colors cursor-pointer disabled:opacity-50 whitespace-nowrap"
-            >
-              {busy ? "..." : "Gerar link"}
-            </button>
-          )}
-        </div>
-      )}
-
       {/* Right: actions */}
       <div className="flex gap-2 ml-auto">
         {!isCreator && availableCharsToJoin.length > 0 && (
@@ -658,16 +610,22 @@ export function ScheduleModal({
             {placeholders.filter((p) => !p.claimed_by).map((p) => (
               <div
                 key={p.id}
-                className="group flex items-center gap-3 px-3 py-2 rounded-lg bg-surface border border-border opacity-50"
+                className="group flex items-center gap-3 px-3 py-2 rounded-lg bg-surface border border-border"
               >
-                <div className="w-7 h-7 rounded-full bg-border flex items-center justify-center text-xs text-text-secondary">?</div>
+                <SlotTypeIcon type={p.slot_type} size={28} />
                 <div className="flex flex-col flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-text-primary font-medium truncate">{p.character_name}</span>
-                    <span className="text-xs text-text-secondary">{p.character_class}</span>
-                  </div>
-                  <span className="text-[10px] text-yellow-500 font-medium">Aguardando</span>
+                  <span className="text-sm text-text-secondary italic">Vaga aberta</span>
+                  <span className="text-[10px] text-text-secondary">{SLOT_TYPE_DESCRIPTIONS[p.slot_type]}</span>
                 </div>
+                <span
+                  className="text-[11px] font-semibold px-2 py-0.5 rounded-[var(--radius-sm)]"
+                  style={{
+                    background: `color-mix(in srgb, ${SLOT_TYPE_COLORS[p.slot_type]} 15%, transparent)`,
+                    color: SLOT_TYPE_COLORS[p.slot_type],
+                  }}
+                >
+                  {p.slot_label}
+                </span>
                 {isCreator && (
                   <button
                     onClick={() => handleRemovePlaceholder(p.id)}
@@ -692,7 +650,7 @@ export function ScheduleModal({
                 />
 
                 <div className="flex flex-col gap-0.5 max-h-48 overflow-y-auto">
-                  {/* First option: add external placeholder */}
+                  {/* First option: add placeholder slot */}
                   {!showPlaceholderForm ? (
                     <button
                       type="button"
@@ -700,42 +658,59 @@ export function ScheduleModal({
                       className="w-full text-left flex items-center gap-2 px-3 py-1.5 rounded text-xs hover:bg-surface transition-colors cursor-pointer text-primary"
                     >
                       <span className="w-5 h-5 rounded-full bg-border flex items-center justify-center text-[10px] text-text-secondary flex-shrink-0">+</span>
-                      Adicionar personagem externo
+                      Adicionar vaga
                     </button>
                   ) : (
                     <div className="flex flex-col gap-2 p-3 rounded-lg bg-bg border border-border">
-                      <input
-                        type="text"
-                        value={placeholderName}
-                        onChange={(e) => setPlaceholderName(e.target.value)}
-                        placeholder="Nome do personagem"
-                        maxLength={24}
-                        className="bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary"
-                      />
-                      <input
-                        type="text"
-                        value={placeholderClass}
-                        onChange={(e) => setPlaceholderClass(e.target.value)}
-                        placeholder="Classe (ex: Arcano)"
-                        maxLength={30}
-                        list="class-suggestions"
-                        className="bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary"
-                      />
-                      <datalist id="class-suggestions">
-                        {getLeafClasses().map((c) => (
-                          <option key={c} value={c} />
+                      <label className="text-xs text-text-secondary font-semibold">Tipo de vaga</label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {SLOT_TYPES.map((st) => (
+                          <button
+                            key={st}
+                            type="button"
+                            onClick={() => { setPlaceholderSlotType(st); setPlaceholderClass(""); }}
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-[var(--radius-sm)] text-xs font-medium border transition-colors cursor-pointer ${
+                              placeholderSlotType === st
+                                ? "border-primary bg-primary/10 text-text-primary"
+                                : "border-border bg-surface text-text-secondary hover:border-primary/50"
+                            }`}
+                          >
+                            <SlotTypeIcon type={st} size={18} />
+                            {SLOT_TYPE_LABELS[st]}
+                          </button>
                         ))}
-                      </datalist>
+                      </div>
+
+                      {placeholderSlotType === "class" && (
+                        <>
+                          <label className="text-xs text-text-secondary font-semibold mt-1">Classe</label>
+                          <input
+                            type="text"
+                            value={placeholderClass}
+                            onChange={(e) => setPlaceholderClass(e.target.value)}
+                            placeholder="Ex: Arcebispo"
+                            maxLength={30}
+                            list="class-suggestions"
+                            className="bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary"
+                          />
+                          <datalist id="class-suggestions">
+                            {getLeafClasses().map((c) => (
+                              <option key={c} value={c} />
+                            ))}
+                          </datalist>
+                        </>
+                      )}
+
                       <div className="flex gap-2 justify-end">
                         <button
-                          onClick={() => { setShowPlaceholderForm(false); setPlaceholderName(""); setPlaceholderClass(""); }}
+                          onClick={() => { setShowPlaceholderForm(false); setPlaceholderClass(""); }}
                           className="px-3 py-1.5 text-xs text-text-secondary bg-surface border border-border rounded-lg hover:bg-border transition-colors cursor-pointer"
                         >
                           Cancelar
                         </button>
                         <button
                           onClick={handleAddPlaceholder}
-                          disabled={busy || !placeholderName.trim() || !placeholderClass.trim()}
+                          disabled={busy || (placeholderSlotType === "class" && !placeholderClass.trim())}
                           className="px-3 py-1.5 text-xs text-white bg-primary rounded-lg hover:bg-primary-hover transition-colors cursor-pointer disabled:opacity-50"
                         >
                           Adicionar

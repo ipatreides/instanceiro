@@ -100,8 +100,6 @@ export default function DashboardPage() {
     updateScheduleTime,
     updateScheduleTitle,
     getParticipants,
-    generateInviteCode,
-    getInviteCode,
     addPlaceholder,
     removePlaceholder,
     getPlaceholders,
@@ -798,8 +796,6 @@ export default function DashboardPage() {
           if (!selectedSchedule) return;
           await updateScheduleTitle(selectedSchedule.id, title);
         }}
-        onGenerateInviteCode={generateInviteCode}
-        onGetInviteCode={getInviteCode}
         onAddPlaceholder={addPlaceholder}
         onRemovePlaceholder={removePlaceholder}
         onGetPlaceholders={getPlaceholders}
