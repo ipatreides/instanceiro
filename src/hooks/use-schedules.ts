@@ -86,11 +86,12 @@ export function useSchedules(): UseSchedulesReturn {
     const instanceIds = [...new Set(data.map((s) => s.instance_id))];
     const creatorIds = [...new Set(data.map((s) => s.created_by))];
 
-    const [instancesRes, profilesRes, participantsRes, placeholdersRes] = await Promise.all([
+    const [instancesRes, profilesRes, participantsRes, placeholdersRes, userRes] = await Promise.all([
       supabase.from("instances").select("id, name, start_map, liga_tier").in("id", instanceIds),
       supabase.from("profiles").select("id, username, avatar_url").in("id", creatorIds),
-      supabase.from("schedule_participants").select("schedule_id").in("schedule_id", data.map((s) => s.id)),
-      supabase.from("schedule_placeholders").select("schedule_id").in("schedule_id", data.map((s) => s.id)),
+      supabase.from("schedule_participants").select("schedule_id, user_id").in("schedule_id", data.map((s) => s.id)),
+      supabase.from("schedule_placeholders").select("schedule_id, claimed_by").in("schedule_id", data.map((s) => s.id)),
+      supabase.auth.getUser(),
     ]);
 
     const instanceMap = new Map((instancesRes.data ?? []).map((i: { id: number; name: string; start_map: string | null; liga_tier: string | null }) => [i.id, i]));
@@ -121,7 +122,43 @@ export function useSchedules(): UseSchedulesReturn {
       };
     });
 
-    setSchedules(enriched);
+    // Auto-expire schedules >3h late, hide >30min late from non-participants
+    const now = new Date();
+    const currentUserId = userRes.data.user?.id;
+    const THIRTY_MIN = 30 * 60 * 1000;
+    const THREE_HOURS = 3 * 60 * 60 * 1000;
+
+    // Build a set of schedule IDs where the current user is a participant
+    const userScheduleIds = new Set<string>();
+    for (const s of data) {
+      if (s.created_by === currentUserId) userScheduleIds.add(s.id);
+    }
+    for (const p of (participantsRes.data ?? [])) {
+      if (p.user_id === currentUserId) userScheduleIds.add(p.schedule_id);
+    }
+    for (const p of (placeholdersRes.data ?? [])) {
+      if (p.claimed_by === currentUserId) userScheduleIds.add(p.schedule_id);
+    }
+
+    // Auto-expire >3h late schedules
+    const toExpire = enriched.filter((s) => {
+      const delay = now.getTime() - new Date(s.scheduled_at).getTime();
+      return delay > THREE_HOURS;
+    });
+    for (const s of toExpire) {
+      supabase.from("instance_schedules").update({ status: "expired" }).eq("id", s.id).then(() => {});
+      fireCalendarSync({ action: "delete_all", scheduleId: s.id });
+    }
+
+    // Filter: hide >30min late from non-participants, remove >3h expired
+    const filtered = enriched.filter((s) => {
+      const delay = now.getTime() - new Date(s.scheduled_at).getTime();
+      if (delay > THREE_HOURS) return false;
+      if (delay > THIRTY_MIN && !userScheduleIds.has(s.id)) return false;
+      return true;
+    });
+
+    setSchedules(filtered);
   }, []);
 
   useEffect(() => {
