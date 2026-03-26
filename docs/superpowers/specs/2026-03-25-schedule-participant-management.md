@@ -72,6 +72,32 @@ Updated logic:
 6. Validate class restriction (unchanged)
 7. Claim
 
+### New RPC: `get_eligible_for_placeholder(p_placeholder_id UUID)`
+
+Returns characters eligible to fill a specific placeholder slot. Used by the "Atribuir" dropdown.
+
+```sql
+-- Returns array of eligible characters:
+[{ "character_id", "character_name", "character_class", "character_level", "user_id", "username", "avatar_url" }, ...]
+```
+
+**Logic:**
+1. Look up placeholder by id, join to `instance_schedules` to get `schedule_id` and `created_by`
+2. Verify caller is the schedule creator (`created_by = auth.uid()`)
+3. Get all characters from:
+   - The organizer's own characters
+   - Characters of accepted friends (via `friendships` table)
+4. Filter OUT characters already in `schedule_participants` for this schedule
+5. Filter OUT characters already claimed in another placeholder for this schedule
+6. Apply class restriction based on `slot_type`:
+   - `class` → `characters.class = placeholder.slot_class`
+   - `artista` → `characters.class IN ('Trovador', 'Musa')`
+   - `dps_fisico` / `dps_magico` → no filter
+7. Join with `profiles` for `username` and `avatar_url`
+8. Return result set
+
+**SECURITY DEFINER**, **STABLE**.
+
 ---
 
 ## Participant count fix
@@ -96,6 +122,39 @@ This way `participantCount = real_participants + all_placeholders + 1` always re
 ---
 
 ## Frontend
+
+### Enriched placeholder data for filled state
+
+The `getPlaceholders` query in `use-schedules.ts` currently does `select("*")`. For filled placeholders we need character + user info. Change to a joined query:
+
+```typescript
+const { data } = await supabase
+  .from("schedule_placeholders")
+  .select("*, characters(name, class, level), profiles!claimed_by(username, avatar_url)")
+  .eq("schedule_id", scheduleId)
+  .order("created_at", { ascending: true });
+```
+
+Update the `SchedulePlaceholder` type in `types.ts` to include optional enriched fields:
+
+```typescript
+export interface SchedulePlaceholder {
+  id: string;
+  schedule_id: string;
+  slot_type: 'class' | 'dps_fisico' | 'dps_magico' | 'artista';
+  slot_label: string;
+  slot_class: string | null;
+  added_by: string;
+  claimed_by: string | null;
+  claimed_character_id: string | null;
+  created_at: string;
+  // Enriched fields (from joins, present when claimed)
+  characters?: { name: string; class: string; level: number } | null;
+  profiles?: { username: string; avatar_url: string | null } | null;
+}
+```
+
+The modal renders filled state when `p.claimed_by && p.characters` is truthy.
 
 ### Participant list — organizer removal
 
@@ -142,12 +201,13 @@ When `claimed_by IS NOT NULL`:
 ### "Atribuir" flow
 
 1. Organizer clicks "Atribuir" on an open placeholder
-2. Inline dropdown appears below the placeholder row, showing eligible characters:
-   - Own characters + friends' characters from `getEligibleFriends` (or similar)
-   - Filtered by slot restriction AND not already in schedule
+2. Calls `get_eligible_for_placeholder(placeholder_id)` RPC
+3. Inline dropdown appears below the placeholder row, showing eligible characters:
+   - Already filtered by class restriction and not-in-schedule by the RPC
    - Each row: `[Avatar] CharName — ClassName Lv.X — @username`
-3. Organizer clicks a character → calls `claim_placeholder(placeholder_id, character_id)`
-4. Dropdown closes, placeholder updates to filled state
+   - Empty state: "Nenhum personagem elegível"
+4. Organizer clicks a character → calls `claim_placeholder(placeholder_id, character_id)`
+5. Dropdown closes, placeholder updates to filled state
 
 ### "Liberar" flow
 
@@ -162,11 +222,13 @@ When `claimed_by IS NOT NULL`:
 ### Database
 - New migration: `supabase/migrations/014_placeholder_management.sql`
   - Create `unclaim_placeholder` RPC
+  - Create `get_eligible_for_placeholder` RPC
   - Update `claim_placeholder` RPC (allow creator to assign friends' characters + check not already participant)
 
 ### Frontend
+- `src/lib/types.ts` — add optional `characters` and `profiles` fields to `SchedulePlaceholder`
 - `src/components/schedules/schedule-modal.tsx` — update `canRemove` logic, add filled placeholder rendering, add "Atribuir"/"Liberar"/"Remover" buttons with inline character picker
-- `src/hooks/use-schedules.ts` — add `claimPlaceholder` and `unclaimPlaceholder` methods, fix placeholder count query (remove `.is("claimed_by", null)` filter)
+- `src/hooks/use-schedules.ts` — enrich `getPlaceholders` query with joins, add `claimPlaceholder`, `unclaimPlaceholder`, and `getEligibleForPlaceholder` methods, fix placeholder count query (remove `.is("claimed_by", null)` filter)
 
 ---
 
