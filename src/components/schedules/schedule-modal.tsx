@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { Modal } from "@/components/ui/modal";
 import { formatBrtDateTime } from "@/lib/format-date";
 import type { InstanceSchedule, ScheduleParticipant, Character } from "@/lib/types";
-import type { EligibleFriend } from "@/hooks/use-schedules";
+import type { EligibleFriend, EligibleCharacter } from "@/hooks/use-schedules";
 import { calculateCooldownExpiry } from "@/lib/cooldown";
 import { getLeafClasses } from "@/lib/class-tree";
 import { DateTimePicker } from "@/components/ui/datetime-picker";
@@ -28,6 +28,9 @@ interface ScheduleModalProps {
   onAddPlaceholder: (scheduleId: string, slotType: SlotType, slotLabel: string, slotClass: string | null) => Promise<void>;
   onRemovePlaceholder: (placeholderId: string) => Promise<void>;
   onGetPlaceholders: (scheduleId: string) => Promise<import("@/lib/types").SchedulePlaceholder[]>;
+  onClaimPlaceholder: (placeholderId: string, characterId: string) => Promise<void>;
+  onUnclaimPlaceholder: (placeholderId: string) => Promise<void>;
+  onGetEligibleForPlaceholder: (placeholderId: string) => Promise<EligibleCharacter[]>;
   onExpire: () => Promise<void>;
   onUpdateTime: (scheduledAt: string) => Promise<void>;
   onUpdateTitle: (title: string) => Promise<void>;
@@ -54,6 +57,9 @@ export function ScheduleModal({
   onAddPlaceholder,
   onRemovePlaceholder,
   onGetPlaceholders,
+  onClaimPlaceholder,
+  onUnclaimPlaceholder,
+  onGetEligibleForPlaceholder,
   onExpire,
   onUpdateTime,
   onUpdateTitle,
@@ -80,6 +86,9 @@ export function ScheduleModal({
   const [newTime, setNewTime] = useState("");
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState("");
+  const [assigningPlaceholderId, setAssigningPlaceholderId] = useState<string | null>(null);
+  const [eligibleForSlot, setEligibleForSlot] = useState<EligibleCharacter[]>([]);
+  const [eligibleLoading, setEligibleLoading] = useState(false);
 
   // Reset states when switching between schedules
   const scheduleId = schedule?.id ?? null;
@@ -98,6 +107,7 @@ export function ScheduleModal({
     setEditingTitle(false);
     setTitleInput("");
     setFriendsLoaded(false);
+    setAssigningPlaceholderId(null);
   }, [scheduleId]);
 
   useEffect(() => {
@@ -173,7 +183,7 @@ export function ScheduleModal({
     });
   }, [isOpen, schedule, currentUserId, participants, characters, friendsLoaded, getEligibleFriends, getScheduledCharsWithTimes, instanceCooldownType, instanceCooldownHours, instanceAvailableDay]);
 
-  const isDirty = mode !== "view" || showPlaceholderForm || confirmingCancel || editingTime || editingTitle;
+  const isDirty = mode !== "view" || showPlaceholderForm || confirmingCancel || editingTime || editingTitle || assigningPlaceholderId !== null;
 
   if (!schedule) return null;
 
@@ -210,6 +220,12 @@ export function ScheduleModal({
     for (const p of participants) {
       initial[p.character_id] = true;
     }
+    // Include claimed placeholder characters
+    for (const p of placeholders) {
+      if (p.claimed_character_id) {
+        initial[p.claimed_character_id] = true;
+      }
+    }
     setCheckedParticipants(initial);
     setMode("completing");
   };
@@ -218,6 +234,14 @@ export function ScheduleModal({
     const confirmed = participants
       .filter((p) => checkedParticipants[p.character_id])
       .map((p) => ({ userId: p.user_id, characterId: p.character_id }));
+
+    // Include claimed placeholder characters that are checked
+    for (const p of placeholders) {
+      if (p.claimed_character_id && p.claimed_by && checkedParticipants[p.claimed_character_id]) {
+        confirmed.push({ userId: p.claimed_by, characterId: p.claimed_character_id });
+      }
+    }
+
     setActionLoading(true);
     try {
       await onComplete(confirmed);
@@ -271,6 +295,40 @@ export function ScheduleModal({
     try {
       await onRemovePlaceholder(id);
       setPlaceholders((prev) => prev.filter((p) => p.id !== id));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleAssignClick = async (placeholderId: string) => {
+    setAssigningPlaceholderId(placeholderId);
+    setEligibleLoading(true);
+    try {
+      const eligible = await onGetEligibleForPlaceholder(placeholderId);
+      setEligibleForSlot(eligible);
+    } finally {
+      setEligibleLoading(false);
+    }
+  };
+
+  const handleClaimPlaceholder = async (placeholderId: string, characterId: string) => {
+    setActionLoading(true);
+    try {
+      await onClaimPlaceholder(placeholderId, characterId);
+      setAssigningPlaceholderId(null);
+      const updated = await onGetPlaceholders(schedule.id);
+      setPlaceholders(updated);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUnclaimPlaceholder = async (placeholderId: string) => {
+    setActionLoading(true);
+    try {
+      await onUnclaimPlaceholder(placeholderId);
+      const updated = await onGetPlaceholders(schedule.id);
+      setPlaceholders(updated);
     } finally {
       setActionLoading(false);
     }
@@ -519,6 +577,35 @@ export function ScheduleModal({
                   </div>
                 </label>
               ))}
+              {/* Claimed placeholder characters */}
+              {placeholders.filter(p => p.claimed_by && p.characters).map((p) => (
+                <label
+                  key={p.claimed_character_id}
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface border border-border cursor-pointer hover:border-primary transition-colors"
+                >
+                  <input
+                    type="checkbox"
+                    checked={checkedParticipants[p.claimed_character_id!] ?? false}
+                    onChange={() => toggleParticipant(p.claimed_character_id!)}
+                    className="accent-primary w-4 h-4"
+                  />
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    {p.profiles?.avatar_url && (
+                      <img src={p.profiles.avatar_url} alt="" className="w-6 h-6 rounded-full" />
+                    )}
+                    <span className="text-sm text-text-primary font-medium truncate">
+                      {p.characters!.name}
+                    </span>
+                    <span className="text-xs text-text-secondary">
+                      {p.characters!.class} Lv.{p.characters!.level}
+                    </span>
+                    <span className="text-xs text-text-secondary">
+                      @{p.profiles?.username ?? "???"}
+                    </span>
+                    <span className="text-[10px] text-primary-secondary font-medium">(vaga)</span>
+                  </div>
+                </label>
+              ))}
             </div>
             <div className="flex gap-2 justify-end">
               <button
@@ -544,7 +631,7 @@ export function ScheduleModal({
             {/* Participant list */}
             <div className="flex flex-col gap-2">
               <p className="text-xs text-text-secondary font-medium">
-                Participantes {!loading && `(${participants.length + placeholders.filter((p) => !p.claimed_by).length})`}
+                Participantes {!loading && `(${participants.length + placeholders.length})`}
               </p>
               {loading ? (
                 <div className="flex items-center justify-center py-4">
@@ -553,9 +640,13 @@ export function ScheduleModal({
               ) : sortedParticipants.length === 0 ? (
                 <p className="text-sm text-text-secondary italic">Nenhum participante ainda.</p>
               ) : (
-                sortedParticipants.map((p) => {
+                (() => {
+                const creatorCharCount = sortedParticipants.filter(p => p.user_id === schedule.created_by).length;
+                return sortedParticipants.map((p) => {
                   const isParticipantCreator = p.user_id === schedule.created_by;
-                  const canRemove = !isParticipantCreator && (isCreator || p.user_id === currentUserId);
+                  const canRemove = isCreator
+                    ? (p.user_id !== schedule.created_by || creatorCharCount > 1)
+                    : p.user_id === currentUserId;
                   return (
                     <div
                       key={p.character_id}
@@ -602,41 +693,139 @@ export function ScheduleModal({
                       )}
                     </div>
                   );
-                })
+                });
+                })()
               )}
             </div>
 
             {/* Placeholders */}
-            {placeholders.filter((p) => !p.claimed_by).map((p) => (
-              <div
-                key={p.id}
-                className="group flex items-center gap-3 px-3 py-2 rounded-lg bg-surface border border-border"
-              >
-                <SlotTypeIcon type={p.slot_type} size={28} />
-                <div className="flex flex-col flex-1 min-w-0">
-                  <span className="text-sm text-text-secondary italic">Vaga aberta</span>
-                  <span className="text-[10px] text-text-secondary">{SLOT_TYPE_DESCRIPTIONS[p.slot_type]}</span>
-                </div>
-                <span
-                  className="text-[11px] font-semibold px-2 py-0.5 rounded-[var(--radius-sm)]"
-                  style={{
-                    background: `color-mix(in srgb, ${SLOT_TYPE_COLORS[p.slot_type]} 15%, transparent)`,
-                    color: SLOT_TYPE_COLORS[p.slot_type],
-                  }}
-                >
-                  {p.slot_label}
-                </span>
-                {isCreator && (
-                  <button
-                    onClick={() => handleRemovePlaceholder(p.id)}
-                    disabled={busy}
-                    className="text-xs text-status-error hover:text-status-error-text cursor-pointer opacity-60 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity disabled:opacity-50"
+            {placeholders.map((p) => {
+              const isFilled = p.claimed_by && p.characters;
+              if (isFilled) {
+                return (
+                  <div
+                    key={p.id}
+                    className="group flex items-center gap-3 px-3 py-2 rounded-lg bg-surface border border-border"
                   >
-                    Remover
-                  </button>
-                )}
-              </div>
-            ))}
+                    {p.profiles?.avatar_url ? (
+                      <img src={p.profiles.avatar_url} alt="" className="w-7 h-7 rounded-full" />
+                    ) : (
+                      <div className="w-7 h-7 rounded-full bg-border flex items-center justify-center text-xs text-text-secondary">?</div>
+                    )}
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-text-primary font-medium truncate">{p.characters!.name}</span>
+                        <span className="text-xs text-text-secondary">{p.characters!.class} Lv.{p.characters!.level}</span>
+                      </div>
+                      <span className="text-xs text-text-secondary">@{p.profiles?.username ?? "???"}</span>
+                    </div>
+                    <span
+                      className="text-[11px] font-semibold px-2 py-0.5 rounded-[var(--radius-sm)]"
+                      style={{
+                        background: `color-mix(in srgb, ${SLOT_TYPE_COLORS[p.slot_type]} 15%, transparent)`,
+                        color: SLOT_TYPE_COLORS[p.slot_type],
+                      }}
+                    >
+                      {p.slot_label}
+                    </span>
+                    {isCreator && schedule.status === "open" && (
+                      <>
+                        <button
+                          onClick={() => handleUnclaimPlaceholder(p.id)}
+                          disabled={busy}
+                          className="text-xs text-primary-secondary hover:text-text-primary cursor-pointer opacity-60 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                        >
+                          Liberar
+                        </button>
+                        <button
+                          onClick={() => handleRemovePlaceholder(p.id)}
+                          disabled={busy}
+                          className="text-xs text-status-error hover:text-status-error-text cursor-pointer opacity-60 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                        >
+                          Remover
+                        </button>
+                      </>
+                    )}
+                  </div>
+                );
+              }
+
+              return (
+                <div key={p.id} className="flex flex-col">
+                  <div className="group flex items-center gap-3 px-3 py-2 rounded-lg bg-surface border border-border">
+                    <SlotTypeIcon type={p.slot_type} size={28} />
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="text-sm text-text-secondary italic">Vaga aberta</span>
+                      <span className="text-[10px] text-text-secondary">{SLOT_TYPE_DESCRIPTIONS[p.slot_type]}</span>
+                    </div>
+                    <span
+                      className="text-[11px] font-semibold px-2 py-0.5 rounded-[var(--radius-sm)]"
+                      style={{
+                        background: `color-mix(in srgb, ${SLOT_TYPE_COLORS[p.slot_type]} 15%, transparent)`,
+                        color: SLOT_TYPE_COLORS[p.slot_type],
+                      }}
+                    >
+                      {p.slot_label}
+                    </span>
+                    {isCreator && schedule.status === "open" && (
+                      <>
+                        <button
+                          onClick={() => handleAssignClick(p.id)}
+                          disabled={busy}
+                          className="text-xs text-primary hover:text-text-primary cursor-pointer opacity-60 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                        >
+                          Atribuir
+                        </button>
+                        <button
+                          onClick={() => handleRemovePlaceholder(p.id)}
+                          disabled={busy}
+                          className="text-xs text-status-error hover:text-status-error-text cursor-pointer opacity-60 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                        >
+                          Remover
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  {assigningPlaceholderId === p.id && (
+                    <div className="flex flex-col gap-1 mt-1 p-2 rounded-lg bg-bg border border-border max-h-40 overflow-y-auto">
+                      {eligibleLoading ? (
+                        <div className="flex items-center justify-center py-2">
+                          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                        </div>
+                      ) : eligibleForSlot.length === 0 ? (
+                        <p className="text-xs text-text-secondary italic px-2 py-1">Nenhum personagem elegível</p>
+                      ) : (
+                        eligibleForSlot.map((c) => (
+                          <button
+                            key={c.character_id}
+                            type="button"
+                            onClick={() => handleClaimPlaceholder(p.id, c.character_id)}
+                            disabled={busy}
+                            className="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-surface transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            {c.avatar_url ? (
+                              <img src={c.avatar_url} alt="" className="w-5 h-5 rounded-full flex-shrink-0" />
+                            ) : (
+                              <span className="w-5 h-5 rounded-full bg-border flex items-center justify-center text-[10px] text-text-secondary flex-shrink-0">?</span>
+                            )}
+                            <span className="text-text-primary truncate">{c.character_name}</span>
+                            <span className="text-text-secondary">{c.character_class} Lv.{c.character_level}</span>
+                            <span className="text-text-secondary">@{c.username}</span>
+                          </button>
+                        ))
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setAssigningPlaceholderId(null)}
+                        className="text-xs text-text-secondary hover:text-text-primary cursor-pointer mt-1 text-center"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
 
             {/* Inline search + add list (creator only, open schedule) */}
             {isCreator && schedule.status === "open" && (
