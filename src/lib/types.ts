@@ -92,9 +92,6 @@ export interface SchedulePlaceholder {
   claimed_by: string | null;
   claimed_character_id: string | null;
   created_at: string;
-  // Enriched fields (from joins, present when claimed)
-  characters?: { name: string; class: string; level: number } | null;
-  profiles?: { username: string; avatar_url: string | null } | null;
 }
 
 export interface FriendInvite {
