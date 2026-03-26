@@ -70,22 +70,13 @@ export function useAccounts(): UseAccountsReturn {
       if (!cancelled) setLoading(false);
     });
 
-    const debouncedFetch = () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => fetchAccounts(), 300);
-    };
-
-    // Subscribe to realtime changes on accounts (multi-tab sync)
-    const supabase = createClient();
-    const channel = supabase
-      .channel("accounts-changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "accounts" }, debouncedFetch)
-      .subscribe();
+    // Refetch on window focus (multi-tab sync without realtime)
+    const onFocus = () => fetchAccounts();
+    window.addEventListener("focus", onFocus);
 
     return () => {
       cancelled = true;
-      if (debounceTimer) clearTimeout(debounceTimer);
-      supabase.removeChannel(channel);
+      window.removeEventListener("focus", onFocus);
     };
   }, [fetchAccounts, fetchServers]);
 

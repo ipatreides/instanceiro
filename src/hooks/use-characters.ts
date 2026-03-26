@@ -67,22 +67,13 @@ export function useCharacters(): UseCharactersReturn {
       if (!cancelled) setLoading(false);
     });
 
-    const debouncedFetch = () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => fetchCharacters(), 300);
-    };
-
-    // Subscribe to realtime changes on own characters + shares
-    const supabase = createClient();
-    const channel = supabase
-      .channel("characters-changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "characters" }, debouncedFetch)
-      .subscribe();
+    // Refetch on window focus (multi-tab sync without realtime)
+    const onFocus = () => fetchCharacters();
+    window.addEventListener("focus", onFocus);
 
     return () => {
       cancelled = true;
-      if (debounceTimer) clearTimeout(debounceTimer);
-      supabase.removeChannel(channel);
+      window.removeEventListener("focus", onFocus);
     };
   }, [fetchCharacters]);
 

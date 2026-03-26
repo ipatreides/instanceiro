@@ -98,19 +98,18 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
         table: "character_instances",
         filter: `character_id=eq.${characterId}`,
       }, () => fetchAll())
-      .on("postgres_changes", {
-        event: "*",
-        schema: "public",
-        table: "instances",
-      }, () => {
-        // Invalidate static cache when game data changes (new instances added, etc.)
-        cachedInstances = null;
-        fetchAll();
-      })
       .subscribe();
+
+    // Refetch static instance data on focus (rarely changes)
+    const onFocus = () => {
+      cachedInstances = null;
+      fetchAll();
+    };
+    window.addEventListener("focus", onFocus);
 
     return () => {
       cancelled = true;
+      window.removeEventListener("focus", onFocus);
       supabase.removeChannel(channel);
     };
   }, [fetchAll]);
