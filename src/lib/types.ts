@@ -82,50 +82,32 @@ export interface ScheduleParticipant {
   characterLevel?: number;
 }
 
-export interface ScheduleInvite {
-  id: string;
-  schedule_id: string;
-  code: string;
-  created_by: string;
-  created_at: string;
-}
-
 export interface SchedulePlaceholder {
   id: string;
   schedule_id: string;
-  character_name: string;
-  character_class: string;
+  slot_type: 'class' | 'dps_fisico' | 'dps_magico' | 'artista';
+  slot_label: string;
+  slot_class: string | null;
   added_by: string;
   claimed_by: string | null;
   claimed_character_id: string | null;
   created_at: string;
 }
 
-export interface InviteData {
-  schedule: {
-    id: string;
-    instance_id: number;
-    character_id: string;
-    created_by: string;
-    scheduled_at: string;
-    status: 'open' | 'completed' | 'expired';
-    message: string | null;
-  };
-  instance: {
-    id: number;
-    name: string;
-    start_map: string | null;
-    liga_tier: string | null;
-    level_required: number;
-  };
-  creator: {
-    id: string;
-    username: string;
-    avatar_url: string | null;
-  };
-  participants: ScheduleParticipant[];
-  placeholders: SchedulePlaceholder[];
-  user_already_joined: boolean;
+export interface FriendInvite {
+  id: string;
+  code: string;
+  created_by: string;
+  used_by: string | null;
+  used_at: string | null;
+  created_at: string;
+}
+
+export interface FriendInviteCreator {
+  id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
 }
 
 export interface Instance {
