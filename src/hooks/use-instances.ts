@@ -41,17 +41,17 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
 
     const instancesPromise = cachedInstances
       ? Promise.resolve({ data: cachedInstances, error: null })
-      : supabase.from("instances").select("*").order("name", { ascending: true });
+      : supabase.from("instances").select("id, name, level_required, party_min, cooldown_type, cooldown_hours, available_day, difficulty, reward, mutual_exclusion_group, level_max, wiki_url, start_map, liga_tier, liga_coins, is_solo, aliases").order("name", { ascending: true });
 
     const [instancesRes, ciRes, completionsRes] = await Promise.all([
       instancesPromise,
       supabase
         .from("character_instances")
-        .select("*")
+        .select("character_id, instance_id, is_active, created_at")
         .eq("character_id", characterId),
       supabase
         .from("instance_completions")
-        .select("*")
+        .select("id, character_id, instance_id, completed_at")
         .eq("character_id", characterId)
         .order("completed_at", { ascending: false }),
     ]);
@@ -100,16 +100,8 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
       }, () => fetchAll())
       .subscribe();
 
-    // Refetch static instance data on focus (rarely changes)
-    const onFocus = () => {
-      cachedInstances = null;
-      fetchAll();
-    };
-    window.addEventListener("focus", onFocus);
-
     return () => {
       cancelled = true;
-      window.removeEventListener("focus", onFocus);
       supabase.removeChannel(channel);
     };
   }, [fetchAll]);

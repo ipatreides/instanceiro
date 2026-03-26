@@ -20,7 +20,7 @@ export function useNotifications(): UseNotificationsReturn {
     const supabase = createClient();
     const { data } = await supabase
       .from("notifications")
-      .select("*")
+      .select("id, user_id, type, payload, is_read, responded, expires_at, created_at")
       .order("created_at", { ascending: false })
       .limit(50);
 

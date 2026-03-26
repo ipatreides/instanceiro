@@ -40,7 +40,7 @@ export function useCharacters(): UseCharactersReturn {
     // Fetch own characters
     const { data: ownChars, error } = await supabase
       .from("characters")
-      .select("*")
+      .select("id, user_id, account_id, name, class, class_path, level, sort_order, is_active, created_at, updated_at")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .order("sort_order", { ascending: true });

@@ -37,7 +37,7 @@ export function useFriendships(): UseFriendshipsReturn {
 
     const { data } = await supabase
       .from("friendships")
-      .select("*")
+      .select("id, requester_id, addressee_id, status, created_at")
       .order("created_at", { ascending: false });
 
     if (!data) return;

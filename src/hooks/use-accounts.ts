@@ -28,7 +28,7 @@ export function useAccounts(): UseAccountsReturn {
 
     const { data, error } = await supabase
       .from("accounts")
-      .select("*")
+      .select("id, user_id, server_id, name, sort_order, created_at")
       .eq("user_id", user.id)
       .order("sort_order", { ascending: true });
 
@@ -45,7 +45,7 @@ export function useAccounts(): UseAccountsReturn {
 
     const { data, error } = await supabase
       .from("servers")
-      .select("*")
+      .select("id, name")
       .order("name", { ascending: true });
 
     if (error) {

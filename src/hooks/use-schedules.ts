@@ -80,7 +80,7 @@ export function useSchedules(): UseSchedulesReturn {
     // Fetch open schedules
     const { data } = await supabase
       .from("instance_schedules")
-      .select("*")
+      .select("id, instance_id, character_id, created_by, scheduled_at, status, title, message, created_at")
       .in("status", ["open"])
       .order("scheduled_at", { ascending: true });
 
@@ -384,7 +384,7 @@ export function useSchedules(): UseSchedulesReturn {
     // Fetch participants
     const { data } = await supabase
       .from("schedule_participants")
-      .select("*")
+      .select("schedule_id, character_id, user_id, message, created_at")
       .eq("schedule_id", scheduleId);
 
     // Build combined list: creator first + participants
