@@ -43,9 +43,7 @@ interface UseSchedulesReturn {
   expireSchedule: (scheduleId: string) => Promise<void>;
   updateScheduleTime: (scheduleId: string, scheduledAt: string) => Promise<void>;
   getParticipants: (scheduleId: string) => Promise<ScheduleParticipant[]>;
-  generateInviteCode: (scheduleId: string) => Promise<string>;
-  getInviteCode: (scheduleId: string) => Promise<string | null>;
-  addPlaceholder: (scheduleId: string, characterName: string, characterClass: string) => Promise<void>;
+  addPlaceholder: (scheduleId: string, slotType: 'class' | 'dps_fisico' | 'dps_magico' | 'artista', slotLabel: string, slotClass: string | null) => Promise<void>;
   removePlaceholder: (placeholderId: string) => Promise<void>;
   getPlaceholders: (scheduleId: string) => Promise<SchedulePlaceholder[]>;
   getScheduledCharacterIds: (instanceId: number) => Promise<Set<string>>;
@@ -329,53 +327,12 @@ export function useSchedules(): UseSchedulesReturn {
     }));
   }, []);
 
-  const generateInviteCode = useCallback(async (scheduleId: string): Promise<string> => {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Not authenticated");
-
-    // Check if invite already exists
-    const { data: existing } = await supabase
-      .from("schedule_invites")
-      .select("code")
-      .eq("schedule_id", scheduleId)
-      .single();
-
-    if (existing) return existing.code;
-
-    // Generate code via DB function and insert (handle race with re-fetch)
-    const { data: codeData } = await supabase.rpc("generate_invite_code");
-    const code = codeData as string;
-
-    await supabase
-      .from("schedule_invites")
-      .insert({
-        schedule_id: scheduleId,
-        code,
-        created_by: user.id,
-      });
-
-    // Re-fetch to handle race condition (another request may have inserted first)
-    const { data: final } = await supabase
-      .from("schedule_invites")
-      .select("code")
-      .eq("schedule_id", scheduleId)
-      .single();
-
-    return final!.code;
-  }, []);
-
-  const getInviteCode = useCallback(async (scheduleId: string): Promise<string | null> => {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("schedule_invites")
-      .select("code")
-      .eq("schedule_id", scheduleId)
-      .single();
-    return data?.code ?? null;
-  }, []);
-
-  const addPlaceholder = useCallback(async (scheduleId: string, characterName: string, characterClass: string) => {
+  const addPlaceholder = useCallback(async (
+    scheduleId: string,
+    slotType: 'class' | 'dps_fisico' | 'dps_magico' | 'artista',
+    slotLabel: string,
+    slotClass: string | null,
+  ) => {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Not authenticated");
@@ -384,8 +341,9 @@ export function useSchedules(): UseSchedulesReturn {
       .from("schedule_placeholders")
       .insert({
         schedule_id: scheduleId,
-        character_name: characterName,
-        character_class: characterClass,
+        slot_type: slotType,
+        slot_label: slotLabel,
+        slot_class: slotClass,
         added_by: user.id,
       });
 
@@ -453,8 +411,6 @@ export function useSchedules(): UseSchedulesReturn {
     expireSchedule,
     updateScheduleTime,
     getParticipants,
-    generateInviteCode,
-    getInviteCode,
     addPlaceholder,
     removePlaceholder,
     getPlaceholders,
