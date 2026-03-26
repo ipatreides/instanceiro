@@ -17,6 +17,16 @@ function fireCalendarSync(body: {
   }).catch(() => {}); // Best-effort, swallow errors
 }
 
+export interface EligibleCharacter {
+  character_id: string;
+  character_name: string;
+  character_class: string;
+  character_level: number;
+  user_id: string;
+  username: string;
+  avatar_url: string | null;
+}
+
 export interface EligibleFriend {
   user_id: string;
   username: string;
@@ -46,6 +56,9 @@ interface UseSchedulesReturn {
   addPlaceholder: (scheduleId: string, slotType: 'class' | 'dps_fisico' | 'dps_magico' | 'artista', slotLabel: string, slotClass: string | null) => Promise<void>;
   removePlaceholder: (placeholderId: string) => Promise<void>;
   getPlaceholders: (scheduleId: string) => Promise<SchedulePlaceholder[]>;
+  claimPlaceholder: (placeholderId: string, characterId: string) => Promise<void>;
+  unclaimPlaceholder: (placeholderId: string) => Promise<void>;
+  getEligibleForPlaceholder: (placeholderId: string) => Promise<EligibleCharacter[]>;
   getScheduledCharacterIds: (instanceId: number) => Promise<Set<string>>;
   getScheduledCharsWithTimes: (instanceId: number) => Promise<{ character_id: string; scheduled_at: string }[]>;
 }
@@ -77,7 +90,7 @@ export function useSchedules(): UseSchedulesReturn {
       supabase.from("instances").select("id, name, start_map, liga_tier").in("id", instanceIds),
       supabase.from("profiles").select("id, username, avatar_url").in("id", creatorIds),
       supabase.from("schedule_participants").select("schedule_id").in("schedule_id", data.map((s) => s.id)),
-      supabase.from("schedule_placeholders").select("schedule_id").in("schedule_id", data.map((s) => s.id)).is("claimed_by", null),
+      supabase.from("schedule_placeholders").select("schedule_id").in("schedule_id", data.map((s) => s.id)),
     ]);
 
     const instanceMap = new Map((instancesRes.data ?? []).map((i: { id: number; name: string; start_map: string | null; liga_tier: string | null }) => [i.id, i]));
@@ -359,7 +372,7 @@ export function useSchedules(): UseSchedulesReturn {
     const supabase = createClient();
     const { data } = await supabase
       .from("schedule_placeholders")
-      .select("*")
+      .select("*, characters!claimed_character_id(name, class, level), profiles!claimed_by(username, avatar_url)")
       .eq("schedule_id", scheduleId)
       .order("created_at", { ascending: true });
     return (data ?? []) as SchedulePlaceholder[];
@@ -391,6 +404,36 @@ export function useSchedules(): UseSchedulesReturn {
     return new Set((data as string[] | null) ?? []);
   }, []);
 
+  const claimPlaceholder = useCallback(async (placeholderId: string, characterId: string) => {
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("claim_placeholder", {
+      p_placeholder_id: placeholderId,
+      p_character_id: characterId,
+    });
+    if (error) throw error;
+    const result = data as { status: string };
+    if (result.status !== "claimed") throw new Error(result.status);
+  }, []);
+
+  const unclaimPlaceholder = useCallback(async (placeholderId: string) => {
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("unclaim_placeholder", {
+      p_placeholder_id: placeholderId,
+    });
+    if (error) throw error;
+    const result = data as { status: string };
+    if (result.status !== "released") throw new Error(result.status);
+  }, []);
+
+  const getEligibleForPlaceholder = useCallback(async (placeholderId: string): Promise<EligibleCharacter[]> => {
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("get_eligible_for_placeholder", {
+      p_placeholder_id: placeholderId,
+    });
+    if (error) throw error;
+    return (data ?? []) as EligibleCharacter[];
+  }, []);
+
   const getScheduledCharsWithTimes = useCallback(async (instanceId: number): Promise<{ character_id: string; scheduled_at: string }[]> => {
     const supabase = createClient();
     const { data } = await supabase.rpc("get_scheduled_characters_with_times", { p_instance_id: instanceId });
@@ -414,6 +457,9 @@ export function useSchedules(): UseSchedulesReturn {
     addPlaceholder,
     removePlaceholder,
     getPlaceholders,
+    claimPlaceholder,
+    unclaimPlaceholder,
+    getEligibleForPlaceholder,
     getScheduledCharacterIds,
     getScheduledCharsWithTimes,
   };
