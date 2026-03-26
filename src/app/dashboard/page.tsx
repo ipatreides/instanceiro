@@ -105,6 +105,9 @@ export default function DashboardPage() {
     getPlaceholders,
     getScheduledCharacterIds,
     getScheduledCharsWithTimes,
+    claimPlaceholder,
+    unclaimPlaceholder,
+    getEligibleForPlaceholder,
   } = useSchedules();
   const now = useCooldownTimer();
 
@@ -799,6 +802,9 @@ export default function DashboardPage() {
         onAddPlaceholder={addPlaceholder}
         onRemovePlaceholder={removePlaceholder}
         onGetPlaceholders={getPlaceholders}
+        onClaimPlaceholder={claimPlaceholder}
+        onUnclaimPlaceholder={unclaimPlaceholder}
+        onGetEligibleForPlaceholder={getEligibleForPlaceholder}
         getScheduledCharsWithTimes={getScheduledCharsWithTimes}
       />
 
