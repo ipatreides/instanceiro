@@ -76,11 +76,11 @@ export function useFriendships(): UseFriendshipsReturn {
     const { data: allProfiles } = await supabase
       .from("profiles")
       .select("id, username, display_name, avatar_url")
-      .not("username", "is", null);
+      .not("username", "is", null)
+      .eq("is_test_user", false);
 
-    const hiddenUsernames = new Set(["potato", "test1", "testbot"]);
     const suggestedUsers = (allProfiles ?? [])
-      .filter((p) => !relatedIds.has(p.id) && p.username && !hiddenUsernames.has(p.username))
+      .filter((p) => !relatedIds.has(p.id) && p.username)
       .map((p) => ({
         id: p.id,
         username: p.username!,
