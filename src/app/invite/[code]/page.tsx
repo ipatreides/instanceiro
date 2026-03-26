@@ -1,239 +1,128 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useInvite } from "@/hooks/use-invite";
-import { useCharacters } from "@/hooks/use-characters";
-import { CharacterForm } from "@/components/characters/character-form";
-import { createClient } from "@/lib/supabase/client";
+import { useFriendInvite } from "@/hooks/use-friend-invite";
+import { Avatar } from "@/components/ui/avatar";
 import { FullPageSpinner } from "@/components/ui/spinner";
-import { formatBrtDateTime } from "@/lib/format-date";
+import { LoginButton } from "@/components/auth/login-button";
 
 export default function InvitePage() {
   const { code } = useParams<{ code: string }>();
   const router = useRouter();
-  const { data, loading, error, acceptInvite, acceptInviteWithNewChar, createFriendshipOnly } = useInvite(code);
-  const { characters, loading: charsLoading } = useCharacters();
+  const { status, creator, acceptInvite, accepting } = useFriendInvite(code);
 
-  const [mode, setMode] = useState<"choose" | "new_char">("choose");
-  const [selectedCharId, setSelectedCharId] = useState("");
-  const [actionLoading, setActionLoading] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
-  const [authChecked, setAuthChecked] = useState(false);
-
-  // Client-side auth guard: redirect unauthenticated users to landing with redirect param
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
-        router.push(`/?redirect=/invite/${code}`);
-      } else {
-        setAuthChecked(true);
-      }
-    });
-  }, [code, router]);
-
-  // Schedule not open — still create friendship via RPC (no character needed)
-  const [expiredHandled, setExpiredHandled] = useState(false);
-  useEffect(() => {
-    if (!data || data.schedule.status === "open" || data.user_already_joined || expiredHandled) return;
-    createFriendshipOnly().then(() => setExpiredHandled(true));
-  }, [data, expiredHandled, createFriendshipOnly]);
-
-  if (!authChecked || loading || charsLoading) {
+  if (status === "loading") {
     return <FullPageSpinner label="Carregando convite..." />;
   }
 
-  if (error || !data) {
-    return (
-      <div className="min-h-screen bg-bg flex items-center justify-center px-4">
-        <div className="max-w-md w-full text-center space-y-4">
-          <h1 className="text-2xl font-bold text-text-primary">Convite inválido</h1>
-          <p className="text-text-secondary">{error ?? "Convite não encontrado"}</p>
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="px-6 py-2 text-sm text-text-primary bg-primary rounded-lg hover:bg-primary-hover transition-colors cursor-pointer"
-          >
-            Ir para o dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Already joined
-  if (data.user_already_joined) {
-    return (
-      <div className="min-h-screen bg-bg flex items-center justify-center px-4">
-        <div className="max-w-md w-full text-center space-y-4">
-          <h1 className="text-2xl font-bold text-text-primary">{data.instance.name}</h1>
-          <p className="text-text-secondary">Você já está neste agendamento.</p>
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="px-6 py-2 text-sm text-text-primary bg-primary rounded-lg hover:bg-primary-hover transition-colors cursor-pointer"
-          >
-            Ir para o dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Schedule not open
-  if (data.schedule.status !== "open") {
-    return (
-      <div className="min-h-screen bg-bg flex items-center justify-center px-4">
-        <div className="max-w-md w-full text-center space-y-4">
-          <h1 className="text-2xl font-bold text-text-primary">{data.instance.name}</h1>
-          <p className="text-text-secondary">Este agendamento já foi finalizado.</p>
-          <p className="text-xs text-text-secondary">Você foi adicionado como amigo de @{data.creator.username}.</p>
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="px-6 py-2 text-sm text-text-primary bg-primary rounded-lg hover:bg-primary-hover transition-colors cursor-pointer"
-          >
-            Ir para o dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Result after action
-  if (result) {
-    const messages: Record<string, string> = {
-      joined: "Você entrou no agendamento!",
-      friendship_only: "Agendamento finalizado. Você foi adicionado como amigo.",
-      already_joined: "Você já está neste agendamento.",
-      full: "O agendamento está cheio (12/12).",
-      error: "Erro ao aceitar o convite.",
-    };
-    return (
-      <div className="min-h-screen bg-bg flex items-center justify-center px-4">
-        <div className="max-w-md w-full text-center space-y-4">
-          <h1 className="text-2xl font-bold text-text-primary">{data.instance.name}</h1>
-          <p className="text-text-secondary">{messages[result] ?? result}</p>
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="px-6 py-2 text-sm text-text-primary bg-primary rounded-lg hover:bg-primary-hover transition-colors cursor-pointer"
-          >
-            Ir para o dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const participantCount = data.participants.length + data.placeholders.length + 1; // +1 creator
-  const ownChars = characters;
-
-  const handleJoinWithExisting = async () => {
-    if (!selectedCharId) return;
-    setActionLoading(true);
-    const status = await acceptInvite(selectedCharId);
-    setResult(status);
-    setActionLoading(false);
-  };
-
-  const handleJoinWithNew = async (charData: {
-    name: string;
-    class_name: string;
-    class_path: string[];
-    level: number;
-    account_id?: string;
-  }) => {
-    setActionLoading(true);
-    const status = await acceptInviteWithNewChar(charData);
-    setResult(status);
-    setActionLoading(false);
+  const handleAccept = async () => {
+    const result = await acceptInvite();
+    if (result === "accepted") {
+      router.push("/dashboard");
+    }
   };
 
   return (
-    <div className="min-h-screen bg-bg flex items-center justify-center px-4 py-8">
-      <div className="max-w-lg w-full space-y-6">
-        {/* Header card */}
-        <div className="bg-surface border border-border rounded-xl p-6 text-center space-y-3">
-          <h1 className="text-2xl font-bold text-text-primary">{data.instance.name}</h1>
-          <div className="flex flex-wrap gap-2 justify-center">
-            <span className="text-xs px-2 py-1 rounded bg-surface text-text-secondary border border-border">
-              {formatBrtDateTime(data.schedule.scheduled_at)} BRT
-            </span>
-            {data.instance.start_map && (
-              <span className="text-xs px-2 py-1 rounded bg-surface text-primary-secondary border border-border">
-                {data.instance.start_map}
-              </span>
-            )}
-            <span className="text-xs px-2 py-1 rounded bg-surface text-text-secondary border border-border">
-              {participantCount}/12
-            </span>
-          </div>
-          <p className="text-sm text-text-secondary">
-            Convite de <span className="text-text-primary font-medium">@{data.creator.username}</span>
-          </p>
-          {data.schedule.message && (
-            <p className="text-sm text-text-secondary italic">&ldquo;{data.schedule.message}&rdquo;</p>
-          )}
-        </div>
-
-        {/* Join section */}
-        <div className="bg-surface border border-border rounded-xl p-6 space-y-4">
-          {mode === "choose" ? (
+    <div className="min-h-screen bg-bg flex items-center justify-center px-4">
+      <div className="max-w-md w-full text-center space-y-6">
+        <div className="bg-surface border border-border rounded-[var(--radius-lg)] p-8 space-y-5">
+          {/* Unauthenticated — show creator + login buttons */}
+          {status === "unauthenticated" && creator && (
             <>
-              <h2 className="text-lg font-semibold text-text-primary">Entrar no agendamento</h2>
-
-              {ownChars.length > 0 && (
-                <div className="flex flex-col gap-3">
-                  <label className="text-sm text-text-secondary">Escolha um personagem existente:</label>
-                  <select
-                    value={selectedCharId}
-                    onChange={(e) => setSelectedCharId(e.target.value)}
-                    className="bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text-secondary focus:outline-none focus:border-primary"
-                    style={{ colorScheme: "dark" }}
-                  >
-                    <option value="">Selecionar...</option>
-                    {ownChars.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} — {c.class} Lv.{c.level}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={handleJoinWithExisting}
-                    disabled={actionLoading || !selectedCharId}
-                    className="px-4 py-2 text-sm text-text-primary bg-primary rounded-lg hover:bg-primary-hover transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    {actionLoading ? "Entrando..." : "Entrar"}
-                  </button>
-                </div>
-              )}
-
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-xs text-text-secondary">ou</span>
-                <div className="flex-1 h-px bg-border" />
+              <div className="flex justify-center">
+                <Avatar src={creator.avatar_url} name={creator.display_name ?? creator.username} size="lg" />
               </div>
+              <div>
+                <h1 className="text-xl font-bold text-text-primary">
+                  {creator.display_name ?? creator.username}
+                </h1>
+                <p className="text-sm text-text-secondary mt-1">te convidou para o Instanceiro</p>
+              </div>
+              <div className="pt-2">
+                <LoginButton />
+              </div>
+            </>
+          )}
 
+          {/* Valid — show creator + accept button */}
+          {status === "valid" && creator && (
+            <>
+              <div className="flex justify-center">
+                <Avatar src={creator.avatar_url} name={creator.display_name ?? creator.username} size="lg" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-text-primary">
+                  {creator.display_name ?? creator.username}
+                </h1>
+                <p className="text-sm text-text-secondary mt-1">te convidou para o Instanceiro</p>
+              </div>
               <button
-                onClick={() => setMode("new_char")}
-                className="w-full px-4 py-2 text-sm text-text-secondary bg-surface border border-border rounded-lg hover:bg-surface transition-colors cursor-pointer"
+                onClick={handleAccept}
+                disabled={accepting}
+                className="w-full px-6 py-3 text-sm font-semibold text-text-primary bg-primary rounded-[var(--radius-md)] hover:bg-primary-hover transition-colors cursor-pointer disabled:opacity-50"
               >
-                Criar novo personagem
+                {accepting ? "Aceitando..." : "Aceitar convite"}
               </button>
             </>
-          ) : (
+          )}
+
+          {/* Already friends */}
+          {status === "already_friends" && creator && (
             <>
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-text-primary">Novo personagem</h2>
-                <button
-                  onClick={() => setMode("choose")}
-                  className="text-xs text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
-                >
-                  ← Voltar
-                </button>
+              <div className="flex justify-center">
+                <Avatar src={creator.avatar_url} name={creator.display_name ?? creator.username} size="lg" />
               </div>
-              <CharacterForm
-                onSubmit={handleJoinWithNew}
-                submitLabel={actionLoading ? "Entrando..." : "Criar e Entrar"}
-              />
+              <h1 className="text-xl font-bold text-text-primary">
+                Você já é amigo de {creator.display_name ?? creator.username}
+              </h1>
+              <button
+                onClick={() => router.push("/dashboard")}
+                className="px-6 py-2 text-sm text-text-primary bg-primary rounded-[var(--radius-md)] hover:bg-primary-hover transition-colors cursor-pointer"
+              >
+                Ir para o dashboard
+              </button>
+            </>
+          )}
+
+          {/* Self invite */}
+          {status === "self_invite" && (
+            <>
+              <h1 className="text-xl font-bold text-text-primary">Este é seu próprio convite</h1>
+              <p className="text-sm text-text-secondary">Compartilhe o link com seus amigos.</p>
+              <button
+                onClick={() => router.push("/dashboard")}
+                className="px-6 py-2 text-sm text-text-primary bg-primary rounded-[var(--radius-md)] hover:bg-primary-hover transition-colors cursor-pointer"
+              >
+                Ir para o dashboard
+              </button>
+            </>
+          )}
+
+          {/* Used */}
+          {status === "used" && (
+            <>
+              <h1 className="text-xl font-bold text-text-primary">Convite já utilizado</h1>
+              <p className="text-sm text-text-secondary">Este convite já foi aceito por outro usuário.</p>
+              <button
+                onClick={() => router.push("/dashboard")}
+                className="px-6 py-2 text-sm text-text-primary bg-primary rounded-[var(--radius-md)] hover:bg-primary-hover transition-colors cursor-pointer"
+              >
+                Ir para o dashboard
+              </button>
+            </>
+          )}
+
+          {/* Invalid */}
+          {status === "invalid" && (
+            <>
+              <h1 className="text-xl font-bold text-text-primary">Convite inválido</h1>
+              <p className="text-sm text-text-secondary">Este link de convite não existe.</p>
+              <button
+                onClick={() => router.push("/dashboard")}
+                className="px-6 py-2 text-sm text-text-primary bg-primary rounded-[var(--radius-md)] hover:bg-primary-hover transition-colors cursor-pointer"
+              >
+                Ir para o dashboard
+              </button>
             </>
           )}
         </div>

@@ -37,7 +37,7 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isProtectedRoute =
-    pathname.startsWith("/dashboard") || pathname.startsWith("/invite");
+    pathname.startsWith("/dashboard");
 
   // Unauthenticated user trying to access protected routes → redirect to /
   if (!user && isProtectedRoute) {
