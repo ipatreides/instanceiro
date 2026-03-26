@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-const HEARTBEAT_INTERVAL = 60_000; // Update last_seen_at every 60s
+const HEARTBEAT_INTERVAL = 300_000; // Update last_seen_at every 5min
 
 export function useOnlineStatus() {
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());

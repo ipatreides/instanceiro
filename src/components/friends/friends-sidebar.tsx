@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useFriendships } from "@/hooks/use-friendships";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { Avatar } from "@/components/ui/avatar";
@@ -38,15 +38,17 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
 
   const { isOnline, getLastSeen, fetchLastSeen } = useOnlineStatus();
 
-  // Fetch last_seen for friends
+  // Fetch last_seen once when friends list changes (not on every presence sync)
+  const isOnlineRef = useRef(isOnline);
+  isOnlineRef.current = isOnline;
   useEffect(() => {
     const offlineFriendIds = friends
-      .filter((f) => !isOnline(f.other_user_id))
+      .filter((f) => !isOnlineRef.current(f.other_user_id))
       .map((f) => f.other_user_id);
     if (offlineFriendIds.length > 0) {
       fetchLastSeen(offlineFriendIds);
     }
-  }, [friends, isOnline, fetchLastSeen]);
+  }, [friends, fetchLastSeen]);
 
   // Sort friends: online first, then by last_seen descending
   const sortedFriends = [...friends].sort((a, b) => {
