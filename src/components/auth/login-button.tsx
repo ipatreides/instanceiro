@@ -21,10 +21,10 @@ const PROVIDERS: { id: Provider; label: string; bg: string; hover: string; icon:
   },
 ];
 
-export function LoginButton() {
+export function LoginButton({ redirect: redirectProp }: { redirect?: string } = {}) {
   const handleLogin = async (provider: Provider) => {
     const supabase = createClient();
-    const redirect = new URLSearchParams(window.location.search).get("redirect");
+    const redirect = redirectProp ?? new URLSearchParams(window.location.search).get("redirect");
     const callbackUrl = redirect
       ? `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirect)}`
       : `${window.location.origin}/auth/callback`;

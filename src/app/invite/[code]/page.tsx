@@ -39,7 +39,7 @@ export default function InvitePage() {
                 <p className="text-sm text-text-secondary mt-1">te convidou para o Instanceiro</p>
               </div>
               <div className="pt-2">
-                <LoginButton />
+                <LoginButton redirect={`/invite/${code}`} />
               </div>
             </>
           )}
