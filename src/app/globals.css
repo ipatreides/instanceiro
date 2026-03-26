@@ -29,6 +29,10 @@
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
+  --slot-dps-fisico: #e07040;
+  --slot-dps-magico: #7b68ee;
+  --slot-artista: #e8a665;
+  --slot-classe: #4a9a8a;
 }
 
 /* ── Light theme ── */
@@ -59,6 +63,10 @@
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
+  --slot-dps-fisico: #c45a30;
+  --slot-dps-magico: #5b48ce;
+  --slot-artista: #c4863e;
+  --slot-classe: #3a7a6a;
 }
 
 @theme inline {
@@ -88,6 +96,10 @@
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
+  --color-slot-dps-fisico: var(--slot-dps-fisico);
+  --color-slot-dps-magico: var(--slot-dps-magico);
+  --color-slot-artista: var(--slot-artista);
+  --color-slot-classe: var(--slot-classe);
 }
 
 body {
