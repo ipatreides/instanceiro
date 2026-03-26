@@ -63,6 +63,13 @@ interface UseSchedulesReturn {
   getScheduledCharsWithTimes: (instanceId: number) => Promise<{ character_id: string; scheduled_at: string }[]>;
 }
 
+// Module-level caches (shared across re-renders, cleared on page reload)
+let cachedUserId: string | null = null;
+let cachedInstanceMap: Map<number, { id: number; name: string; start_map: string | null; liga_tier: string | null }> | null = null;
+let cachedProfileMap: Map<string, { id: string; username: string; avatar_url: string | null }> = new Map();
+let profileCacheTime = 0;
+const PROFILE_CACHE_TTL = 5 * 60 * 1000; // 5 min
+
 export function useSchedules(): UseSchedulesReturn {
   const [schedules, setSchedules] = useState<InstanceSchedule[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,20 +89,59 @@ export function useSchedules(): UseSchedulesReturn {
       return;
     }
 
-    // Enrich with instance data
+    // Cache userId (never changes during session)
+    if (!cachedUserId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      cachedUserId = user?.id ?? null;
+    }
+
     const instanceIds = [...new Set(data.map((s) => s.instance_id))];
     const creatorIds = [...new Set(data.map((s) => s.created_by))];
 
-    const [instancesRes, profilesRes, participantsRes, placeholdersRes, userRes] = await Promise.all([
-      supabase.from("instances").select("id, name, start_map, liga_tier").in("id", instanceIds),
-      supabase.from("profiles").select("id, username, avatar_url").in("id", creatorIds),
+    // Cache instance data (static game data, almost never changes)
+    const missingInstanceIds = cachedInstanceMap
+      ? instanceIds.filter((id) => !cachedInstanceMap!.has(id))
+      : instanceIds;
+
+    // Determine which profiles need fetching (cache miss or expired)
+    const now = Date.now();
+    const profilesExpired = now - profileCacheTime > PROFILE_CACHE_TTL;
+    const missingProfileIds = profilesExpired
+      ? creatorIds
+      : creatorIds.filter((id) => !cachedProfileMap.has(id));
+
+    // Always fetch participants + placeholders (change frequently)
+    const [participantsRes, placeholdersRes] = await Promise.all([
       supabase.from("schedule_participants").select("schedule_id, user_id").in("schedule_id", data.map((s) => s.id)),
       supabase.from("schedule_placeholders").select("schedule_id, claimed_by").in("schedule_id", data.map((s) => s.id)),
-      supabase.auth.getUser(),
     ]);
 
-    const instanceMap = new Map((instancesRes.data ?? []).map((i: { id: number; name: string; start_map: string | null; liga_tier: string | null }) => [i.id, i]));
-    const profileMap = new Map((profilesRes.data ?? []).map((p: { id: string; username: string; avatar_url: string | null }) => [p.id, p]));
+    // Fetch instances only if cache misses
+    if (!cachedInstanceMap || missingInstanceIds.length > 0) {
+      const { data: instancesData } = await supabase
+        .from("instances")
+        .select("id, name, start_map, liga_tier")
+        .in("id", missingInstanceIds.length > 0 ? missingInstanceIds : instanceIds);
+      if (!cachedInstanceMap) cachedInstanceMap = new Map();
+      for (const i of (instancesData ?? [])) {
+        cachedInstanceMap.set(i.id, i);
+      }
+    }
+
+    // Fetch profiles only if cache misses or expired
+    if (missingProfileIds.length > 0) {
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("id, username, avatar_url")
+        .in("id", missingProfileIds);
+      for (const p of (profilesData ?? [])) {
+        cachedProfileMap.set(p.id, p);
+      }
+      if (profilesExpired) profileCacheTime = now;
+    }
+
+    const instanceMap = cachedInstanceMap!;
+    const profileMap = cachedProfileMap;
 
     // Count participants per schedule
     const countMap = new Map<string, number>();
@@ -123,8 +169,7 @@ export function useSchedules(): UseSchedulesReturn {
     });
 
     // Auto-expire schedules >3h late, hide >30min late from non-participants
-    const now = new Date();
-    const currentUserId = userRes.data.user?.id;
+    const currentUserId = cachedUserId;
     const THIRTY_MIN = 30 * 60 * 1000;
     const THREE_HOURS = 3 * 60 * 60 * 1000;
 
@@ -142,7 +187,7 @@ export function useSchedules(): UseSchedulesReturn {
 
     // Auto-expire >3h late schedules
     const toExpire = enriched.filter((s) => {
-      const delay = now.getTime() - new Date(s.scheduled_at).getTime();
+      const delay = now - new Date(s.scheduled_at).getTime();
       return delay > THREE_HOURS;
     });
     for (const s of toExpire) {
@@ -152,7 +197,7 @@ export function useSchedules(): UseSchedulesReturn {
 
     // Filter: hide >30min late from non-participants, remove >3h expired
     const filtered = enriched.filter((s) => {
-      const delay = now.getTime() - new Date(s.scheduled_at).getTime();
+      const delay = now - new Date(s.scheduled_at).getTime();
       if (delay > THREE_HOURS) return false;
       if (delay > THIRTY_MIN && !userScheduleIds.has(s.id)) return false;
       return true;
