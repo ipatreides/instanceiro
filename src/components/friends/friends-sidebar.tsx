@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useFriendships } from "@/hooks/use-friendships";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { Avatar } from "@/components/ui/avatar";
+import { createClient } from "@/lib/supabase/client";
 
 interface FriendsSidebarProps {
   isOpen?: boolean;
@@ -65,6 +66,32 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
+
+  const handleGenerateInvite = async () => {
+    setInviteLoading(true);
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("create_friend_invite");
+    setInviteLoading(false);
+
+    if (error || !data) return;
+    const code = (data as { code: string }).code;
+    const link = `${window.location.origin}/invite/${code}`;
+    setInviteLink(link);
+
+    // Auto-hide after 10 seconds
+    setTimeout(() => setInviteLink(null), 10000);
+  };
+
+  const handleCopyInvite = async () => {
+    if (!inviteLink) return;
+    await navigator.clipboard.writeText(inviteLink);
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), 2000);
+  };
 
   async function handleSend() {
     if (!username.trim()) return;
@@ -227,6 +254,27 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
               </div>
             )}
           </>
+        )}
+      </div>
+
+      {/* Invite link */}
+      <div className="px-4 py-2 border-t border-border">
+        {inviteLink ? (
+          <button
+            onClick={handleCopyInvite}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs rounded-lg bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+          >
+            <span className="truncate flex-1 text-left">{inviteLink}</span>
+            <span className="flex-shrink-0 font-semibold">{inviteCopied ? "Copiado!" : "Copiar"}</span>
+          </button>
+        ) : (
+          <button
+            onClick={handleGenerateInvite}
+            disabled={inviteLoading}
+            className="w-full px-3 py-2 text-xs text-primary-secondary bg-surface border border-primary-secondary/30 rounded-lg hover:border-primary-secondary transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {inviteLoading ? "Gerando..." : "Gerar link de convite"}
+          </button>
         )}
       </div>
 
