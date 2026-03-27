@@ -33,6 +33,7 @@ import { FullPageSpinner, Spinner } from "@/components/ui/spinner";
 import { Logo } from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import type { Account, Character, InstanceState } from "@/lib/types";
+import { MvpTab } from "@/components/mvp/mvp-tab";
 
 interface Profile {
   display_name: string | null;
@@ -45,6 +46,7 @@ export default function DashboardPage() {
 
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
+  const [activeMainTab, setActiveMainTab] = useState<"instances" | "mvps">("instances");
   const [searchFilters, setSearchFilters] = useState<import("@/components/instances/instance-search").SearchFilter[]>([]);
   const [showNewChar, setShowNewChar] = useState(false);
   const [editingChar, setEditingChar] = useState<Character | null>(null);
@@ -482,7 +484,32 @@ export default function DashboardPage() {
           }}
         />
 
+        {/* Main tab switcher */}
+        <div className="flex gap-1 border-b border-border pb-1">
+          <button
+            onClick={() => setActiveMainTab("instances")}
+            className={`px-4 py-1.5 text-sm font-medium rounded-t-lg transition-colors cursor-pointer ${
+              activeMainTab === "instances"
+                ? "text-text-primary border-b-2 border-primary"
+                : "text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            Instâncias
+          </button>
+          <button
+            onClick={() => setActiveMainTab("mvps")}
+            className={`px-4 py-1.5 text-sm font-medium rounded-t-lg transition-colors cursor-pointer ${
+              activeMainTab === "mvps"
+                ? "text-text-primary border-b-2 border-primary"
+                : "text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            MVPs
+          </button>
+        </div>
+
         {characters.length > 0 ? (
+          activeMainTab === "instances" ? (
           <>
             {/* Scheduled instances */}
             {schedules.length > 0 && (
@@ -559,6 +586,13 @@ export default function DashboardPage() {
             </div>
             )}
           </>
+          ) : (
+            <MvpTab
+              selectedCharId={selectedCharId}
+              characters={characters}
+              accounts={accounts}
+            />
+          )
         ) : (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
             <p className="text-text-secondary text-center">
