@@ -184,10 +184,10 @@ export default function DashboardPage() {
                 .eq("id", user.id)
                 .then(() => {
                   localStorage.removeItem("pending_username");
-                  setProfile({ display_name: data.display_name, avatar_url: data.avatar_url, username: pendingUsername });
+                  setProfile({ display_name: data.display_name, avatar_url: data.avatar_url, username: pendingUsername, is_test_user: data.is_test_user });
                 });
             } else {
-              setProfile({ display_name: data.display_name, avatar_url: data.avatar_url, username: data.username });
+              setProfile({ display_name: data.display_name, avatar_url: data.avatar_url, username: data.username, is_test_user: data.is_test_user });
               if (!data.username) {
                 setNeedsUsername(true);
               }
