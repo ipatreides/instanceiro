@@ -63,6 +63,33 @@ These will be **blocked by the pre-commit hook** (`scripts/check-design-tokens.s
 
 Duotone style: `stroke="var(--primary)"` + `fill="var(--primary)" fillOpacity="var(--icon-fill-opacity)"`
 
+### Destructive Action Confirmation Pattern
+
+All destructive actions (delete, cancel, remove) MUST use the **displaced confirmation** pattern:
+
+1. User clicks the destructive button (e.g. "Excluir") — text-only, `text-status-error-text`
+2. Two buttons appear replacing it:
+   - **"Confirmar exclusão"** — solid destructive button (`bg-status-error text-white rounded-md`), positioned to the **LEFT** (away from the original button position)
+   - **"Cancelar"** — text-only secondary button, positioned to the **RIGHT** (same position as the original button)
+3. The confirm button must NEVER be in the same position as the original destructive button — this forces the user to deliberately move the mouse to confirm
+
+```tsx
+{!confirming ? (
+  <button onClick={() => setConfirming(true)} className="text-xs text-status-error-text ...">
+    Excluir
+  </button>
+) : (
+  <div className="flex gap-2">
+    <button onClick={handleDelete} className="text-xs text-white bg-status-error rounded-md ...">
+      Confirmar exclusão
+    </button>
+    <button onClick={() => setConfirming(false)} className="text-xs text-text-secondary ...">
+      Cancelar
+    </button>
+  </div>
+)}
+```
+
 ### Key Components
 
 - `<Logo size="sm|md|lg" />` — shield+clock icon + "Instanceiro" text
