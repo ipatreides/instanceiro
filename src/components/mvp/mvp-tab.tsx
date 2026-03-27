@@ -361,12 +361,20 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
                       Excluir
                     </button>
                   ) : (
-                    <button
-                      onClick={() => { handleDeleteKill(); setConfirmingDelete(false); }}
-                      className="px-3 py-1.5 text-xs text-white bg-status-error rounded-md hover:opacity-80 cursor-pointer transition-opacity"
-                    >
-                      Confirmar exclusão
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { handleDeleteKill(); setConfirmingDelete(false); }}
+                        className="px-3 py-1.5 text-xs text-white bg-status-error rounded-md hover:opacity-80 cursor-pointer transition-opacity"
+                      >
+                        Confirmar exclusão
+                      </button>
+                      <button
+                        onClick={() => setConfirmingDelete(false)}
+                        className="px-3 py-1.5 text-xs text-text-secondary border border-border rounded-md hover:text-text-primary cursor-pointer transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
                   )}
                 </>
               )}

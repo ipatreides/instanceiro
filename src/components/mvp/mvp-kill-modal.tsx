@@ -243,14 +243,23 @@ export function MvpKillModal({
                     Excluir
                   </button>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={onDelete}
-                    disabled={submitting}
-                    className="text-xs text-white bg-status-error px-2 py-0.5 rounded-md hover:opacity-80 cursor-pointer disabled:opacity-50"
-                  >
-                    Confirmar exclusão
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={onDelete}
+                      disabled={submitting}
+                      className="text-xs text-white bg-status-error px-2.5 py-0.5 rounded-md hover:opacity-80 cursor-pointer disabled:opacity-50"
+                    >
+                      Confirmar exclusão
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingDelete(false)}
+                      className="text-xs text-text-secondary hover:text-text-primary cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
                 )
               )}
             </div>
