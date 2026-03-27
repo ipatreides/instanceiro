@@ -183,6 +183,9 @@ export function MvpGroupHub({
   }
 
   // ---- GROUP MODE ----
+  const currentMember = members.find((m) => m.character_id === selectedCharId);
+  const isOwner = currentMember?.role === "owner";
+
   return (
     <div className="flex-1 flex flex-col gap-4 overflow-y-auto">
       {/* Card: Grupo */}
@@ -229,12 +232,24 @@ export function MvpGroupHub({
           </div>
 
           <div className="flex flex-wrap gap-1">
-            {members.map((m) => (
-              <span key={m.character_id} className="px-2.5 py-1 rounded-full text-[11px] bg-bg border border-border text-text-secondary">
-                {memberNames.get(m.character_id) ?? "?"}
-                {m.role === "owner" && <span className="text-primary-secondary ml-1">★</span>}
-              </span>
-            ))}
+            {members.map((m) => {
+              const canRemove = isOwner && m.character_id !== selectedCharId && m.role !== "owner";
+              return (
+                <span key={m.character_id} className="group/member inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] bg-bg border border-border text-text-secondary">
+                  {memberNames.get(m.character_id) ?? "?"}
+                  {m.role === "owner" && <span className="text-primary-secondary ml-1">★</span>}
+                  {canRemove && (
+                    <button
+                      onClick={() => onLeaveGroup(m.character_id)}
+                      className="text-status-error-text opacity-0 group-hover/member:opacity-100 transition-opacity cursor-pointer text-[9px] ml-0.5"
+                      title="Remover do grupo"
+                    >
+                      ×
+                    </button>
+                  )}
+                </span>
+              );
+            })}
           </div>
 
           {/* Invite panel */}
