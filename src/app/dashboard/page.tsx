@@ -40,6 +40,7 @@ interface Profile {
   avatar_url: string | null;
   username: string | null;
   is_test_user?: boolean;
+  default_tab?: string;
 }
 
 export default function DashboardPage() {
@@ -169,7 +170,7 @@ export default function DashboardPage() {
       setUserId(user.id);
       supabase
         .from("profiles")
-        .select("display_name, avatar_url, username, onboarding_completed, is_test_user")
+        .select("display_name, avatar_url, username, onboarding_completed, is_test_user, default_tab")
         .eq("id", user.id)
         .single()
         .then(({ data }) => {
@@ -184,10 +185,10 @@ export default function DashboardPage() {
                 .eq("id", user.id)
                 .then(() => {
                   localStorage.removeItem("pending_username");
-                  setProfile({ display_name: data.display_name, avatar_url: data.avatar_url, username: pendingUsername, is_test_user: data.is_test_user });
+                  setProfile({ display_name: data.display_name, avatar_url: data.avatar_url, username: pendingUsername, is_test_user: data.is_test_user, default_tab: data.default_tab });
                 });
             } else {
-              setProfile({ display_name: data.display_name, avatar_url: data.avatar_url, username: data.username, is_test_user: data.is_test_user });
+              setProfile({ display_name: data.display_name, avatar_url: data.avatar_url, username: data.username, is_test_user: data.is_test_user, default_tab: data.default_tab });
               if (!data.username) {
                 setNeedsUsername(true);
               }
@@ -196,6 +197,16 @@ export default function DashboardPage() {
         });
     });
   }, [router]);
+
+  // Set default tab from profile preference (only on initial load)
+  const [tabInitialized, setTabInitialized] = useState(false);
+  useEffect(() => {
+    if (tabInitialized || !profile?.default_tab || !profile.is_test_user) return;
+    if (profile.default_tab === "mvps") {
+      setActiveMainTab("mvps");
+    }
+    setTabInitialized(true);
+  }, [profile, tabInitialized]);
 
   const handleSaveUsername = useCallback(async () => {
     if (!userId || usernameStatus !== "available") return;
