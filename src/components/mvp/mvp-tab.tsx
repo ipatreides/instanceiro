@@ -146,7 +146,7 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
   })() : null;
 
   return (
-    <div className="flex gap-0 border border-border rounded-lg overflow-hidden bg-bg" style={{ height: "calc(100vh - 200px)", minHeight: "400px" }}>
+    <div className="flex gap-0 border border-border rounded-lg overflow-hidden bg-bg flex-1 min-h-0">
       {/* LEFT PANEL — MVP List (1/3) */}
       <div className="w-1/3 flex flex-col border-r border-border min-w-0">
         {/* Search */}

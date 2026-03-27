@@ -419,7 +419,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-bg text-text-primary">
+    <div className="h-screen flex flex-col bg-bg text-text-primary overflow-hidden">
       {/* Header */}
       <header className="bg-surface border-b border-border sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-5 py-3 flex items-center justify-between">
@@ -464,9 +464,9 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <div>
+      <div className="flex-1 overflow-hidden">
       {/* Main content */}
-      <main className="flex-1 min-w-0 max-w-6xl mx-auto px-5 py-4 flex flex-col gap-5">
+      <main className="flex-1 min-w-0 max-w-6xl mx-auto px-5 py-4 flex flex-col gap-5 h-full overflow-auto">
         {/* Account bar */}
         <AccountBar
           accounts={accounts}
