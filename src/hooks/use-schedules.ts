@@ -110,11 +110,11 @@ export function useSchedules(): UseSchedulesReturn {
       ? creatorIds
       : creatorIds.filter((id) => !cachedProfileMap.has(id));
 
-    // Always fetch participants + placeholders (change frequently)
-    const [participantsRes, placeholdersRes] = await Promise.all([
-      supabase.from("schedule_participants").select("schedule_id, user_id").in("schedule_id", data.map((s) => s.id)),
-      supabase.from("schedule_placeholders").select("schedule_id, claimed_by").in("schedule_id", data.map((s) => s.id)),
-    ]);
+    // Fetch schedule summary (counts + participation) in one RPC call
+    const { data: summaryData } = await supabase.rpc("get_schedule_summary", {
+      p_schedule_ids: data.map((s) => s.id),
+    });
+    const summaries = (summaryData ?? []) as { schedule_id: string; participant_count: number; placeholder_count: number; is_participant: boolean }[];
 
     // Fetch instances only if cache misses
     if (!cachedInstanceMap || missingInstanceIds.length > 0) {
@@ -143,20 +143,13 @@ export function useSchedules(): UseSchedulesReturn {
     const instanceMap = cachedInstanceMap!;
     const profileMap = cachedProfileMap;
 
-    // Count participants per schedule
-    const countMap = new Map<string, number>();
-    for (const p of (participantsRes.data ?? [])) {
-      countMap.set(p.schedule_id, (countMap.get(p.schedule_id) ?? 0) + 1);
-    }
-
-    const placeholderCountMap = new Map<string, number>();
-    for (const p of (placeholdersRes.data ?? [])) {
-      placeholderCountMap.set(p.schedule_id, (placeholderCountMap.get(p.schedule_id) ?? 0) + 1);
-    }
+    // Build maps from summary RPC
+    const summaryMap = new Map(summaries.map((s) => [s.schedule_id, s]));
 
     const enriched: InstanceSchedule[] = data.map((s) => {
       const inst = instanceMap.get(s.instance_id);
       const creator = profileMap.get(s.created_by);
+      const summary = summaryMap.get(s.id);
       return {
         ...s,
         instanceName: inst?.name ?? "???",
@@ -164,26 +157,13 @@ export function useSchedules(): UseSchedulesReturn {
         instanceLigaTier: inst?.liga_tier ?? null,
         creatorUsername: creator?.username ?? "???",
         creatorAvatar: creator?.avatar_url ?? null,
-        participantCount: (countMap.get(s.id) ?? 0) + (placeholderCountMap.get(s.id) ?? 0) + 1, // +1 for creator
+        participantCount: (summary?.participant_count ?? 0) + (summary?.placeholder_count ?? 0) + 1, // +1 for creator
       };
     });
 
     // Auto-expire schedules >3h late, hide >30min late from non-participants
-    const currentUserId = cachedUserId;
     const THIRTY_MIN = 30 * 60 * 1000;
     const THREE_HOURS = 3 * 60 * 60 * 1000;
-
-    // Build a set of schedule IDs where the current user is a participant
-    const userScheduleIds = new Set<string>();
-    for (const s of data) {
-      if (s.created_by === currentUserId) userScheduleIds.add(s.id);
-    }
-    for (const p of (participantsRes.data ?? [])) {
-      if (p.user_id === currentUserId) userScheduleIds.add(p.schedule_id);
-    }
-    for (const p of (placeholdersRes.data ?? [])) {
-      if (p.claimed_by === currentUserId) userScheduleIds.add(p.schedule_id);
-    }
 
     // Auto-expire >3h late schedules
     const toExpire = enriched.filter((s) => {
@@ -199,7 +179,7 @@ export function useSchedules(): UseSchedulesReturn {
     const filtered = enriched.filter((s) => {
       const delay = now - new Date(s.scheduled_at).getTime();
       if (delay > THREE_HOURS) return false;
-      if (delay > THIRTY_MIN && !userScheduleIds.has(s.id)) return false;
+      if (delay > THIRTY_MIN && !(summaryMap.get(s.id)?.is_participant ?? false)) return false;
       return true;
     });
 
@@ -214,7 +194,7 @@ export function useSchedules(): UseSchedulesReturn {
 
     const debouncedFetch = () => {
       if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => fetchAll(), 300);
+      debounceTimer = setTimeout(() => fetchAll(), 5000);
     };
 
     const supabase = createClient();

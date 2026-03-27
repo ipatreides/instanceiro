@@ -55,7 +55,7 @@ export function useNotifications(): UseNotificationsReturn {
 
       const debouncedFetch = () => {
         if (debounceTimer) clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => fetchNotifications(), 300);
+        debounceTimer = setTimeout(() => fetchNotifications(), 5000);
       };
 
       const filterOpts: { event: "*"; schema: "public"; table: "notifications"; filter?: string } = {
