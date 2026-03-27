@@ -60,10 +60,21 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/profile?bot=error`);
     }
 
-    await supabase
+    const { error: updateErr, count } = await supabase
       .from("discord_notifications")
       .update({ bot_guild_id: resolvedGuildId })
       .eq("user_id", user.id);
+
+    console.log("[bot-callback] update user_id:", user.id, "guild:", resolvedGuildId, "error:", updateErr, "count:", count);
+
+    if (updateErr) {
+      console.log("[bot-callback] update failed, trying upsert");
+      await supabase.from("discord_notifications").upsert({
+        user_id: user.id,
+        discord_user_id: "pending",
+        bot_guild_id: resolvedGuildId,
+      });
+    }
 
     return NextResponse.redirect(`${origin}/profile?bot=connected`);
   } catch {
