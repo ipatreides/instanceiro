@@ -39,6 +39,7 @@ interface Profile {
   display_name: string | null;
   avatar_url: string | null;
   username: string | null;
+  is_test_user?: boolean;
 }
 
 export default function DashboardPage() {
@@ -168,7 +169,7 @@ export default function DashboardPage() {
       setUserId(user.id);
       supabase
         .from("profiles")
-        .select("display_name, avatar_url, username, onboarding_completed")
+        .select("display_name, avatar_url, username, onboarding_completed, is_test_user")
         .eq("id", user.id)
         .single()
         .then(({ data }) => {
@@ -484,7 +485,8 @@ export default function DashboardPage() {
           }}
         />
 
-        {/* Main tab switcher */}
+        {/* Main tab switcher — MVP tab only visible for test users */}
+        {profile?.is_test_user && (
         <div className="flex gap-1 border-b border-border pb-1">
           <button
             onClick={() => setActiveMainTab("instances")}
@@ -507,6 +509,7 @@ export default function DashboardPage() {
             MVPs
           </button>
         </div>
+        )}
 
         {characters.length > 0 ? (
           activeMainTab === "instances" ? (
