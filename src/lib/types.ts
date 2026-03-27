@@ -184,3 +184,66 @@ export interface AppNotification {
   expires_at: string;
   created_at: string;
 }
+
+// MVP Timer types
+
+export interface Mvp {
+  id: number;
+  server_id: number;
+  monster_id: number;
+  name: string;
+  map_name: string;
+  respawn_ms: number;
+  delay_ms: number;
+  level: number | null;
+  hp: number | null;
+}
+
+export interface MvpMapMeta {
+  map_name: string;
+  width: number;
+  height: number;
+}
+
+export interface MvpDrop {
+  id: number;
+  mvp_monster_id: number;
+  item_id: number;
+  item_name: string;
+  drop_rate: number | null;
+}
+
+export interface MvpGroup {
+  id: string;
+  name: string;
+  server_id: number;
+  created_by: string;
+  alert_minutes: number;
+  discord_channel_id: string | null;
+  created_at: string;
+}
+
+export interface MvpGroupMember {
+  group_id: string;
+  character_id: string;
+  user_id: string;
+  role: 'owner' | 'member';
+  joined_at: string;
+}
+
+export interface MvpActiveKill {
+  kill_id: string;
+  mvp_id: number;
+  killed_at: string;
+  tomb_x: number | null;
+  tomb_y: number | null;
+  killer_character_id: string | null;
+  registered_by: string;
+  edited_by: string | null;
+  killer_name: string | null;
+  registered_by_name: string;
+  edited_by_name: string | null;
+  kill_count: number;
+}
+
+export type MvpTimerStatus = 'cooldown' | 'spawn_window' | 'probably_alive' | 'tomb_expired' | 'inactive';
