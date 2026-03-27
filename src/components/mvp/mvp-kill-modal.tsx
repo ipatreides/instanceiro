@@ -234,7 +234,7 @@ export function MvpKillModal({
               {isEdit && onDelete && (
                 <button
                   type="button"
-                  onClick={onDelete}
+                  onClick={() => { if (window.confirm("Excluir este registro?")) onDelete?.(); }}
                   disabled={submitting}
                   className="text-xs text-status-error-text hover:opacity-80 cursor-pointer disabled:opacity-50"
                 >

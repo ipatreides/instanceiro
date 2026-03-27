@@ -352,7 +352,7 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
                     ✎ Editar
                   </button>
                   <button
-                    onClick={handleDeleteKill}
+                    onClick={() => { if (window.confirm("Excluir este registro?")) handleDeleteKill(); }}
                     className="px-3 py-1.5 text-xs text-status-error-text hover:opacity-80 cursor-pointer transition-opacity"
                   >
                     Excluir
