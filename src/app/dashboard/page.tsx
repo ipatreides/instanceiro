@@ -46,7 +46,15 @@ interface Profile {
 export default function DashboardPage() {
   const router = useRouter();
 
-  const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
+  const [selectedCharId, setSelectedCharIdRaw] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("selectedCharId");
+  });
+  const setSelectedCharId = (id: string | null) => {
+    setSelectedCharIdRaw(id);
+    if (id) localStorage.setItem("selectedCharId", id);
+    else localStorage.removeItem("selectedCharId");
+  };
   const [searchText, setSearchText] = useState("");
   const [activeMainTab, setActiveMainTab] = useState<"instances" | "mvps">("instances");
   const [searchFilters, setSearchFilters] = useState<import("@/components/instances/instance-search").SearchFilter[]>([]);
@@ -152,10 +160,11 @@ export default function DashboardPage() {
     return () => { supabase.removeChannel(channel); };
   }, [selectedSchedule, getParticipants]);
 
-  // Auto-select first character
+  // Auto-select character: restore from localStorage or pick first
   useEffect(() => {
-    if (characters.length > 0 && selectedCharId === null) {
-      setSelectedCharId(characters[0].id);
+    if (characters.length === 0) return;
+    if (selectedCharId && characters.some((c) => c.id === selectedCharId)) return;
+    setSelectedCharId(characters[0].id);
     }
   }, [characters, selectedCharId]);
 
