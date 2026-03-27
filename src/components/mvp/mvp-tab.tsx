@@ -254,6 +254,7 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
                   tombX={selectedKill?.tomb_x ?? null}
                   tombY={selectedKill?.tomb_y ?? null}
                   onCoordsChange={() => {}}
+                  readOnly
                 />
               </div>
 

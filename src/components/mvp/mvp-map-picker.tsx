@@ -9,13 +9,14 @@ interface MvpMapPickerProps {
   tombX: number | null;
   tombY: number | null;
   onCoordsChange: (x: number | null, y: number | null) => void;
+  readOnly?: boolean;
 }
 
-export function MvpMapPicker({ mapName, mapMeta, tombX, tombY, onCoordsChange }: MvpMapPickerProps) {
+export function MvpMapPicker({ mapName, mapMeta, tombX, tombY, onCoordsChange, readOnly }: MvpMapPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleMapClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!mapMeta || !containerRef.current) return;
+    if (readOnly || !mapMeta || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
@@ -37,7 +38,7 @@ export function MvpMapPicker({ mapName, mapMeta, tombX, tombY, onCoordsChange }:
     <div
       ref={containerRef}
       onClick={handleMapClick}
-      className="relative aspect-square w-full rounded-lg border border-border overflow-hidden cursor-crosshair bg-bg"
+      className={`relative aspect-square w-full rounded-lg border border-border overflow-hidden bg-bg ${readOnly ? "cursor-default" : "cursor-crosshair"}`}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -57,13 +58,17 @@ export function MvpMapPicker({ mapName, mapMeta, tombX, tombY, onCoordsChange }:
           }}
         />
       )}
-      <span className="absolute bottom-1 left-2 text-[9px] text-text-secondary pointer-events-none">
-        {mapName}
-      </span>
-      {!tombX && !tombY && (
-        <span className="absolute bottom-1 right-2 text-[9px] text-text-secondary pointer-events-none">
-          Clique para marcar
-        </span>
+      {!readOnly && (
+        <>
+          <span className="absolute bottom-1 left-2 text-[9px] text-text-secondary pointer-events-none">
+            {mapName}
+          </span>
+          {!tombX && !tombY && (
+            <span className="absolute bottom-1 right-2 text-[9px] text-text-secondary pointer-events-none">
+              Clique para marcar
+            </span>
+          )}
+        </>
       )}
     </div>
   );
