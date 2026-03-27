@@ -69,6 +69,10 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
   const [sending, setSending] = useState(false);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
 
+  const [minimized, setMinimized] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("friends_minimized") === "true";
+  });
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
@@ -120,14 +124,27 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <h2 className="text-sm font-semibold text-text-primary">Amigos</h2>
-        {onClose && (
-          <button onClick={onClose} className="text-text-secondary hover:text-text-primary text-lg cursor-pointer lg:hidden">
-            ×
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => {
+              const next = !minimized;
+              setMinimized(next);
+              localStorage.setItem("friends_minimized", String(next));
+            }}
+            className="text-text-secondary hover:text-text-primary text-xs cursor-pointer hidden lg:block"
+            title={minimized ? "Expandir" : "Minimizar"}
+          >
+            {minimized ? "▲" : "▼"}
           </button>
-        )}
+          {onClose && (
+            <button onClick={onClose} className="text-text-secondary hover:text-text-primary text-lg cursor-pointer lg:hidden">
+              ×
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-4">
+      <div className={`flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-4 ${minimized ? "hidden" : ""}`}>
         {loading ? (
           <p className="text-xs text-text-secondary">Carregando...</p>
         ) : (
@@ -260,7 +277,7 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
       </div>
 
       {/* Invite link */}
-      <div className="px-4 py-2 border-t border-border">
+      <div className={`px-4 py-2 border-t border-border ${minimized ? "hidden" : ""}`}>
         {inviteLink ? (
           <button
             onClick={handleCopyInvite}
@@ -281,7 +298,7 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
       </div>
 
       {/* Add friend input */}
-      <div className="px-4 py-3 border-t border-border">
+      <div className={`px-4 py-3 border-t border-border ${minimized ? "hidden" : ""}`}>
         <div className="flex gap-2">
           <div className="relative flex-1">
             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-secondary text-xs font-medium">@</span>
@@ -310,7 +327,7 @@ export function FriendsSidebar({ isOpen, onClose }: FriendsSidebarProps) {
   return (
     <>
       {/* Desktop: always visible, fixed overlay on right */}
-      <aside className="hidden lg:flex flex-col fixed right-4 bottom-4 w-[280px] h-[50vh] min-h-[300px] bg-surface border border-border rounded-[var(--radius-lg)] z-30 shadow-lg overflow-hidden">
+      <aside className={`hidden lg:flex flex-col fixed right-4 bottom-4 w-[280px] bg-surface border border-border rounded-[var(--radius-lg)] z-30 shadow-lg overflow-hidden ${minimized ? "h-auto" : "h-[50vh] min-h-[300px]"}`}>
         {content}
       </aside>
 
