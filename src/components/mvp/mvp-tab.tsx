@@ -2,12 +2,22 @@
 
 import { useState, useCallback, useEffect } from "react";
 import type { Account, Character, Mvp, MvpActiveKill } from "@/lib/types";
+import { createClient } from "@/lib/supabase/client";
 import { useMvpData } from "@/hooks/use-mvp-data";
 import { useMvpGroups } from "@/hooks/use-mvp-groups";
 import { useMvpTimers } from "@/hooks/use-mvp-timers";
 import { MvpTimerList } from "./mvp-timer-list";
 import { MvpKillModal } from "./mvp-kill-modal";
 import { MvpMapPicker } from "./mvp-map-picker";
+
+interface KillHistoryEntry {
+  id: string;
+  killed_at: string;
+  killer_name: string | null;
+  registered_by_name: string;
+  tomb_x: number | null;
+  tomb_y: number | null;
+}
 
 interface MvpTabProps {
   selectedCharId: string | null;
@@ -58,6 +68,29 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
 
   // Find active kill for selected MVP
   const selectedKill = selectedMvp ? activeKills.find((k) => k.mvp_id === selectedMvp.id) ?? null : null;
+
+  // Kill history for selected MVP
+  const [killHistory, setKillHistory] = useState<KillHistoryEntry[]>([]);
+  useEffect(() => {
+    if (!selectedMvp) { setKillHistory([]); return; }
+    const supabase = createClient();
+    supabase
+      .from("mvp_kills")
+      .select("id, killed_at, tomb_x, tomb_y, killer:characters!killer_character_id(name), registerer:characters!registered_by(name)")
+      .eq("mvp_id", selectedMvp.id)
+      .order("killed_at", { ascending: false })
+      .limit(20)
+      .then(({ data }) => {
+        setKillHistory((data ?? []).map((d: Record<string, unknown>) => ({
+          id: d.id as string,
+          killed_at: d.killed_at as string,
+          killer_name: (d.killer as { name: string } | null)?.name ?? null,
+          registered_by_name: (d.registerer as { name: string } | null)?.name ?? "?",
+          tomb_x: d.tomb_x as number | null,
+          tomb_y: d.tomb_y as number | null,
+        })));
+      });
+  }, [selectedMvp?.id, activeKills]);
 
   const handleSelectMvp = useCallback((mvp: Mvp) => {
     setSelectedMvp(mvp);
@@ -266,6 +299,34 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
                 </div>
               )}
             </div>
+
+            {/* Kill history */}
+            {killHistory.length > 0 && (
+              <div className="flex flex-col gap-1 mt-2">
+                <p className="text-[10px] text-text-secondary font-semibold">HISTÓRICO ({killHistory.length})</p>
+                <div className="flex flex-col gap-0.5 max-h-[200px] overflow-y-auto scrollbar-thin">
+                  {killHistory.map((h) => (
+                    <div key={h.id} className="flex items-center gap-2 px-2 py-1 rounded text-[10px] bg-surface">
+                      <span className="text-text-secondary tabular-nums">
+                        {new Date(h.killed_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                      </span>
+                      <span className="text-text-secondary tabular-nums">
+                        {new Date(h.killed_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                      {h.killer_name ? (
+                        <span className="text-primary-secondary">{h.killer_name}</span>
+                      ) : (
+                        <span className="text-text-secondary italic">sem killer</span>
+                      )}
+                      {h.tomb_x != null && (
+                        <span className="text-text-secondary ml-auto">{h.tomb_x},{h.tomb_y}</span>
+                      )}
+                      <span className="text-text-secondary ml-auto">por {h.registered_by_name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex gap-2 mt-auto pt-3 border-t border-border">
