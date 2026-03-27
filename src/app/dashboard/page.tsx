@@ -201,7 +201,7 @@ export default function DashboardPage() {
   // Set default tab from profile preference (only on initial load)
   const [tabInitialized, setTabInitialized] = useState(false);
   useEffect(() => {
-    if (tabInitialized || !profile?.default_tab || !profile.is_test_user) return;
+    if (tabInitialized || !profile?.default_tab) return;
     if (profile.default_tab === "mvps") {
       setActiveMainTab("mvps");
     }
@@ -497,7 +497,7 @@ export default function DashboardPage() {
         />
 
         {/* Main tab switcher — MVP tab only visible for test users */}
-        {profile?.is_test_user && (
+        {(
         <div className="flex gap-1 border-b border-border pb-1">
           <button
             onClick={() => setActiveMainTab("instances")}

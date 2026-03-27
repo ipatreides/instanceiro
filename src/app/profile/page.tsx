@@ -299,8 +299,8 @@ export default function ProfilePage() {
             {saving ? "Salvando..." : "Salvar"}
           </button>
         </div>
-        {/* Default tab preference — test users only */}
-        {isTestUser && (
+        {/* Default tab preference */}
+        {(
           <div className="mt-6">
             <div className="bg-surface border border-border rounded-xl p-6 flex flex-col gap-4">
               <h2 className="text-[22px] font-semibold text-text-primary">Preferências</h2>
