@@ -15,8 +15,9 @@ export async function GET(request: Request) {
   const storedState = cookieStore.get("discord_bot_oauth_state")?.value;
   cookieStore.delete("discord_bot_oauth_state");
 
+  console.log("[bot-callback] code:", !!code, "state:", state, "storedState:", storedState);
   if (!code || !state || state !== storedState) {
-    return NextResponse.redirect(`${origin}/profile?bot=error`);
+    return NextResponse.redirect(`${origin}/profile?bot=csrf_error`);
   }
 
   try {
@@ -34,15 +35,21 @@ export async function GET(request: Request) {
     });
 
     if (!tokenRes.ok) {
-      return NextResponse.redirect(`${origin}/profile?bot=error`);
+      const errBody = await tokenRes.text();
+      console.log("[bot-callback] token exchange failed:", tokenRes.status, errBody);
+      return NextResponse.redirect(`${origin}/profile?bot=token_error`);
     }
 
     const tokenData = await tokenRes.json();
 
     // guild_id comes from query params or token response
     const resolvedGuildId = guildId || tokenData.guild?.id;
+    console.log("[bot-callback] query guild_id:", guildId);
+    console.log("[bot-callback] token guild:", JSON.stringify(tokenData.guild));
+    console.log("[bot-callback] token keys:", Object.keys(tokenData));
+    console.log("[bot-callback] resolved:", resolvedGuildId);
     if (!resolvedGuildId) {
-      return NextResponse.redirect(`${origin}/profile?bot=error`);
+      return NextResponse.redirect(`${origin}/profile?bot=no_guild`);
     }
 
     // Save to database
