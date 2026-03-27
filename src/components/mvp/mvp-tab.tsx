@@ -607,7 +607,7 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
                             memberIds.map((cId) => {
                               return (
                                 <span key={cId} className="px-2 py-0.5 rounded-full text-[10px] bg-bg border border-border text-text-secondary">
-                                  {memberNames.get(cId) ?? "?"}
+                                  {memberNames.get(cId) ?? cId.slice(0, 6)}
                                 </span>
                               );
                             })
