@@ -63,6 +63,7 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
   const [friendChars, setFriendChars] = useState<{ charId: string; charName: string; userId: string; username: string }[]>([]);
   const [confirmingLeave, setConfirmingLeave] = useState(false);
   const [editingGroupName, setEditingGroupName] = useState(false);
+  const [memberNames, setMemberNames] = useState<Map<string, string>>(new Map());
   const [groupNameInput, setGroupNameInput] = useState("");
 
   // Tick every second for detail panel countdown
@@ -81,6 +82,25 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
   const { parties, partyMembers, createParty, updatePartyMembers, deleteParty } = useMvpParties(group?.id ?? null);
 
   const loading = mvpLoading || groupLoading || killsLoading;
+
+  // Fetch character names for group members (includes friends' chars via SECURITY DEFINER)
+  useEffect(() => {
+    if (members.length === 0) { setMemberNames(new Map()); return; }
+    // Own chars from props
+    const nameMap = new Map<string, string>();
+    for (const c of characters) nameMap.set(c.id, c.name);
+    // Check if we need to fetch any missing names
+    const missing = members.filter((m) => !nameMap.has(m.character_id)).map((m) => m.character_id);
+    if (missing.length === 0) { setMemberNames(nameMap); return; }
+    // Fetch missing via RPC (bypasses RLS)
+    const supabase = createClient();
+    supabase.rpc("get_character_names", { char_ids: missing }).then(({ data }) => {
+      for (const c of ((data ?? []) as { id: string; name: string }[])) {
+        nameMap.set(c.id, c.name);
+      }
+      setMemberNames(new Map(nameMap));
+    });
+  }, [members, characters]);
 
   const partiesForModal = parties.map((p) => ({
     id: p.id,
@@ -338,10 +358,9 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
                 {/* Member list */}
                 <div className="flex flex-wrap gap-1 mb-2">
                   {members.map((m) => {
-                    const char = characters.find((c) => c.id === m.character_id);
                     return (
                       <span key={m.character_id} className="px-2 py-0.5 rounded-full text-[10px] bg-surface border border-border text-text-secondary">
-                        {char?.name ?? "?"}
+                        {memberNames.get(m.character_id) ?? "?"}
                         {m.role === "owner" && <span className="text-primary-secondary ml-1">★</span>}
                       </span>
                     );
@@ -435,7 +454,7 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
                     />
                     <div className="flex flex-wrap gap-1">
                       {members.map((m) => {
-                        const char = characters.find((c) => c.id === m.character_id);
+                        const charName = memberNames.get(m.character_id) ?? "?";
                         const isIn = newPartyMembers.has(m.character_id);
                         return (
                           <button
@@ -453,7 +472,7 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
                                 : "bg-bg border border-border text-text-secondary hover:border-primary"
                             }`}
                           >
-                            {char?.name ?? "?"} {isIn ? "✓" : ""}
+                            {charName} {isIn ? "✓" : ""}
                           </button>
                         );
                       })}
@@ -534,7 +553,7 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
                           {isEditing ? (
                             <>
                               {members.map((m) => {
-                                const char = characters.find((c) => c.id === m.character_id);
+                                const charName = memberNames.get(m.character_id) ?? "?";
                                 const isIn = editingPartyMembers.has(m.character_id);
                                 return (
                                   <button
@@ -552,7 +571,7 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
                                         : "bg-bg border border-border text-text-secondary hover:border-primary"
                                     }`}
                                   >
-                                    {char?.name ?? "?"} {isIn ? "✓" : ""}
+                                    {charName} {isIn ? "✓" : ""}
                                   </button>
                                 );
                               })}
@@ -576,10 +595,9 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
                             </>
                           ) : (
                             memberIds.map((cId) => {
-                              const char = characters.find((c) => c.id === cId);
                               return (
                                 <span key={cId} className="px-2 py-0.5 rounded-full text-[10px] bg-bg border border-border text-text-secondary">
-                                  {char?.name ?? "?"}
+                                  {memberNames.get(cId) ?? "?"}
                                 </span>
                               );
                             })
