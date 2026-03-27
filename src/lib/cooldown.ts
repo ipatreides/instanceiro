@@ -97,7 +97,11 @@ export function calculateCooldownExpiry(
     }
 
     case "three_day": {
-      // 3 daily resets: first reset after completion + 2 more days
+      // If cooldown_hours is set, use fixed hours from completion (no reset alignment)
+      if (cooldownHours !== null) {
+        return new Date(completedAt.getTime() + cooldownHours * 60 * 60 * 1000);
+      }
+      // Otherwise: 3 daily resets: first reset after completion + 2 more days
       const firstReset = nextResetAfter(completedAt);
       return new Date(firstReset.getTime() + 2 * 24 * 60 * 60 * 1000);
     }
