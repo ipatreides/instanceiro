@@ -51,6 +51,12 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
   const [modalKill, setModalKill] = useState<MvpActiveKill | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [newPartyName, setNewPartyName] = useState("");
+  const [newPartyMembers, setNewPartyMembers] = useState<Set<string>>(new Set());
+  const [showNewPartyForm, setShowNewPartyForm] = useState(false);
+  const [editingPartyId, setEditingPartyId] = useState<string | null>(null);
+  const [editingPartyMembers, setEditingPartyMembers] = useState<Set<string>>(new Set());
+  const [deletingPartyId, setDeletingPartyId] = useState<string | null>(null);
 
   // Tick every second for detail panel countdown
   useEffect(() => {
@@ -65,7 +71,7 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
   const { mvps, mapMeta, drops, loading: mvpLoading } = useMvpData(serverId);
   const { group, members, loading: groupLoading } = useMvpGroups(selectedCharId);
   const { activeKills, loading: killsLoading, registerKill, editKill, deleteKill } = useMvpTimers(group?.id ?? null, serverId);
-  const { parties, partyMembers } = useMvpParties(group?.id ?? null);
+  const { parties, partyMembers, createParty, updatePartyMembers, deleteParty } = useMvpParties(group?.id ?? null);
 
   const loading = mvpLoading || groupLoading || killsLoading;
 
@@ -205,17 +211,24 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
           />
         </div>
 
-        {/* Group info */}
-        <div className="px-2 py-1.5 border-b border-border">
+        {/* Group info — click to show hub */}
+        <button
+          onClick={() => { setSelectedMvp(null); setConfirmingDelete(false); }}
+          className="px-2 py-1.5 border-b border-border text-left w-full hover:bg-card-hover-bg transition-colors cursor-pointer"
+        >
           {group ? (
             <div className="flex items-center gap-1">
               <span className="text-[10px] text-text-secondary">Grupo:</span>
               <span className="text-[10px] text-primary-secondary font-medium">{group.name}</span>
+              <span className="text-[10px] text-text-secondary ml-auto">⚙</span>
             </div>
           ) : (
-            <span className="text-[10px] text-text-secondary">Modo solo</span>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-text-secondary">Modo solo</span>
+              <span className="text-[10px] text-text-secondary ml-auto">⚙</span>
+            </div>
           )}
-        </div>
+        </button>
 
         {/* Timer list */}
         <MvpTimerList
@@ -231,8 +244,221 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
       {/* RIGHT PANEL — Detail (2/3) */}
       <div className="flex-1 flex flex-col overflow-y-auto p-4 min-w-0">
         {!selectedMvp ? (
-          <div className="flex-1 flex items-center justify-center">
-            <p className="text-sm text-text-secondary italic">Selecione um MVP na lista</p>
+          <div className="flex-1 flex flex-col gap-4">
+            <h3 className="text-base font-semibold text-text-primary">
+              {group ? group.name : "Modo Solo"}
+            </h3>
+
+            {/* Group members */}
+            {group && members.length > 0 && (
+              <div>
+                <p className="text-[10px] text-text-secondary font-semibold mb-1">MEMBROS ({members.length})</p>
+                <div className="flex flex-wrap gap-1">
+                  {members.map((m) => {
+                    const char = characters.find((c) => c.id === m.character_id);
+                    return (
+                      <span key={m.character_id} className="px-2 py-0.5 rounded-full text-[10px] bg-surface border border-border text-text-secondary">
+                        {char?.name ?? "?"}
+                        {m.role === "owner" && <span className="text-primary-secondary ml-1">★</span>}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Parties management */}
+            {group && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-[10px] text-text-secondary font-semibold">PARTIES ({parties.length})</p>
+                  {!showNewPartyForm && (
+                    <button
+                      onClick={() => setShowNewPartyForm(true)}
+                      className="text-[10px] text-primary hover:text-text-primary cursor-pointer"
+                    >
+                      + Nova
+                    </button>
+                  )}
+                </div>
+
+                {/* New party form */}
+                {showNewPartyForm && (
+                  <div className="bg-surface border border-border rounded-md p-3 mb-2 flex flex-col gap-2">
+                    <input
+                      type="text"
+                      value={newPartyName}
+                      onChange={(e) => setNewPartyName(e.target.value)}
+                      placeholder="Nome da party"
+                      className="bg-bg border border-border rounded-md px-2.5 py-1.5 text-xs text-text-primary placeholder-text-secondary outline-none focus:border-primary transition-colors"
+                    />
+                    <div className="flex flex-wrap gap-1">
+                      {members.map((m) => {
+                        const char = characters.find((c) => c.id === m.character_id);
+                        const isIn = newPartyMembers.has(m.character_id);
+                        return (
+                          <button
+                            key={m.character_id}
+                            type="button"
+                            onClick={() => setNewPartyMembers((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(m.character_id)) next.delete(m.character_id);
+                              else next.add(m.character_id);
+                              return next;
+                            })}
+                            className={`px-2 py-0.5 rounded-full text-[10px] cursor-pointer transition-colors ${
+                              isIn
+                                ? "bg-[color-mix(in_srgb,var(--status-available)_15%,transparent)] border border-status-available text-text-primary"
+                                : "bg-bg border border-border text-text-secondary hover:border-primary"
+                            }`}
+                          >
+                            {char?.name ?? "?"} {isIn ? "✓" : ""}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={() => { setShowNewPartyForm(false); setNewPartyName(""); setNewPartyMembers(new Set()); }}
+                        className="px-2.5 py-1 text-xs text-text-secondary border border-border rounded-md hover:text-text-primary cursor-pointer transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (!newPartyName.trim() || !group) return;
+                          await createParty(group.id, newPartyName.trim(), [...newPartyMembers]);
+                          setShowNewPartyForm(false);
+                          setNewPartyName("");
+                          setNewPartyMembers(new Set());
+                        }}
+                        disabled={!newPartyName.trim()}
+                        className="px-2.5 py-1 text-xs font-semibold text-white bg-primary rounded-md hover:bg-primary-hover cursor-pointer disabled:opacity-50 transition-colors"
+                      >
+                        Criar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Existing parties */}
+                <div className="flex flex-col gap-2">
+                  {parties.map((party) => {
+                    const memberIds = partyMembers.get(party.id) ?? [];
+                    const isEditing = editingPartyId === party.id;
+                    const isDeleting = deletingPartyId === party.id;
+                    return (
+                      <div key={party.id} className="bg-surface border border-border rounded-md p-3">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-xs text-text-primary font-medium">{party.name}</span>
+                          <div className="flex gap-2">
+                            {!isEditing && !isDeleting && (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setEditingPartyId(party.id);
+                                    setEditingPartyMembers(new Set(memberIds));
+                                  }}
+                                  className="text-[10px] text-text-secondary hover:text-primary cursor-pointer"
+                                >
+                                  ✎
+                                </button>
+                                <button
+                                  onClick={() => setDeletingPartyId(party.id)}
+                                  className="text-[10px] text-status-error-text hover:opacity-80 cursor-pointer"
+                                >
+                                  Excluir
+                                </button>
+                              </>
+                            )}
+                            {isDeleting && (
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={async () => { await deleteParty(party.id); setDeletingPartyId(null); }}
+                                  className="text-[10px] text-white bg-status-error px-2 py-0.5 rounded-md cursor-pointer"
+                                >
+                                  Confirmar exclusão
+                                </button>
+                                <button
+                                  onClick={() => setDeletingPartyId(null)}
+                                  className="text-[10px] text-text-secondary cursor-pointer"
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {isEditing ? (
+                            <>
+                              {members.map((m) => {
+                                const char = characters.find((c) => c.id === m.character_id);
+                                const isIn = editingPartyMembers.has(m.character_id);
+                                return (
+                                  <button
+                                    key={m.character_id}
+                                    type="button"
+                                    onClick={() => setEditingPartyMembers((prev) => {
+                                      const next = new Set(prev);
+                                      if (next.has(m.character_id)) next.delete(m.character_id);
+                                      else next.add(m.character_id);
+                                      return next;
+                                    })}
+                                    className={`px-2 py-0.5 rounded-full text-[10px] cursor-pointer transition-colors ${
+                                      isIn
+                                        ? "bg-[color-mix(in_srgb,var(--status-available)_15%,transparent)] border border-status-available text-text-primary"
+                                        : "bg-bg border border-border text-text-secondary hover:border-primary"
+                                    }`}
+                                  >
+                                    {char?.name ?? "?"} {isIn ? "✓" : ""}
+                                  </button>
+                                );
+                              })}
+                              <div className="w-full flex gap-2 justify-end mt-1">
+                                <button
+                                  onClick={() => setEditingPartyId(null)}
+                                  className="text-[10px] text-text-secondary cursor-pointer"
+                                >
+                                  Cancelar
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    await updatePartyMembers(party.id, [...editingPartyMembers]);
+                                    setEditingPartyId(null);
+                                  }}
+                                  className="text-[10px] text-white bg-primary px-2 py-0.5 rounded-md cursor-pointer"
+                                >
+                                  Salvar
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            memberIds.map((cId) => {
+                              const char = characters.find((c) => c.id === cId);
+                              return (
+                                <span key={cId} className="px-2 py-0.5 rounded-full text-[10px] bg-bg border border-border text-text-secondary">
+                                  {char?.name ?? "?"}
+                                </span>
+                              );
+                            })
+                          )}
+                          {!isEditing && memberIds.length === 0 && (
+                            <span className="text-[10px] text-text-secondary italic">Sem membros</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {!group && (
+              <p className="text-xs text-text-secondary">
+                Registre kills de MVPs para acompanhar os timers de respawn.
+              </p>
+            )}
           </div>
         ) : (
           <>
