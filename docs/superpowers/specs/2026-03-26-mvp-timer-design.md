@@ -23,7 +23,7 @@ Each phase is a self-contained spec → plan → implementation cycle.
 - Tab selection persists per session (not per character)
 - The account/character bar stays visible — group membership is per character
 - The MVP tab shows timers for the **selected character's group**. Switching characters may show a different group's timers (or solo timers if the character has no group).
-- A character without a group sees only their own solo timers
+- A character without a group sees only their own solo timers (simplified UI: no party section, loot optional)
 
 ## Groups
 
@@ -68,6 +68,7 @@ Supplementary: Team Eclipse spreadsheet "MVPData" sheet — adds `delay` (spawn 
 
 ```
 id              SERIAL PRIMARY KEY
+server_id       INT NOT NULL REFERENCES servers(id)
 monster_id      INT NOT NULL (RO monster ID, e.g. 1086)
 name            TEXT NOT NULL (display name, e.g. "Golden Thief Bug")
 map_name        TEXT NOT NULL (e.g. "prt_sewb4")
@@ -75,9 +76,12 @@ respawn_ms      INT NOT NULL (base respawn time in milliseconds)
 delay_ms        INT NOT NULL DEFAULT 600000 (spawn window variance, default 10 min)
 level           INT
 hp              INT
+UNIQUE(server_id, monster_id, map_name)
 ```
 
-**One row per MVP+map combination.** Maya on `anthell02` and Maya on `gld_dun02` are two separate rows displayed as "Maya (Anthell 2)" and "Maya (Gld Dun 2)". Two different MVPs on the same map (e.g. Dark Lord and Doppelganger both on `gld_dun02`) are also separate rows — the map image is shared but the timer entries are independent.
+**One row per server+MVP+map combination.** Different servers may have different respawn times for the same MVP. Maya on `anthell02` and Maya on `gld_dun02` are two separate rows displayed as "Maya (Anthell 2)" and "Maya (Gld Dun 2)". Two different MVPs on the same map are also separate rows — the map image is shared but the timer entries are independent.
+
+Seed data is initially populated from `LATAM.json` for all servers. Server-specific adjustments can be made via admin tooling (future).
 
 ### Map Images
 
@@ -142,7 +146,9 @@ tomb_x          INT (nullable — optional tomb coordinates)
 tomb_y          INT (nullable)
 killer_character_id UUID (nullable — references characters(id), the character that got the kill)
 registered_by   UUID NOT NULL REFERENCES characters(id) (who registered this entry)
+edited_by       UUID (nullable — references characters(id), last editor)
 created_at      TIMESTAMPTZ DEFAULT NOW()
+updated_at      TIMESTAMPTZ
 ```
 
 ### Table: `mvp_kill_party`
@@ -217,11 +223,26 @@ Border color by status:
 
 - `spawn_start = killed_at + respawn_ms`
 - `spawn_end = killed_at + respawn_ms + delay_ms`
-- **Before spawn_start**: show countdown to `spawn_start` → status: cooldown
-- **At spawn_start**: status changes to spawn window → "Pode nascer"
-- **After spawn_end**: show "Provavelmente vivo" + count-up timer from spawn_end → status: probably alive
+- `tomb_expiry = spawn_start + 10 min` (tomb disappears ~10 min after spawn window opens)
+- `card_expiry = spawn_start + 30 min` (card returns to inactive if no new kill)
+
+**Status progression:**
+
+| Phase | Condition | Display | Tomb coords | Border color |
+|-------|-----------|---------|-------------|-------------|
+| Cooldown | `now < spawn_start` | Countdown to `spawn_start` | Shown with highlight color | Copper (> 30min), Yellow (< 30min), Green (< 5min) |
+| Spawn window | `spawn_start <= now < spawn_end` | "Pode nascer" | Shown with highlight color | Pulsing green |
+| Probably alive | `spawn_end <= now < tomb_expiry` | "Provavelmente vivo" + count-up | Shown (dimmed) | Pulsing green (dimmed) |
+| Tomb expired | `tomb_expiry <= now < card_expiry` | "Provavelmente vivo" + count-up | Hidden | Faded green |
+| Auto-inactive | `now >= card_expiry` | — (moves to SEM INFO section) | — | — |
 
 **All countdowns are computed client-side** using `killed_at` from the database. No server-side timer or polling needed. The only query is fetching the latest kill per MVP for the group.
+
+### Accountability
+
+Each timer row shows who registered/edited the kill:
+- "por @ceceu" (small text, secondary color)
+- On edit, updates to "editado por @duke"
 
 ### Kill Count / Statistics
 
