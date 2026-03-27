@@ -54,6 +54,7 @@ export function MvpGroupHub({
   // Party (users, not characters)
   const [partyUserIds, setPartyUserIds] = useState<Set<string>>(new Set());
   const [showAddToParty, setShowAddToParty] = useState(false);
+  const [addableUsers, setAddableUsers] = useState<{ userId: string; username: string }[]>([]);
 
   // Load party from DB
   useEffect(() => {
@@ -324,33 +325,57 @@ export function MvpGroupHub({
             );
           })}
 
-          {/* Add button — shows group users not in party */}
+          {/* Add button — fetch friends + group users not in party */}
           {!showAddToParty ? (
             <button
-              onClick={() => setShowAddToParty(true)}
+              onClick={async () => {
+                if (!serverId) return;
+                const supabase = createClient();
+                // Get friends on same server
+                const { data } = await supabase.rpc("get_friends_characters_by_server", { p_server_id: serverId });
+                // Collect unique users (friends + group members)
+                const userMap = new Map<string, string>(); // userId -> username
+                for (const c of ((data ?? []) as { user_id: string; username: string }[])) {
+                  if (!partyUserIds.has(c.user_id)) userMap.set(c.user_id, c.username);
+                }
+                // Also include group members not in party
+                for (const [uid] of groupUsers) {
+                  if (!partyUserIds.has(uid) && !userMap.has(uid)) {
+                    userMap.set(uid, usernames.get(uid) ?? "?");
+                  }
+                }
+                setAddableUsers([...userMap].map(([userId, username]) => ({ userId, username })));
+                setShowAddToParty(true);
+              }}
               className="px-2.5 py-1 rounded-full text-[11px] bg-bg border border-border text-primary cursor-pointer hover:border-primary transition-colors"
             >
               + Adicionar
             </button>
           ) : (
-            [...groupUsers].filter(([uid]) => !partyUserIds.has(uid)).map(([uid]) => {
-              const username = usernames.get(uid) ?? "?";
-              return (
+            <>
+              {addableUsers.map((u) => (
                 <button
-                  key={uid}
+                  key={u.userId}
                   onClick={() => {
-                    setPartyUserIds((prev) => new Set([...prev, uid]));
-                    setShowAddToParty(false);
+                    setPartyUserIds((prev) => new Set([...prev, u.userId]));
+                    setAddableUsers((prev) => prev.filter((x) => x.userId !== u.userId));
+                    if (addableUsers.length <= 1) setShowAddToParty(false);
                   }}
                   className="px-2.5 py-1 rounded-full text-[11px] bg-bg border border-border text-text-secondary cursor-pointer hover:border-primary hover:text-text-primary transition-colors"
                 >
-                  @{username}
+                  @{u.username}
                 </button>
-              );
-            })
-          )}
-          {showAddToParty && [...groupUsers].filter(([uid]) => !partyUserIds.has(uid)).length === 0 && (
-            <span className="text-[10px] text-text-secondary italic">Todos já estão na party</span>
+              ))}
+              {addableUsers.length === 0 && (
+                <span className="text-[10px] text-text-secondary italic">Nenhum usuário disponível</span>
+              )}
+              <button
+                onClick={() => setShowAddToParty(false)}
+                className="px-2.5 py-1 rounded-full text-[11px] bg-bg border border-border text-text-secondary cursor-pointer hover:text-text-primary transition-colors"
+              >
+                Fechar
+              </button>
+            </>
           )}
         </div>
 
