@@ -133,11 +133,20 @@ export default function DashboardPage() {
     }
   }, [schedules, pendingScheduleId, getParticipants]);
 
-  // Refresh participants when schedule list updates (driven by use-schedules realtime)
+  // Refresh participants in real-time when modal is open
   useEffect(() => {
     if (!selectedSchedule) return;
     getParticipants(selectedSchedule.id).then(setScheduleParticipants);
-  }, [selectedSchedule, schedules, getParticipants]);
+    const supabase = createClient();
+    const channel = supabase
+      .channel("schedule-participants-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "schedule_participants", filter: `schedule_id=eq.${selectedSchedule.id}` }, async () => {
+        const p = await getParticipants(selectedSchedule.id);
+        setScheduleParticipants(p);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [selectedSchedule, getParticipants]);
 
   // Auto-select first character
   useEffect(() => {
