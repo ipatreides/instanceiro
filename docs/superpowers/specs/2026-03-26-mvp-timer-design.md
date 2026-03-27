@@ -119,7 +119,9 @@ The modal renders the map as a square. The coordinate conversion must account fo
 
 ### MVP Drops (Static)
 
-Source: Divine Pride database — drops per MVP.
+Source: Divine Pride API — `GET /api/database/Monster/{monster_id}?apiKey=KEY` returns `drops[]` with `itemId` and `chance`. Item names fetched via `GET /api/database/Item/{itemId}?apiKey=KEY`. API key available in `tong-calc-ro` project scripts.
+
+Seed script fetches drops for all MVP `monster_id`s, resolves item names, and populates `mvp_drops`.
 
 ### Table: `mvp_drops`
 
