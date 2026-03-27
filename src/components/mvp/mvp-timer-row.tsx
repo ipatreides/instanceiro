@@ -6,6 +6,7 @@ import type { Mvp, MvpActiveKill, MvpTimerStatus } from "@/lib/types";
 interface MvpTimerRowProps {
   mvp: Mvp;
   kill: MvpActiveKill | null;
+  onEdit?: (mvp: Mvp, kill: MvpActiveKill) => void;
 }
 
 function computeStatus(kill: MvpActiveKill, mvp: Mvp, now: number): { status: MvpTimerStatus; remainingMs: number } {
@@ -47,7 +48,7 @@ const STATUS_TEXT_COLORS: Record<MvpTimerStatus, string> = {
   inactive: "var(--text-secondary)",
 };
 
-export function MvpTimerRow({ mvp, kill }: MvpTimerRowProps) {
+export function MvpTimerRow({ mvp, kill, onEdit }: MvpTimerRowProps) {
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -76,7 +77,7 @@ export function MvpTimerRow({ mvp, kill }: MvpTimerRowProps) {
 
   return (
     <div
-      className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface border border-border"
+      className="group flex items-center gap-3 px-3 py-2 rounded-lg bg-surface border border-border"
       style={{ borderLeftWidth: 3, borderLeftColor: borderColor }}
     >
       <div className="flex flex-col flex-1 min-w-0">
@@ -103,6 +104,15 @@ export function MvpTimerRow({ mvp, kill }: MvpTimerRowProps) {
       <span className="text-sm font-bold tabular-nums min-w-[60px] text-right" style={{ color: countdownColor }}>
         {isCountUp ? `+${formatCountdown(remainingMs)}` : formatCountdown(remainingMs)}
       </span>
+      {onEdit && kill && (
+        <button
+          onClick={() => onEdit(mvp, kill)}
+          className="text-[10px] text-text-secondary hover:text-primary cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+          title="Editar"
+        >
+          ✎
+        </button>
+      )}
     </div>
   );
 }
