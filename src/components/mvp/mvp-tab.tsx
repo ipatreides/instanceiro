@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import type { Account, Character } from "@/lib/types";
+import { useState, useCallback } from "react";
+import type { Account, Character, Mvp, MvpActiveKill } from "@/lib/types";
 import { useMvpData } from "@/hooks/use-mvp-data";
 import { useMvpGroups } from "@/hooks/use-mvp-groups";
 import { useMvpTimers } from "@/hooks/use-mvp-timers";
 import { MvpTimerList } from "./mvp-timer-list";
+import { MvpKillModal } from "./mvp-kill-modal";
 
 interface MvpTabProps {
   selectedCharId: string | null;
@@ -15,6 +16,9 @@ interface MvpTabProps {
 
 export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
   const [search, setSearch] = useState("");
+  const [modalMvp, setModalMvp] = useState<Mvp | null>(null);
+  const [modalKill, setModalKill] = useState<MvpActiveKill | null>(null);
+  const [modalInitialTime, setModalInitialTime] = useState<string | null>(null);
 
   // Derive server_id from selected character
   const selectedChar = characters.find((c) => c.id === selectedCharId);
@@ -22,15 +26,85 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
   const serverId = account?.server_id ?? null;
 
   // Load static data
-  const { mvps, loading: mvpLoading } = useMvpData(serverId);
+  const { mvps, mapMeta, drops, loading: mvpLoading } = useMvpData(serverId);
 
   // Load group for this character
-  const { group, loading: groupLoading } = useMvpGroups(selectedCharId);
+  const { group, members, loading: groupLoading } = useMvpGroups(selectedCharId);
 
   // Load active kills
-  const { activeKills, loading: killsLoading } = useMvpTimers(group?.id ?? null, serverId);
+  const { activeKills, loading: killsLoading, registerKill, editKill, deleteKill } = useMvpTimers(group?.id ?? null, serverId);
 
   const loading = mvpLoading || groupLoading || killsLoading;
+
+  const handleKillNow = useCallback((mvp: Mvp) => {
+    const existing = activeKills.find((k) => k.mvp_id === mvp.id);
+    if (existing) {
+      const spawnStart = new Date(existing.killed_at).getTime() + mvp.respawn_ms;
+      if (Date.now() < spawnStart + 30 * 60 * 1000) {
+        if (!window.confirm("Este MVP já tem timer ativo. Substituir?")) return;
+      }
+    }
+    setModalMvp(mvp);
+    setModalKill(null);
+    setModalInitialTime("now");
+  }, [activeKills]);
+
+  const handleKillSetTime = useCallback((mvp: Mvp) => {
+    const existing = activeKills.find((k) => k.mvp_id === mvp.id);
+    if (existing) {
+      const spawnStart = new Date(existing.killed_at).getTime() + mvp.respawn_ms;
+      if (Date.now() < spawnStart + 30 * 60 * 1000) {
+        if (!window.confirm("Este MVP já tem timer ativo. Substituir?")) return;
+      }
+    }
+    setModalMvp(mvp);
+    setModalKill(null);
+    setModalInitialTime(null);
+  }, [activeKills]);
+
+  const handleEdit = useCallback((mvp: Mvp, kill: MvpActiveKill) => {
+    setModalMvp(mvp);
+    setModalKill(kill);
+    setModalInitialTime(null);
+  }, []);
+
+  const handleConfirmKill = useCallback(async (data: {
+    killedAt: string;
+    tombX: number | null;
+    tombY: number | null;
+    killerCharacterId: string | null;
+    selectedLoots: { itemId: number; itemName: string }[];
+  }) => {
+    if (!modalMvp || !selectedCharId) return;
+
+    if (modalKill) {
+      await editKill(modalKill.kill_id, {
+        killedAt: data.killedAt,
+        tombX: data.tombX,
+        tombY: data.tombY,
+        killerCharacterId: data.killerCharacterId,
+        editedBy: selectedCharId,
+      });
+    } else {
+      await registerKill({
+        mvpId: modalMvp.id,
+        groupId: group?.id ?? null,
+        killedAt: data.killedAt,
+        tombX: data.tombX,
+        tombY: data.tombY,
+        killerCharacterId: data.killerCharacterId,
+        registeredBy: selectedCharId,
+        loots: data.selectedLoots,
+      });
+    }
+    setModalMvp(null);
+  }, [modalMvp, modalKill, selectedCharId, group, registerKill, editKill]);
+
+  const handleDeleteKill = useCallback(async () => {
+    if (!modalKill) return;
+    await deleteKill(modalKill.kill_id);
+    setModalMvp(null);
+  }, [modalKill, deleteKill]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -67,7 +141,27 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
         activeKills={activeKills}
         search={search}
         loading={loading}
+        onKillNow={handleKillNow}
+        onKillSetTime={handleKillSetTime}
+        onEdit={handleEdit}
       />
+
+      {modalMvp && (
+        <MvpKillModal
+          mvp={modalMvp}
+          mapMeta={mapMeta.get(modalMvp.map_name)}
+          drops={drops}
+          existingKill={modalKill}
+          groupMembers={members}
+          characters={characters}
+          selectedCharId={selectedCharId}
+          isGroupMode={!!group}
+          initialTime={modalInitialTime}
+          onConfirm={handleConfirmKill}
+          onDelete={modalKill ? handleDeleteKill : undefined}
+          onClose={() => setModalMvp(null)}
+        />
+      )}
     </div>
   );
 }
