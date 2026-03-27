@@ -56,33 +56,37 @@ export async function POST(request: Request) {
 
   let processed = 0;
 
-  for (const alert of alerts) {
-    // Fetch kill + mvp + group data
-    const { data: kill } = await supabase
-      .from("mvp_kills")
-      .select("killed_at, tomb_x, tomb_y, mvp_id")
-      .eq("id", alert.mvp_kill_id)
-      .single();
+  // Batch fetch all related data
+  const killIds = [...new Set(alerts.map((a) => a.mvp_kill_id))];
+  const groupIds = [...new Set(alerts.map((a) => a.group_id))];
 
+  const [killsRes, groupsRes] = await Promise.all([
+    supabase.from("mvp_kills").select("id, killed_at, tomb_x, tomb_y, mvp_id").in("id", killIds),
+    supabase.from("mvp_groups").select("id, discord_channel_id, alert_minutes").in("id", groupIds),
+  ]);
+
+  const killMap = new Map((killsRes.data ?? []).map((k: Record<string, unknown>) => [k.id as string, k]));
+  const groupMap = new Map((groupsRes.data ?? []).map((g: Record<string, unknown>) => [g.id as string, g]));
+
+  // Fetch MVPs for all kills
+  const mvpIds = [...new Set((killsRes.data ?? []).map((k: Record<string, unknown>) => k.mvp_id as number))];
+  const { data: mvpsData } = await supabase.from("mvps").select("id, name, map_name, respawn_ms, delay_ms").in("id", mvpIds);
+  const mvpMap = new Map((mvpsData ?? []).map((m: Record<string, unknown>) => [m.id as number, m]));
+
+  // Collect sent alert IDs for batch update
+  const sentIds: string[] = [];
+
+  for (const alert of alerts) {
+    const kill = killMap.get(alert.mvp_kill_id) as Record<string, unknown> | undefined;
     if (!kill) continue;
 
-    const { data: mvp } = await supabase
-      .from("mvps")
-      .select("name, map_name, respawn_ms, delay_ms")
-      .eq("id", kill.mvp_id)
-      .single();
-
+    const mvp = mvpMap.get(kill.mvp_id as number) as { name: string; map_name: string; respawn_ms: number; delay_ms: number } | undefined;
     if (!mvp) continue;
 
-    const { data: group } = await supabase
-      .from("mvp_groups")
-      .select("discord_channel_id, alert_minutes")
-      .eq("id", alert.group_id)
-      .single();
-
+    const group = groupMap.get(alert.group_id) as { discord_channel_id: string | null; alert_minutes: number } | undefined;
     if (!group?.discord_channel_id) continue;
 
-    const killedAt = new Date(kill.killed_at);
+    const killedAt = new Date(kill.killed_at as string);
     const spawnAt = new Date(killedAt.getTime() + mvp.respawn_ms);
     const spawnEnd = new Date(spawnAt.getTime() + mvp.delay_ms);
 
@@ -104,14 +108,15 @@ export async function POST(request: Request) {
     }
 
     const sent = await sendChannelMessage(botToken, group.discord_channel_id, message);
-
     if (sent) {
-      await supabase
-        .from("mvp_alert_queue")
-        .update({ sent: true })
-        .eq("id", alert.id);
+      sentIds.push(alert.id);
       processed++;
     }
+  }
+
+  // Batch update sent alerts
+  if (sentIds.length > 0) {
+    await supabase.from("mvp_alert_queue").update({ sent: true }).in("id", sentIds);
   }
 
   return NextResponse.json({ processed });
