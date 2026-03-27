@@ -9,9 +9,12 @@ interface MvpTimerListProps {
   activeKills: MvpActiveKill[];
   search: string;
   loading: boolean;
+  onKillNow?: (mvp: Mvp) => void;
+  onKillSetTime?: (mvp: Mvp) => void;
+  onEdit?: (mvp: Mvp, kill: MvpActiveKill) => void;
 }
 
-export function MvpTimerList({ mvps, activeKills, search, loading }: MvpTimerListProps) {
+export function MvpTimerList({ mvps, activeKills, search, loading, onKillNow, onKillSetTime, onEdit }: MvpTimerListProps) {
   const killMap = useMemo(() => {
     const map = new Map<number, MvpActiveKill>();
     for (const k of activeKills) map.set(k.mvp_id, k);
@@ -68,7 +71,7 @@ export function MvpTimerList({ mvps, activeKills, search, loading }: MvpTimerLis
           <p className="text-xs text-text-secondary font-semibold">ATIVOS ({active.length})</p>
           <div className="flex flex-col gap-1">
             {active.map(({ mvp, kill }) => (
-              <MvpTimerRow key={mvp.id} mvp={mvp} kill={kill} />
+              <MvpTimerRow key={mvp.id} mvp={mvp} kill={kill} onEdit={onEdit} />
             ))}
           </div>
         </div>
@@ -80,12 +83,22 @@ export function MvpTimerList({ mvps, activeKills, search, loading }: MvpTimerLis
           <p className="text-xs text-text-secondary font-semibold">SEM INFO ({inactive.length})</p>
           <div className="flex flex-wrap gap-1">
             {inactive.map((mvp) => (
-              <button
-                key={mvp.id}
-                className="px-2 py-1 text-[10px] bg-surface border border-border rounded text-text-secondary hover:border-primary hover:text-text-primary transition-colors cursor-pointer"
-              >
-                {mvp.name} ({mvp.map_name})
-              </button>
+              <div key={mvp.id} className="inline-flex items-center gap-0.5">
+                <button
+                  onClick={() => onKillNow?.(mvp)}
+                  className="pl-2 py-1 text-[10px] bg-surface border border-border border-r-0 rounded-l text-text-secondary hover:border-primary hover:text-text-primary transition-colors cursor-pointer"
+                  title="Matei agora"
+                >
+                  ⚔
+                </button>
+                <button
+                  onClick={() => onKillSetTime?.(mvp)}
+                  className="pr-2 py-1 text-[10px] bg-surface border border-border rounded-r text-text-secondary hover:border-primary hover:text-text-primary transition-colors cursor-pointer"
+                  title="Informar horário"
+                >
+                  {mvp.name} ({mvp.map_name})
+                </button>
+              </div>
             ))}
           </div>
         </div>
