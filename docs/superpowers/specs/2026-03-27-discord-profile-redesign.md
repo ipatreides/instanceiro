@@ -79,7 +79,8 @@ Permissions: `3072` = Send Messages (2048) + View Channel (1024). View Channel i
 
 **New route: `GET /api/discord-bot-callback`**
 - OAuth callback for bot addition (redirect from Discord)
-- Receives `code` and `guild_id` from query params
+- Receives `code`, `guild_id`, and `state` from query params
+- Validates `state` against `discord_bot_oauth_state` cookie (CSRF protection)
 - Exchanges `code` for token (validates the flow)
 - Saves `guild_id` to `discord_notifications.bot_guild_id`
 - Redirects to `/profile?bot=connected`
@@ -91,6 +92,7 @@ Permissions: `3072` = Send Messages (2048) + View Channel (1024). View Channel i
 - Returns text channels only (type 0)
 - **Cached for 5 minutes** per guild_id (in-memory or response header)
 - Response: `[{ id, name }]`
+- **Error handling**: if bot was removed from server (403/404 from Discord), return `{ error: "bot_not_in_guild" }` → UI shows "Bot não encontrado no servidor" with option to re-add
 
 ### Alert Queue Changes
 
