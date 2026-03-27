@@ -63,7 +63,7 @@ export function MvpKillModal({
   const [tombY, setTombY] = useState<number | null>(existingKill?.tomb_y ?? null);
 
   const [killerId, setKillerId] = useState<string | null>(
-    existingKill?.killer_character_id ?? (isGroupMode ? null : selectedCharId)
+    existingKill?.killer_character_id ?? (initialTime === "now" ? selectedCharId : null)
   );
 
   const mvpDrops = drops.filter((d) => d.mvp_monster_id === mvp.monster_id);
