@@ -96,18 +96,25 @@ export function useFriendships(): UseFriendshipsReturn {
     fetchAll().then(() => { if (!cancelled) setLoading(false); });
 
     // Subscribe to realtime changes on friendships
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const debouncedFetch = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => fetchAll(), 5000);
+    };
+
     const supabase = createClient();
     const channel = supabase
       .channel("friendships-changes")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "friendships" },
-        () => { fetchAll(); }
+        debouncedFetch
       )
       .subscribe();
 
     return () => {
       cancelled = true;
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [fetchAll]);

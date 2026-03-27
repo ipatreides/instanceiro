@@ -83,6 +83,12 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
     });
 
     // Subscribe to realtime changes filtered by character_id
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const debouncedFetch = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => fetchAll(), 5000);
+    };
+
     const supabase = createClient();
     const channel = supabase
       .channel(`instances-${characterId}`)
@@ -91,17 +97,18 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
         schema: "public",
         table: "instance_completions",
         filter: `character_id=eq.${characterId}`,
-      }, () => fetchAll())
+      }, debouncedFetch)
       .on("postgres_changes", {
         event: "*",
         schema: "public",
         table: "character_instances",
         filter: `character_id=eq.${characterId}`,
-      }, () => fetchAll())
+      }, debouncedFetch)
       .subscribe();
 
     return () => {
       cancelled = true;
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [fetchAll]);

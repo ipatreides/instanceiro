@@ -68,9 +68,10 @@ export function useMvpTimers(groupId: string | null, serverId: number | null): U
     };
 
     const channelName = groupId ? `mvp-kills-${groupId}` : `mvp-kills-solo`;
+    const filter = groupId ? { event: "*" as const, schema: "public", table: "mvp_kills", filter: `group_id=eq.${groupId}` } : { event: "*" as const, schema: "public", table: "mvp_kills" };
     const channel = supabase
       .channel(channelName)
-      .on("postgres_changes", { event: "*", schema: "public", table: "mvp_kills" }, debouncedFetch)
+      .on("postgres_changes", filter, debouncedFetch)
       .subscribe();
 
     return () => {
