@@ -109,18 +109,23 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
     const supabase = createClient();
     supabase
       .from("mvp_kills")
-      .select("id, killed_at, tomb_x, tomb_y, killer:characters!killer_character_id(name), registerer:characters!registered_by(name)")
+      .select("id, killed_at, tomb_x, tomb_y, killer_character_id, registered_by")
       .eq("mvp_id", selectedMvp.id)
       .order("killed_at", { ascending: false })
       .limit(20)
-      .then(({ data }) => {
-        setKillHistory((data ?? []).map((d: Record<string, unknown>) => ({
-          id: d.id as string,
-          killed_at: d.killed_at as string,
-          killer_name: (d.killer as { name: string } | null)?.name ?? null,
-          registered_by_name: (d.registerer as { name: string } | null)?.name ?? "?",
-          tomb_x: d.tomb_x as number | null,
-          tomb_y: d.tomb_y as number | null,
+      .then(async ({ data }) => {
+        if (!data || data.length === 0) { setKillHistory([]); return; }
+        // Resolve character names via RPC (bypasses RLS)
+        const charIds = [...new Set(data.flatMap((d) => [d.killer_character_id, d.registered_by].filter(Boolean) as string[]))];
+        const { data: names } = await supabase.rpc("get_character_names", { char_ids: charIds });
+        const nameMap = new Map(((names ?? []) as { id: string; name: string }[]).map((c) => [c.id, c.name]));
+        setKillHistory(data.map((d) => ({
+          id: d.id,
+          killed_at: d.killed_at,
+          killer_name: d.killer_character_id ? nameMap.get(d.killer_character_id) ?? null : null,
+          registered_by_name: nameMap.get(d.registered_by) ?? "?",
+          tomb_x: d.tomb_x,
+          tomb_y: d.tomb_y,
         })));
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
