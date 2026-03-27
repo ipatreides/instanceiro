@@ -59,6 +59,11 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
   const [deletingPartyId, setDeletingPartyId] = useState<string | null>(null);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
+  const [showInvite, setShowInvite] = useState(false);
+  const [friendChars, setFriendChars] = useState<{ charId: string; charName: string; userId: string; username: string }[]>([]);
+  const [confirmingLeave, setConfirmingLeave] = useState(false);
+  const [editingGroupName, setEditingGroupName] = useState(false);
+  const [groupNameInput, setGroupNameInput] = useState("");
 
   // Tick every second for detail panel countdown
   useEffect(() => {
@@ -71,7 +76,7 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
   const serverId = account?.server_id ?? null;
 
   const { mvps, mapMeta, drops, loading: mvpLoading } = useMvpData(serverId);
-  const { group, members, loading: groupLoading, createGroup, updateGroup } = useMvpGroups(selectedCharId);
+  const { group, members, loading: groupLoading, createGroup, updateGroup, inviteCharacter, leaveGroup } = useMvpGroups(selectedCharId);
   const { activeKills, loading: killsLoading, registerKill, editKill, deleteKill } = useMvpTimers(group?.id ?? null, serverId);
   const { parties, partyMembers, createParty, updatePartyMembers, deleteParty } = useMvpParties(group?.id ?? null);
 
@@ -247,15 +252,122 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
       <div className="flex-1 flex flex-col overflow-y-auto p-4 min-w-0">
         {!selectedMvp ? (
           <div className="flex-1 flex flex-col gap-4">
-            <h3 className="text-base font-semibold text-text-primary">
-              {group ? group.name : "Modo Solo"}
-            </h3>
+            {/* Group name — editable */}
+            {group ? (
+              !editingGroupName ? (
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-semibold text-text-primary">{group.name}</h3>
+                  <button
+                    onClick={() => { setEditingGroupName(true); setGroupNameInput(group.name); }}
+                    className="text-[10px] text-text-secondary hover:text-primary cursor-pointer"
+                  >
+                    ✎
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={groupNameInput}
+                    onChange={(e) => setGroupNameInput(e.target.value)}
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && groupNameInput.trim()) {
+                        updateGroup(group.id, { name: groupNameInput.trim() });
+                        setEditingGroupName(false);
+                      }
+                      if (e.key === "Escape") setEditingGroupName(false);
+                    }}
+                    className="bg-bg border border-border rounded-md px-2.5 py-1 text-base font-semibold text-text-primary outline-none focus:border-primary transition-colors"
+                  />
+                  <button
+                    onClick={() => {
+                      if (groupNameInput.trim()) updateGroup(group.id, { name: groupNameInput.trim() });
+                      setEditingGroupName(false);
+                    }}
+                    className="text-xs text-primary cursor-pointer"
+                  >
+                    Salvar
+                  </button>
+                  <button
+                    onClick={() => setEditingGroupName(false)}
+                    className="text-xs text-text-secondary cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              )
+            ) : (
+              <h3 className="text-base font-semibold text-text-primary">Modo Solo</h3>
+            )}
 
-            {/* Group members */}
-            {group && members.length > 0 && (
+            {/* Group members + invite + leave */}
+            {group && (
               <div>
-                <p className="text-[10px] text-text-secondary font-semibold mb-1">MEMBROS ({members.length})</p>
-                <div className="flex flex-wrap gap-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-[10px] text-text-secondary font-semibold">MEMBROS ({members.length})</p>
+                  <button
+                    onClick={async () => {
+                      if (showInvite) { setShowInvite(false); return; }
+                      // Fetch friends' characters on same server
+                      const supabase = createClient();
+                      const { data: { user } } = await supabase.auth.getUser();
+                      if (!user || !serverId) return;
+
+                      // Get accepted friends
+                      const { data: friendships } = await supabase
+                        .from("friendships")
+                        .select("requester_id, addressee_id")
+                        .eq("status", "accepted");
+
+                      const friendUserIds = (friendships ?? []).map((f) =>
+                        f.requester_id === user.id ? f.addressee_id : f.requester_id
+                      );
+
+                      if (friendUserIds.length === 0) { setFriendChars([]); setShowInvite(true); return; }
+
+                      // Get their characters on the same server
+                      const { data: chars } = await supabase
+                        .from("characters")
+                        .select("id, name, user_id, account_id")
+                        .in("user_id", friendUserIds)
+                        .eq("is_active", true);
+
+                      const { data: accs } = await supabase
+                        .from("accounts")
+                        .select("id, server_id")
+                        .eq("server_id", serverId);
+
+                      const accIds = new Set((accs ?? []).map((a) => a.id));
+                      const memberCharIds = new Set(members.map((m) => m.character_id));
+
+                      // Get usernames
+                      const { data: profiles } = await supabase
+                        .from("profiles")
+                        .select("id, username")
+                        .in("id", friendUserIds);
+                      const usernameMap = new Map((profiles ?? []).map((p) => [p.id, p.username ?? "?"]));
+
+                      const eligible = (chars ?? [])
+                        .filter((c) => accIds.has(c.account_id) && !memberCharIds.has(c.id))
+                        .map((c) => ({
+                          charId: c.id,
+                          charName: c.name,
+                          userId: c.user_id,
+                          username: usernameMap.get(c.user_id) ?? "?",
+                        }));
+
+                      setFriendChars(eligible);
+                      setShowInvite(true);
+                    }}
+                    className="text-[10px] text-primary hover:text-text-primary cursor-pointer"
+                  >
+                    {showInvite ? "Fechar" : "+ Convidar"}
+                  </button>
+                </div>
+
+                {/* Member list */}
+                <div className="flex flex-wrap gap-1 mb-2">
                   {members.map((m) => {
                     const char = characters.find((c) => c.id === m.character_id);
                     return (
@@ -266,6 +378,64 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
                     );
                   })}
                 </div>
+
+                {/* Invite friends */}
+                {showInvite && (
+                  <div className="bg-surface border border-border rounded-md p-2 mb-2">
+                    {friendChars.length === 0 ? (
+                      <p className="text-[10px] text-text-secondary italic">Nenhum personagem de amigo disponível neste servidor.</p>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        {friendChars.map((fc) => (
+                          <button
+                            key={fc.charId}
+                            onClick={async () => {
+                              await inviteCharacter(group.id, fc.charId, fc.userId);
+                              setFriendChars((prev) => prev.filter((c) => c.charId !== fc.charId));
+                            }}
+                            className="flex items-center gap-2 px-2 py-1 rounded text-[10px] hover:bg-card-hover-bg transition-colors cursor-pointer text-left"
+                          >
+                            <span className="text-text-primary">{fc.charName}</span>
+                            <span className="text-text-secondary">@{fc.username}</span>
+                            <span className="text-primary ml-auto">+ Convidar</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Leave group */}
+                {selectedCharId && (
+                  <div className="mt-1">
+                    {!confirmingLeave ? (
+                      <button
+                        onClick={() => setConfirmingLeave(true)}
+                        className="text-[10px] text-status-error-text hover:opacity-80 cursor-pointer"
+                      >
+                        Sair do grupo
+                      </button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={async () => {
+                            await leaveGroup(selectedCharId);
+                            setConfirmingLeave(false);
+                          }}
+                          className="text-[10px] text-white bg-status-error px-2 py-0.5 rounded-md cursor-pointer"
+                        >
+                          Confirmar saída
+                        </button>
+                        <button
+                          onClick={() => setConfirmingLeave(false)}
+                          className="text-[10px] text-text-secondary cursor-pointer"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
