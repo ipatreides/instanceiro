@@ -333,6 +333,29 @@ export default function ProfilePage() {
         <div className="mt-6">
           <NotificationsSection />
         </div>
+        {/* Bot invite — for MVP Timer Discord notifications */}
+        {isTestUser && (
+          <div className="mt-6">
+            <div className="bg-surface border border-border rounded-xl p-6 flex flex-col gap-4">
+              <h2 className="text-[22px] font-semibold text-text-primary">Bot do Instanceiro</h2>
+              <p className="text-sm text-text-secondary">
+                Adicione o bot do Instanceiro ao seu servidor do Discord para receber alertas de MVP no canal configurado.
+              </p>
+              <a
+                href={`https://discord.com/api/oauth2/authorize?client_id=${process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID ?? ""}&permissions=2048&scope=bot`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 w-full py-2.5 rounded-md bg-[#5865F2] text-white font-semibold text-sm hover:bg-[#4752C4] transition-colors cursor-pointer"
+              >
+                Adicionar bot ao servidor
+              </a>
+              <p className="text-[10px] text-text-secondary">
+                O bot precisa da permissão "Enviar Mensagens" no canal configurado. Após adicionar, copie o ID do canal no hub do grupo MVP.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Calendar integration disabled — requires Google OAuth verification
         <div className="mt-6">
           <CalendarSection />
