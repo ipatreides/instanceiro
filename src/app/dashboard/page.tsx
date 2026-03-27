@@ -197,6 +197,37 @@ export default function DashboardPage() {
     });
   }, [router]);
 
+  // Auto-switch to MVP tab if there's an urgent MVP (< 10 min to spawn)
+  useEffect(() => {
+    if (!profile?.is_test_user || !selectedCharId) return;
+    const selectedChar = characters.find((c) => c.id === selectedCharId);
+    const account = accounts.find((a) => a.id === selectedChar?.account_id);
+    if (!account) return;
+
+    const supabase = createClient();
+    // Fetch recent kills with respawn time from mvps table
+    supabase
+      .from("mvp_kills")
+      .select("killed_at, mvps!inner(respawn_ms)")
+      .is("group_id", null)
+      .order("killed_at", { ascending: false })
+      .limit(50)
+      .then(({ data }) => {
+        if (!data) return;
+        const TEN_MIN = 10 * 60 * 1000;
+        const now = Date.now();
+        const hasUrgent = data.some((k: Record<string, unknown>) => {
+          const killedAt = k.killed_at as string;
+          const mvpData = k.mvps as { respawn_ms: number };
+          const spawnStart = new Date(killedAt).getTime() + mvpData.respawn_ms;
+          const remaining = spawnStart - now;
+          return remaining > 0 && remaining < TEN_MIN;
+        });
+        if (hasUrgent) setActiveMainTab("mvps");
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.is_test_user, selectedCharId]);
+
   const handleSaveUsername = useCallback(async () => {
     if (!userId || usernameStatus !== "available") return;
     setUsernameSaving(true);

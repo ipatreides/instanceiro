@@ -23,6 +23,7 @@ interface MvpTabProps {
   selectedCharId: string | null;
   characters: Character[];
   accounts: Account[];
+  onHasUrgentMvp?: (hasUrgent: boolean) => void;
 }
 
 function formatRespawn(ms: number): string {
@@ -41,7 +42,7 @@ function formatCountdown(ms: number): string {
   return `${m}min`;
 }
 
-export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
+export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }: MvpTabProps) {
   const [search, setSearch] = useState("");
   const [selectedMvp, setSelectedMvp] = useState<Mvp | null>(null);
   const [showKillModal, setShowKillModal] = useState(false);
