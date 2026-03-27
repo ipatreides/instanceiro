@@ -148,8 +148,12 @@ async function main() {
     }
   }
 
-  console.log(`Inserting ${dropRows.length} drop rows...`);
-  const { error: dropErr } = await supabase.from('mvp_drops').upsert(dropRows, {
+  // Deduplicate drops (same monster can have same item with different drop types)
+  const dropKey = (d) => `${d.mvp_monster_id}:${d.item_id}`;
+  const dedupedDrops = [...new Map(dropRows.map(d => [dropKey(d), d])).values()];
+
+  console.log(`Inserting ${dedupedDrops.length} drop rows (deduped from ${dropRows.length})...`);
+  const { error: dropErr } = await supabase.from('mvp_drops').upsert(dedupedDrops, {
     onConflict: 'mvp_monster_id,item_id',
   });
   if (dropErr) console.error('Drop insert error:', dropErr);
