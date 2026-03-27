@@ -17,6 +17,7 @@ interface UseMvpTimersReturn {
     killerCharacterId: string | null;
     registeredBy: string;
     loots: { itemId: number; itemName: string }[];
+    partyMemberIds: string[];
   }) => Promise<void>;
   editKill: (killId: string, data: {
     killedAt: string;
@@ -87,6 +88,7 @@ export function useMvpTimers(groupId: string | null, serverId: number | null): U
     killerCharacterId: string | null;
     registeredBy: string;
     loots: { itemId: number; itemName: string }[];
+    partyMemberIds: string[];
   }) => {
     const supabase = createClient();
     const { data: kill, error } = await supabase
@@ -111,6 +113,13 @@ export function useMvpTimers(groupId: string | null, serverId: number | null): U
           item_id: l.itemId,
           item_name: l.itemName,
         }))
+      );
+    }
+
+    // Insert party members
+    if (data.partyMemberIds.length > 0) {
+      await supabase.from("mvp_kill_party").insert(
+        data.partyMemberIds.map((cId) => ({ kill_id: kill.id, character_id: cId }))
       );
     }
 
