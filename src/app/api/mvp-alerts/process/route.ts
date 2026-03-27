@@ -10,7 +10,7 @@ async function sendChannelMessage(botToken: string, channelId: string, content: 
       Authorization: `Bot ${botToken}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ content }),
+    body: JSON.stringify({ content, allowed_mentions: { parse: ["everyone"] } }),
   });
   return res.ok;
 }
@@ -104,6 +104,7 @@ export async function POST(request: Request) {
 
     if (alert.alert_type === "pre_spawn") {
       const parts = [
+        `@everyone`,
         `🔴 **${mvp.name}** (${mvp.map_name})`,
         `⏰ Spawn em ${discordConfig.alert_minutes} minutos (${formatBrt(spawnAt)} ~ ${formatBrt(spawnEnd)} BRT)`,
       ];
@@ -111,6 +112,7 @@ export async function POST(request: Request) {
       message = parts.join("\n");
     } else {
       const parts = [
+        `@everyone`,
         `🟢 **${mvp.name}** (${mvp.map_name}) pode ter nascido!`,
       ];
       if (kill.tomb_x != null) parts.push(`📍 Última tumba: ${kill.tomb_x}, ${kill.tomb_y}`);
