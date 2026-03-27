@@ -14,12 +14,14 @@ interface MvpKillModalProps {
   selectedCharId: string | null;
   isGroupMode: boolean;
   initialTime: string | null;
+  parties: { id: string; name: string; memberIds: string[] }[];
   onConfirm: (data: {
     killedAt: string;
     tombX: number | null;
     tombY: number | null;
     killerCharacterId: string | null;
     selectedLoots: { itemId: number; itemName: string }[];
+    partyMemberIds: string[];
   }) => Promise<void>;
   onDelete?: () => Promise<void>;
   onClose: () => void;
@@ -47,6 +49,7 @@ export function MvpKillModal({
   selectedCharId,
   isGroupMode,
   initialTime,
+  parties,
   onConfirm,
   onDelete,
   onClose,
@@ -68,6 +71,8 @@ export function MvpKillModal({
 
   const mvpDrops = drops.filter((d) => d.mvp_monster_id === mvp.monster_id);
   const [selectedLoots, setSelectedLoots] = useState<Set<number>>(new Set());
+  const [selectedPartyId, setSelectedPartyId] = useState<string | null>(null);
+  const [partyMemberIds, setPartyMemberIds] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -81,6 +86,25 @@ export function MvpKillModal({
       const next = new Set(prev);
       if (next.has(itemId)) next.delete(itemId);
       else next.add(itemId);
+      return next;
+    });
+  };
+
+  const handleSelectParty = (party: { id: string; name: string; memberIds: string[] }) => {
+    if (selectedPartyId === party.id) {
+      setSelectedPartyId(null);
+      setPartyMemberIds(new Set());
+    } else {
+      setSelectedPartyId(party.id);
+      setPartyMemberIds(new Set(party.memberIds));
+    }
+  };
+
+  const togglePartyMember = (charId: string) => {
+    setPartyMemberIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(charId)) next.delete(charId);
+      else next.add(charId);
       return next;
     });
   };
@@ -105,6 +129,7 @@ export function MvpKillModal({
           const drop = mvpDrops.find((d) => d.item_id === itemId);
           return { itemId, itemName: drop?.item_name ?? `Item #${itemId}` };
         }),
+        partyMemberIds: [...partyMemberIds],
       });
     } finally {
       setSubmitting(false);
@@ -204,6 +229,52 @@ export function MvpKillModal({
               })}
             </div>
           </div>
+
+          {/* Party */}
+          {isGroupMode && (
+            <div className="mb-3">
+              <div className="flex items-center gap-2 mb-1">
+                <p className="text-[10px] text-text-secondary font-semibold">PARTY</p>
+                {parties.length > 0 && (
+                  <div className="flex gap-1">
+                    {parties.map((party) => (
+                      <button
+                        key={party.id}
+                        type="button"
+                        onClick={() => handleSelectParty(party)}
+                        className={`text-[9px] px-1.5 py-0.5 rounded cursor-pointer transition-colors ${
+                          selectedPartyId === party.id
+                            ? "bg-primary text-white"
+                            : "bg-bg border border-border text-text-secondary hover:text-text-primary"
+                        }`}
+                      >
+                        {party.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {killerCandidates.map((c) => {
+                  const isInParty = partyMemberIds.has(c.id);
+                  return (
+                    <button
+                      key={`party-${c.id}`}
+                      type="button"
+                      onClick={() => togglePartyMember(c.id)}
+                      className={`px-2 py-0.5 rounded-full text-[10px] cursor-pointer transition-colors ${
+                        isInParty
+                          ? "bg-[color-mix(in_srgb,var(--status-available)_15%,transparent)] border border-status-available text-text-primary"
+                          : "bg-surface border border-border text-text-secondary hover:border-primary"
+                      }`}
+                    >
+                      {c.name} {isInParty ? "✓" : ""}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {mvpDrops.length > 0 && (
             <div className="mb-4">
