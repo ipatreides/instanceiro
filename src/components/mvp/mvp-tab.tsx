@@ -48,6 +48,7 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
   const [showKillModal, setShowKillModal] = useState(false);
   const [modalInitialTime, setModalInitialTime] = useState<string | null>(null);
   const [modalKill, setModalKill] = useState<MvpActiveKill | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [now, setNow] = useState(Date.now());
 
   // Tick every second for detail panel countdown
@@ -94,6 +95,7 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
 
   const handleSelectMvp = useCallback((mvp: Mvp) => {
     setSelectedMvp(mvp);
+    setConfirmingDelete(false);
   }, []);
 
   const handleKillNow = useCallback(() => {
@@ -351,12 +353,21 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
                   >
                     ✎ Editar
                   </button>
-                  <button
-                    onClick={() => { if (window.confirm("Excluir este registro?")) handleDeleteKill(); }}
-                    className="px-3 py-1.5 text-xs text-status-error-text hover:opacity-80 cursor-pointer transition-opacity"
-                  >
-                    Excluir
-                  </button>
+                  {!confirmingDelete ? (
+                    <button
+                      onClick={() => setConfirmingDelete(true)}
+                      className="px-3 py-1.5 text-xs text-status-error-text hover:opacity-80 cursor-pointer transition-opacity"
+                    >
+                      Excluir
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => { handleDeleteKill(); setConfirmingDelete(false); }}
+                      className="px-3 py-1.5 text-xs text-white bg-status-error rounded-md hover:opacity-80 cursor-pointer transition-opacity"
+                    >
+                      Confirmar exclusão
+                    </button>
+                  )}
                 </>
               )}
             </div>

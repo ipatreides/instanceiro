@@ -69,6 +69,7 @@ export function MvpKillModal({
   const mvpDrops = drops.filter((d) => d.mvp_monster_id === mvp.monster_id);
   const [selectedLoots, setSelectedLoots] = useState<Set<number>>(new Set());
   const [submitting, setSubmitting] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const handleCoordsChange = useCallback((x: number | null, y: number | null) => {
     setTombX(x);
@@ -232,14 +233,25 @@ export function MvpKillModal({
           <div className="flex justify-between items-center pt-3 border-t border-border">
             <div>
               {isEdit && onDelete && (
-                <button
-                  type="button"
-                  onClick={() => { if (window.confirm("Excluir este registro?")) onDelete?.(); }}
-                  disabled={submitting}
-                  className="text-xs text-status-error-text hover:opacity-80 cursor-pointer disabled:opacity-50"
-                >
-                  Excluir
-                </button>
+                !confirmingDelete ? (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingDelete(true)}
+                    disabled={submitting}
+                    className="text-xs text-status-error-text hover:opacity-80 cursor-pointer disabled:opacity-50"
+                  >
+                    Excluir
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={onDelete}
+                    disabled={submitting}
+                    className="text-xs text-white bg-status-error px-2 py-0.5 rounded-md hover:opacity-80 cursor-pointer disabled:opacity-50"
+                  >
+                    Confirmar exclusão
+                  </button>
+                )
               )}
             </div>
             <div className="flex gap-2">
