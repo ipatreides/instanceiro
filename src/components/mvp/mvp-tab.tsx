@@ -83,15 +83,25 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
 
   const loading = mvpLoading || groupLoading || killsLoading;
 
-  // Fetch character names for group members (includes friends' chars via SECURITY DEFINER)
+  // Fetch character names for group members + party members (includes friends' chars via SECURITY DEFINER)
   useEffect(() => {
-    if (members.length === 0) { setMemberNames(new Map()); return; }
+    // Collect all character IDs we need names for
+    const allCharIds = new Set<string>();
+    for (const m of members) allCharIds.add(m.character_id);
+    for (const [, charIds] of partyMembers) {
+      for (const cId of charIds) allCharIds.add(cId);
+    }
+
+    if (allCharIds.size === 0) { setMemberNames(new Map()); return; }
+
     // Own chars from props
     const nameMap = new Map<string, string>();
     for (const c of characters) nameMap.set(c.id, c.name);
+
     // Check if we need to fetch any missing names
-    const missing = members.filter((m) => !nameMap.has(m.character_id)).map((m) => m.character_id);
+    const missing = [...allCharIds].filter((id) => !nameMap.has(id));
     if (missing.length === 0) { setMemberNames(nameMap); return; }
+
     // Fetch missing via RPC (bypasses RLS)
     const supabase = createClient();
     supabase.rpc("get_character_names", { char_ids: missing }).then(({ data }) => {
@@ -100,7 +110,7 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
       }
       setMemberNames(new Map(nameMap));
     });
-  }, [members, characters]);
+  }, [members, characters, partyMembers]);
 
   const partiesForModal = parties.map((p) => ({
     id: p.id,
