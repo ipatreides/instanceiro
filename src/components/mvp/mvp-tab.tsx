@@ -425,6 +425,7 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
           isGroupMode={!!group}
           initialTime={modalInitialTime}
           parties={partiesForModal}
+          memberNames={memberNames}
           onConfirm={handleConfirmKill}
           onDelete={modalKill ? handleDeleteKill : undefined}
           onClose={() => setShowKillModal(false)}

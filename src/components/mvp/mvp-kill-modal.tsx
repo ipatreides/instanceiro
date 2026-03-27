@@ -15,6 +15,7 @@ interface MvpKillModalProps {
   isGroupMode: boolean;
   initialTime: string | null;
   parties: { id: string; name: string; memberIds: string[] }[];
+  memberNames: Map<string, string>;
   onConfirm: (data: {
     killedAt: string;
     tombX: number | null;
@@ -53,6 +54,7 @@ export function MvpKillModal({
   onConfirm,
   onDelete,
   onClose,
+  memberNames,
 }: MvpKillModalProps) {
   const isEdit = !!existingKill;
 
@@ -136,15 +138,13 @@ export function MvpKillModal({
     }
   };
 
-  const charMap = new Map(characters.map((c) => [c.id, c]));
-
   const killerCandidates = isGroupMode
-    ? groupMembers.map((m) => {
-        const char = charMap.get(m.character_id);
-        return char ? { id: char.id, name: char.name } : null;
-      }).filter(Boolean) as { id: string; name: string }[]
+    ? groupMembers.map((m) => ({
+        id: m.character_id,
+        name: memberNames.get(m.character_id) ?? "?",
+      }))
     : selectedCharId
-      ? [{ id: selectedCharId, name: charMap.get(selectedCharId)?.name ?? "?" }]
+      ? [{ id: selectedCharId, name: memberNames.get(selectedCharId) ?? characters.find((c) => c.id === selectedCharId)?.name ?? "?" }]
       : [];
 
   return (
