@@ -302,27 +302,29 @@ export default function ProfilePage() {
         {/* Default tab preference — test users only */}
         {isTestUser && (
           <div className="mt-6">
-            <h2 className="text-lg font-semibold text-text-primary mb-3">Preferências</h2>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-text-secondary">Aba padrão:</span>
-              <div className="flex gap-1">
-                {(["instances", "mvps"] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={async () => {
-                      setDefaultTab(tab);
-                      const supabase = createClient();
-                      await supabase.from("profiles").update({ default_tab: tab }).eq("id", userId);
-                    }}
-                    className={`px-3 py-1 text-sm rounded-md cursor-pointer transition-colors ${
-                      defaultTab === tab
-                        ? "bg-primary text-white"
-                        : "bg-surface border border-border text-text-secondary hover:text-text-primary"
-                    }`}
-                  >
-                    {tab === "instances" ? "Instâncias" : "MVPs"}
-                  </button>
-                ))}
+            <div className="bg-surface border border-border rounded-xl p-6 flex flex-col gap-4">
+              <h2 className="text-[22px] font-semibold text-text-primary">Preferências</h2>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-text-secondary">Aba padrão:</span>
+                <div className="flex gap-1">
+                  {(["instances", "mvps"] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={async () => {
+                        setDefaultTab(tab);
+                        const supabase = createClient();
+                        await supabase.from("profiles").update({ default_tab: tab }).eq("id", userId);
+                      }}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md cursor-pointer transition-colors ${
+                        defaultTab === tab
+                          ? "bg-primary text-white"
+                          : "bg-bg border border-border text-text-secondary hover:text-text-primary"
+                      }`}
+                    >
+                      {tab === "instances" ? "Instâncias" : "MVPs"}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
