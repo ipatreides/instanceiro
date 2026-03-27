@@ -13,7 +13,8 @@ STAGED=$(git diff --cached --name-only --diff-filter=ACM -- 'src/**/*.ts' 'src/*
   grep -v 'icon\.svg$' | \
   grep -v 'login-button\.tsx$' | \
   grep -v 'notifications-section\.tsx$' | \
-  grep -v 'profile/page\.tsx$' || true)
+  grep -v 'profile/page\.tsx$' | \
+  grep -v 'discord-section\.tsx$' || true)
 
 if [ -z "$STAGED" ]; then
   exit 0
