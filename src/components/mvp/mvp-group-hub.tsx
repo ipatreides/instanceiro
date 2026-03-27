@@ -264,39 +264,6 @@ export function MvpGroupHub({
           )}
         </div>
 
-        {/* Discord config */}
-        <div className="flex flex-col gap-2 pt-3 border-t border-border">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-text-secondary font-semibold uppercase">Alerta Discord</span>
-            <div className="flex gap-1 ml-auto">
-              {([5, 10, 15] as const).map((mins) => (
-                <button
-                  key={mins}
-                  onClick={() => onUpdateGroup(group.id, { alert_minutes: mins })}
-                  className={`px-2 py-0.5 text-[10px] rounded cursor-pointer transition-colors ${
-                    group.alert_minutes === mins
-                      ? "bg-primary text-white"
-                      : "bg-bg border border-border text-text-secondary hover:text-text-primary"
-                  }`}
-                >
-                  {mins}min
-                </button>
-              ))}
-            </div>
-          </div>
-          <input
-            type="text"
-            defaultValue={group.discord_channel_id ?? ""}
-            placeholder="ID do canal Discord"
-            onBlur={(e) => {
-              const val = e.target.value.trim() || null;
-              if (val !== group.discord_channel_id) onUpdateGroup(group.id, { discord_channel_id: val });
-            }}
-            className="bg-bg border border-border rounded-md px-2.5 py-1.5 text-xs text-text-primary placeholder-text-secondary outline-none focus:border-primary transition-colors"
-          />
-          <span className="text-[9px] text-text-secondary">Clique direito no canal → Copiar ID do canal</span>
-        </div>
-
         {/* Leave group */}
         <div className="pt-3 border-t border-border">
           {!confirmingLeave ? (
