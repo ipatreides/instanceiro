@@ -71,7 +71,7 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
   const serverId = account?.server_id ?? null;
 
   const { mvps, mapMeta, drops, loading: mvpLoading } = useMvpData(serverId);
-  const { group, members, loading: groupLoading, createGroup } = useMvpGroups(selectedCharId);
+  const { group, members, loading: groupLoading, createGroup, updateGroup } = useMvpGroups(selectedCharId);
   const { activeKills, loading: killsLoading, registerKill, editKill, deleteKill } = useMvpTimers(group?.id ?? null, serverId);
   const { parties, partyMembers, createParty, updatePartyMembers, deleteParty } = useMvpParties(group?.id ?? null);
 
@@ -452,6 +452,51 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
                       </div>
                     );
                   })}
+                </div>
+              </div>
+            )}
+
+            {/* Group settings */}
+            {group && (
+              <div className="mt-2">
+                <p className="text-[10px] text-text-secondary font-semibold mb-2">CONFIGURAÇÕES</p>
+                <div className="bg-surface border border-border rounded-md p-3 flex flex-col gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-text-secondary">Alerta antes do spawn:</span>
+                    <div className="flex gap-1">
+                      {([5, 10, 15] as const).map((mins) => (
+                        <button
+                          key={mins}
+                          onClick={() => updateGroup(group.id, { alert_minutes: mins })}
+                          className={`px-2 py-0.5 text-[10px] rounded cursor-pointer transition-colors ${
+                            group.alert_minutes === mins
+                              ? "bg-primary text-white"
+                              : "bg-bg border border-border text-text-secondary hover:text-text-primary"
+                          }`}
+                        >
+                          {mins}min
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-text-secondary">Canal Discord (ID):</span>
+                    <input
+                      type="text"
+                      defaultValue={group.discord_channel_id ?? ""}
+                      placeholder="Cole o ID do canal"
+                      onBlur={(e) => {
+                        const val = e.target.value.trim() || null;
+                        if (val !== group.discord_channel_id) {
+                          updateGroup(group.id, { discord_channel_id: val });
+                        }
+                      }}
+                      className="bg-bg border border-border rounded-md px-2.5 py-1.5 text-xs text-text-primary placeholder-text-secondary outline-none focus:border-primary transition-colors"
+                    />
+                    <span className="text-[9px] text-text-secondary">
+                      Clique direito no canal do Discord → Copiar ID do canal
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
