@@ -29,13 +29,20 @@ Each phase is a self-contained spec → plan → implementation cycle.
 
 ### Model
 
-- **`mvp_groups`**: `id`, `name`, `created_by`, `alert_minutes` (INT, one of 15/10/5), `discord_channel_id` (nullable), `created_at`
+- **`mvp_groups`**: `id`, `name`, `server_id` (INT NOT NULL REFERENCES servers(id)), `created_by`, `alert_minutes` (INT, one of 15/10/5), `discord_channel_id` (nullable), `created_at`
 - **`mvp_group_members`**: `group_id`, `character_id`, `user_id`, `role` ('owner' | 'member'), `joined_at`
+
+### Server Isolation
+
+- A group belongs to **one server** (implicit from the creator's character account)
+- Only characters from the **same server** can be invited to the group
+- The server is derived from: `character → account → server_id`
+- Solo kills (no group) are also scoped by server via the character's account
 
 ### Rules
 
-- Every character starts in an implicit "solo group" (no group row needed — a character with no group membership sees only their own kills)
-- Any user can create a named group and invite **accepted friends' characters** to it
+- Every character starts in an implicit "solo group" (no group row needed — a character with no group membership sees only their own kills, scoped to their server)
+- Any user can create a named group and invite **accepted friends' characters from the same server** to it
 - A character can belong to **one group at a time** (leave current to join another)
 - The group owner configures: name, Discord channel, alert timing
 - All group members can: register kills, edit kills (time/position/killer), view timers
@@ -43,6 +50,7 @@ Each phase is a self-contained spec → plan → implementation cycle.
 ### Invites
 
 - Owner invites accepted friends' characters directly (no invite links)
+- Only characters from the same server as the group are shown as invitable
 - Invited character sees a notification to accept/decline
 - On accept, character joins the group and sees shared timers
 
