@@ -11,6 +11,7 @@ interface MvpGroupHubProps {
   selectedCharId: string | null;
   serverId: number | null;
   memberNames: Map<string, string>;
+  memberUsernames: Map<string, string>;
   onCreateGroup: (name: string, serverId: number) => Promise<string>;
   onUpdateGroup: (groupId: string, updates: Partial<Pick<MvpGroup, "name" | "alert_minutes" | "discord_channel_id">>) => Promise<void>;
   onInviteCharacter: (groupId: string, characterId: string, userId: string) => Promise<void>;
@@ -35,6 +36,7 @@ export function MvpGroupHub({
   onUpdateGroup,
   onInviteCharacter,
   onLeaveGroup,
+  memberUsernames,
 }: MvpGroupHubProps) {
   // Group creation
   const [showCreateGroup, setShowCreateGroup] = useState(false);
@@ -101,22 +103,8 @@ export function MvpGroupHub({
     return seen;
   })();
 
-  // Get usernames for display
-  const [usernames, setUsernames] = useState<Map<string, string>>(new Map());
-  useEffect(() => {
-    const userIds = [...new Set(members.map((m) => m.user_id))];
-    if (userIds.length === 0) return;
-    const supabase = createClient();
-    supabase
-      .from("profiles")
-      .select("id, username")
-      .in("id", userIds)
-      .then(({ data }) => {
-        const map = new Map<string, string>();
-        for (const p of (data ?? [])) map.set(p.id, p.username ?? "?");
-        setUsernames(map);
-      });
-  }, [members]);
+  // Use usernames from parent (no duplicate fetch)
+  const usernames = memberUsernames;
 
   const fetchFriendChars = useCallback(async () => {
     if (!serverId) return;

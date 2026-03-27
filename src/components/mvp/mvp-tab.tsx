@@ -99,10 +99,13 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
 
   const selectedKill = selectedMvp ? activeKills.find((k) => k.mvp_id === selectedMvp.id) ?? null : null;
 
-  // Kill history
+  // Kill history — only refetch when MVP changes, not on every activeKills update
   const [killHistory, setKillHistory] = useState<KillHistoryEntry[]>([]);
+  const [killHistoryMvpId, setKillHistoryMvpId] = useState<number | null>(null);
   useEffect(() => {
-    if (!selectedMvp) { setKillHistory([]); return; }
+    if (!selectedMvp) { setKillHistory([]); setKillHistoryMvpId(null); return; }
+    if (selectedMvp.id === killHistoryMvpId) return; // Already loaded for this MVP
+    setKillHistoryMvpId(selectedMvp.id);
     const supabase = createClient();
     supabase
       .from("mvp_kills")
@@ -120,7 +123,8 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
           tomb_y: d.tomb_y as number | null,
         })));
       });
-  }, [selectedMvp?.id, activeKills]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMvp?.id]);
 
   const handleSelectMvp = useCallback((mvp: Mvp) => {
     setSelectedMvp(mvp);
@@ -261,6 +265,7 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
             selectedCharId={selectedCharId}
             serverId={serverId}
             memberNames={memberNames}
+            memberUsernames={memberUsernames}
             onCreateGroup={createGroup}
             onUpdateGroup={updateGroup}
             onInviteCharacter={inviteCharacter}
