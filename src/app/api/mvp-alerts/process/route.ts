@@ -62,11 +62,19 @@ export async function POST(request: Request) {
 
   const [killsRes, groupsRes] = await Promise.all([
     supabase.from("mvp_kills").select("id, killed_at, tomb_x, tomb_y, mvp_id").in("id", killIds),
-    supabase.from("mvp_groups").select("id, discord_channel_id, alert_minutes").in("id", groupIds),
+    supabase.from("mvp_groups").select("id, created_by").in("id", groupIds),
   ]);
 
   const killMap = new Map((killsRes.data ?? []).map((k: Record<string, unknown>) => [k.id as string, k]));
   const groupMap = new Map((groupsRes.data ?? []).map((g: Record<string, unknown>) => [g.id as string, g]));
+
+  // Fetch Discord configs for group owners
+  const ownerIds = [...new Set((groupsRes.data ?? []).map((g: Record<string, unknown>) => g.created_by as string))];
+  const { data: discordConfigs } = await supabase
+    .from("discord_notifications")
+    .select("user_id, bot_channel_id, alert_minutes")
+    .in("user_id", ownerIds);
+  const discordMap = new Map((discordConfigs ?? []).map((d: Record<string, unknown>) => [d.user_id as string, d]));
 
   // Fetch MVPs for all kills
   const mvpIds = [...new Set((killsRes.data ?? []).map((k: Record<string, unknown>) => k.mvp_id as number))];
@@ -83,8 +91,10 @@ export async function POST(request: Request) {
     const mvp = mvpMap.get(kill.mvp_id as number) as { name: string; map_name: string; respawn_ms: number; delay_ms: number } | undefined;
     if (!mvp) continue;
 
-    const group = groupMap.get(alert.group_id) as { discord_channel_id: string | null; alert_minutes: number } | undefined;
-    if (!group?.discord_channel_id) continue;
+    const group = groupMap.get(alert.group_id) as { created_by: string } | undefined;
+    if (!group) continue;
+    const discordConfig = discordMap.get(group.created_by) as { bot_channel_id: string | null; alert_minutes: number } | undefined;
+    if (!discordConfig?.bot_channel_id) continue;
 
     const killedAt = new Date(kill.killed_at as string);
     const spawnAt = new Date(killedAt.getTime() + mvp.respawn_ms);
@@ -95,7 +105,7 @@ export async function POST(request: Request) {
     if (alert.alert_type === "pre_spawn") {
       const parts = [
         `🔴 **${mvp.name}** (${mvp.map_name})`,
-        `⏰ Spawn em ${group.alert_minutes} minutos (${formatBrt(spawnAt)} ~ ${formatBrt(spawnEnd)} BRT)`,
+        `⏰ Spawn em ${discordConfig.alert_minutes} minutos (${formatBrt(spawnAt)} ~ ${formatBrt(spawnEnd)} BRT)`,
       ];
       if (kill.tomb_x != null) parts.push(`📍 Tumba: ${kill.tomb_x}, ${kill.tomb_y}`);
       message = parts.join("\n");
@@ -107,7 +117,7 @@ export async function POST(request: Request) {
       message = parts.join("\n");
     }
 
-    const sent = await sendChannelMessage(botToken, group.discord_channel_id, message);
+    const sent = await sendChannelMessage(botToken, discordConfig.bot_channel_id, message);
     if (sent) {
       sentIds.push(alert.id);
       processed++;
