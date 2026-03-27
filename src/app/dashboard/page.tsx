@@ -165,7 +165,6 @@ export default function DashboardPage() {
     if (characters.length === 0) return;
     if (selectedCharId && characters.some((c) => c.id === selectedCharId)) return;
     setSelectedCharId(characters[0].id);
-    }
   }, [characters, selectedCharId]);
 
   // Fetch profile on mount + check if username is missing
