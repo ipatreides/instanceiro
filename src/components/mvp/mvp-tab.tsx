@@ -6,10 +6,10 @@ import { createClient } from "@/lib/supabase/client";
 import { useMvpData } from "@/hooks/use-mvp-data";
 import { useMvpGroups } from "@/hooks/use-mvp-groups";
 import { useMvpTimers } from "@/hooks/use-mvp-timers";
-import { useMvpParties } from "@/hooks/use-mvp-parties";
 import { MvpTimerList } from "./mvp-timer-list";
 import { MvpKillModal } from "./mvp-kill-modal";
 import { MvpMapPicker } from "./mvp-map-picker";
+import { MvpGroupHub } from "./mvp-group-hub";
 
 interface KillHistoryEntry {
   id: string;
@@ -43,7 +43,7 @@ function formatCountdown(ms: number): string {
   return `${m}min`;
 }
 
-export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }: MvpTabProps) {
+export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
   const [search, setSearch] = useState("");
   const [selectedMvp, setSelectedMvp] = useState<Mvp | null>(null);
   const [showKillModal, setShowKillModal] = useState(false);
@@ -51,22 +51,8 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
   const [modalKill, setModalKill] = useState<MvpActiveKill | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [now, setNow] = useState(Date.now());
-  const [newPartyName, setNewPartyName] = useState("");
-  const [newPartyMembers, setNewPartyMembers] = useState<Set<string>>(new Set());
-  const [showNewPartyForm, setShowNewPartyForm] = useState(false);
-  const [editingPartyId, setEditingPartyId] = useState<string | null>(null);
-  const [editingPartyMembers, setEditingPartyMembers] = useState<Set<string>>(new Set());
-  const [deletingPartyId, setDeletingPartyId] = useState<string | null>(null);
-  const [showCreateGroup, setShowCreateGroup] = useState(false);
-  const [newGroupName, setNewGroupName] = useState("");
-  const [showInvite, setShowInvite] = useState(false);
-  const [friendChars, setFriendChars] = useState<{ charId: string; charName: string; userId: string; username: string }[]>([]);
-  const [confirmingLeave, setConfirmingLeave] = useState(false);
-  const [editingGroupName, setEditingGroupName] = useState(false);
   const [memberNames, setMemberNames] = useState<Map<string, string>>(new Map());
-  const [groupNameInput, setGroupNameInput] = useState("");
 
-  // Tick every second for detail panel countdown
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
@@ -79,49 +65,30 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
   const { mvps, mapMeta, drops, loading: mvpLoading } = useMvpData(serverId);
   const { group, members, loading: groupLoading, createGroup, updateGroup, inviteCharacter, leaveGroup } = useMvpGroups(selectedCharId);
   const { activeKills, loading: killsLoading, registerKill, editKill, deleteKill } = useMvpTimers(group?.id ?? null, serverId);
-  const { parties, partyMembers, createParty, updatePartyMembers, deleteParty } = useMvpParties(group?.id ?? null);
 
   const loading = mvpLoading || groupLoading || killsLoading;
 
-  // Fetch character names for group members + party members (includes friends' chars via SECURITY DEFINER)
+  // Resolve member names (own chars from props + friends via RPC)
   useEffect(() => {
-    // Collect all character IDs we need names for
-    const allCharIds = new Set<string>();
-    for (const m of members) allCharIds.add(m.character_id);
-    for (const [, charIds] of partyMembers) {
-      for (const cId of charIds) allCharIds.add(cId);
-    }
-
+    const allCharIds = new Set(members.map((m) => m.character_id));
     if (allCharIds.size === 0) { setMemberNames(new Map()); return; }
-
-    // Own chars from props
     const nameMap = new Map<string, string>();
     for (const c of characters) nameMap.set(c.id, c.name);
-
-    // Check if we need to fetch any missing names
     const missing = [...allCharIds].filter((id) => !nameMap.has(id));
     if (missing.length === 0) { setMemberNames(nameMap); return; }
-
-    // Fetch missing via RPC (bypasses RLS)
     const supabase = createClient();
     supabase.rpc("get_character_names", { char_ids: missing }).then(({ data }) => {
-      for (const c of ((data ?? []) as { id: string; name: string }[])) {
-        nameMap.set(c.id, c.name);
-      }
+      for (const c of ((data ?? []) as { id: string; name: string }[])) nameMap.set(c.id, c.name);
       setMemberNames(new Map(nameMap));
     });
-  }, [members, characters, partyMembers]);
+  }, [members, characters]);
 
-  const partiesForModal = parties.map((p) => ({
-    id: p.id,
-    name: p.name,
-    memberIds: partyMembers.get(p.id) ?? [],
-  }));
+  // Parties for modal (empty array — parties are now managed in hub)
+  const partiesForModal: { id: string; name: string; memberIds: string[] }[] = [];
 
-  // Find active kill for selected MVP
   const selectedKill = selectedMvp ? activeKills.find((k) => k.mvp_id === selectedMvp.id) ?? null : null;
 
-  // Kill history for selected MVP
+  // Kill history
   const [killHistory, setKillHistory] = useState<KillHistoryEntry[]>([]);
   useEffect(() => {
     if (!selectedMvp) { setKillHistory([]); return; }
@@ -191,7 +158,6 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
     partyMemberIds: string[];
   }) => {
     if (!selectedMvp || !selectedCharId) return;
-
     if (modalKill) {
       await editKill(modalKill.kill_id, {
         killedAt: data.killedAt,
@@ -222,7 +188,6 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
     setShowKillModal(false);
   }, [selectedKill, deleteKill]);
 
-  // Compute status for detail panel
   const detailStatus = selectedMvp && selectedKill ? (() => {
     const killedAt = new Date(selectedKill.killed_at).getTime();
     const spawnStart = killedAt + selectedMvp.respawn_ms;
@@ -237,7 +202,6 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
     <div className="flex gap-0 border border-border rounded-lg overflow-hidden bg-bg flex-1 min-h-0">
       {/* LEFT PANEL — MVP List (1/3) */}
       <div className="w-1/3 flex flex-col border-r border-border min-w-0">
-        {/* Search */}
         <div className="p-2 border-b border-border">
           <input
             type="text"
@@ -248,7 +212,6 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
           />
         </div>
 
-        {/* Group info — click to show hub */}
         <button
           onClick={() => { setSelectedMvp(null); setConfirmingDelete(false); }}
           className="px-2 py-1.5 border-b border-border text-left w-full hover:bg-card-hover-bg transition-colors cursor-pointer"
@@ -267,7 +230,6 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
           )}
         </button>
 
-        {/* Timer list */}
         <MvpTimerList
           mvps={mvps}
           activeKills={activeKills}
@@ -278,446 +240,21 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
         />
       </div>
 
-      {/* RIGHT PANEL — Detail (2/3) */}
+      {/* RIGHT PANEL — Detail or Hub (2/3) */}
       <div className="flex-1 flex flex-col overflow-y-auto p-4 min-w-0">
         {!selectedMvp ? (
-          <div className="flex-1 flex flex-col gap-4">
-            {/* Group name — editable */}
-            {group ? (
-              !editingGroupName ? (
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base font-semibold text-text-primary">{group.name}</h3>
-                  <button
-                    onClick={() => { setEditingGroupName(true); setGroupNameInput(group.name); }}
-                    className="text-[10px] text-text-secondary hover:text-primary cursor-pointer"
-                  >
-                    ✎
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={groupNameInput}
-                    onChange={(e) => setGroupNameInput(e.target.value)}
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && groupNameInput.trim()) {
-                        updateGroup(group.id, { name: groupNameInput.trim() });
-                        setEditingGroupName(false);
-                      }
-                      if (e.key === "Escape") setEditingGroupName(false);
-                    }}
-                    className="bg-bg border border-border rounded-md px-2.5 py-1 text-base font-semibold text-text-primary outline-none focus:border-primary transition-colors"
-                  />
-                  <button
-                    onClick={() => {
-                      if (groupNameInput.trim()) updateGroup(group.id, { name: groupNameInput.trim() });
-                      setEditingGroupName(false);
-                    }}
-                    className="text-xs text-primary cursor-pointer"
-                  >
-                    Salvar
-                  </button>
-                  <button
-                    onClick={() => setEditingGroupName(false)}
-                    className="text-xs text-text-secondary cursor-pointer"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              )
-            ) : (
-              <h3 className="text-base font-semibold text-text-primary">Modo Solo</h3>
-            )}
-
-            {/* Group members + invite + leave */}
-            {group && (
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="text-[10px] text-text-secondary font-semibold">MEMBROS ({members.length})</p>
-                  <button
-                    onClick={async () => {
-                      if (showInvite) { setShowInvite(false); return; }
-                      if (!serverId) return;
-
-                      const supabase = createClient();
-                      const { data } = await supabase.rpc("get_friends_characters_by_server", {
-                        p_server_id: serverId,
-                      });
-
-                      const memberCharIds = new Set(members.map((m) => m.character_id));
-                      const eligible = ((data ?? []) as { character_id: string; character_name: string; user_id: string; username: string }[])
-                        .filter((c) => !memberCharIds.has(c.character_id))
-                        .map((c) => ({
-                          charId: c.character_id,
-                          charName: c.character_name,
-                          userId: c.user_id,
-                          username: c.username,
-                        }));
-
-                      setFriendChars(eligible);
-                      setShowInvite(true);
-                    }}
-                    className="text-[10px] text-primary hover:text-text-primary cursor-pointer"
-                  >
-                    {showInvite ? "Fechar" : "+ Convidar"}
-                  </button>
-                </div>
-
-                {/* Member list */}
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {members.map((m) => {
-                    return (
-                      <span key={m.character_id} className="px-2 py-0.5 rounded-full text-[10px] bg-surface border border-border text-text-secondary">
-                        {memberNames.get(m.character_id) ?? "?"}
-                        {m.role === "owner" && <span className="text-primary-secondary ml-1">★</span>}
-                      </span>
-                    );
-                  })}
-                </div>
-
-                {/* Invite friends */}
-                {showInvite && (
-                  <div className="bg-surface border border-border rounded-md p-2 mb-2">
-                    {friendChars.length === 0 ? (
-                      <p className="text-[10px] text-text-secondary italic">Nenhum personagem de amigo disponível neste servidor.</p>
-                    ) : (
-                      <div className="flex flex-col gap-1">
-                        {friendChars.map((fc) => (
-                          <button
-                            key={fc.charId}
-                            onClick={async () => {
-                              await inviteCharacter(group.id, fc.charId, fc.userId);
-                              setFriendChars((prev) => prev.filter((c) => c.charId !== fc.charId));
-                            }}
-                            className="flex items-center gap-2 px-2 py-1 rounded text-[10px] hover:bg-card-hover-bg transition-colors cursor-pointer text-left"
-                          >
-                            <span className="text-text-primary">{fc.charName}</span>
-                            <span className="text-text-secondary">@{fc.username}</span>
-                            <span className="text-primary ml-auto">+ Convidar</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Leave group */}
-                {selectedCharId && (
-                  <div className="mt-1">
-                    {!confirmingLeave ? (
-                      <button
-                        onClick={() => setConfirmingLeave(true)}
-                        className="text-[10px] text-status-error-text hover:opacity-80 cursor-pointer"
-                      >
-                        Sair do grupo
-                      </button>
-                    ) : (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={async () => {
-                            await leaveGroup(selectedCharId);
-                            setConfirmingLeave(false);
-                          }}
-                          className="text-[10px] text-white bg-status-error px-2 py-0.5 rounded-md cursor-pointer"
-                        >
-                          Confirmar saída
-                        </button>
-                        <button
-                          onClick={() => setConfirmingLeave(false)}
-                          className="text-[10px] text-text-secondary cursor-pointer"
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Parties management */}
-            {group && (
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <p className="text-[10px] text-text-secondary font-semibold">PARTIES ({parties.length})</p>
-                  {!showNewPartyForm && (
-                    <button
-                      onClick={() => setShowNewPartyForm(true)}
-                      className="text-[10px] text-primary hover:text-text-primary cursor-pointer"
-                    >
-                      + Nova
-                    </button>
-                  )}
-                </div>
-
-                {/* New party form */}
-                {showNewPartyForm && (
-                  <div className="bg-surface border border-border rounded-md p-3 mb-2 flex flex-col gap-2">
-                    <input
-                      type="text"
-                      value={newPartyName}
-                      onChange={(e) => setNewPartyName(e.target.value)}
-                      placeholder="Nome da party"
-                      className="bg-bg border border-border rounded-md px-2.5 py-1.5 text-xs text-text-primary placeholder-text-secondary outline-none focus:border-primary transition-colors"
-                    />
-                    <div className="flex flex-wrap gap-1">
-                      {members.map((m) => {
-                        const charName = memberNames.get(m.character_id) ?? "?";
-                        const isIn = newPartyMembers.has(m.character_id);
-                        return (
-                          <button
-                            key={m.character_id}
-                            type="button"
-                            onClick={() => setNewPartyMembers((prev) => {
-                              const next = new Set(prev);
-                              if (next.has(m.character_id)) next.delete(m.character_id);
-                              else next.add(m.character_id);
-                              return next;
-                            })}
-                            className={`px-2 py-0.5 rounded-full text-[10px] cursor-pointer transition-colors ${
-                              isIn
-                                ? "bg-[color-mix(in_srgb,var(--status-available)_15%,transparent)] border border-status-available text-text-primary"
-                                : "bg-bg border border-border text-text-secondary hover:border-primary"
-                            }`}
-                          >
-                            {charName} {isIn ? "✓" : ""}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <div className="flex gap-2 justify-end">
-                      <button
-                        onClick={() => { setShowNewPartyForm(false); setNewPartyName(""); setNewPartyMembers(new Set()); }}
-                        className="px-2.5 py-1 text-xs text-text-secondary border border-border rounded-md hover:text-text-primary cursor-pointer transition-colors"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        onClick={async () => {
-                          if (!newPartyName.trim() || !group) return;
-                          await createParty(group.id, newPartyName.trim(), [...newPartyMembers]);
-                          setShowNewPartyForm(false);
-                          setNewPartyName("");
-                          setNewPartyMembers(new Set());
-                        }}
-                        disabled={!newPartyName.trim()}
-                        className="px-2.5 py-1 text-xs font-semibold text-white bg-primary rounded-md hover:bg-primary-hover cursor-pointer disabled:opacity-50 transition-colors"
-                      >
-                        Criar
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Existing parties */}
-                <div className="flex flex-col gap-2">
-                  {parties.map((party) => {
-                    const memberIds = partyMembers.get(party.id) ?? [];
-                    const isEditing = editingPartyId === party.id;
-                    const isDeleting = deletingPartyId === party.id;
-                    return (
-                      <div key={party.id} className="bg-surface border border-border rounded-md p-3">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-xs text-text-primary font-medium">{party.name}</span>
-                          <div className="flex gap-2">
-                            {!isEditing && !isDeleting && (
-                              <>
-                                <button
-                                  onClick={() => {
-                                    setEditingPartyId(party.id);
-                                    setEditingPartyMembers(new Set(memberIds));
-                                  }}
-                                  className="text-[10px] text-text-secondary hover:text-primary cursor-pointer"
-                                >
-                                  ✎
-                                </button>
-                                <button
-                                  onClick={() => setDeletingPartyId(party.id)}
-                                  className="text-[10px] text-status-error-text hover:opacity-80 cursor-pointer"
-                                >
-                                  Excluir
-                                </button>
-                              </>
-                            )}
-                            {isDeleting && (
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={async () => { await deleteParty(party.id); setDeletingPartyId(null); }}
-                                  className="text-[10px] text-white bg-status-error px-2 py-0.5 rounded-md cursor-pointer"
-                                >
-                                  Confirmar exclusão
-                                </button>
-                                <button
-                                  onClick={() => setDeletingPartyId(null)}
-                                  className="text-[10px] text-text-secondary cursor-pointer"
-                                >
-                                  Cancelar
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {isEditing ? (
-                            <>
-                              {members.map((m) => {
-                                const charName = memberNames.get(m.character_id) ?? "?";
-                                const isIn = editingPartyMembers.has(m.character_id);
-                                return (
-                                  <button
-                                    key={m.character_id}
-                                    type="button"
-                                    onClick={() => setEditingPartyMembers((prev) => {
-                                      const next = new Set(prev);
-                                      if (next.has(m.character_id)) next.delete(m.character_id);
-                                      else next.add(m.character_id);
-                                      return next;
-                                    })}
-                                    className={`px-2 py-0.5 rounded-full text-[10px] cursor-pointer transition-colors ${
-                                      isIn
-                                        ? "bg-[color-mix(in_srgb,var(--status-available)_15%,transparent)] border border-status-available text-text-primary"
-                                        : "bg-bg border border-border text-text-secondary hover:border-primary"
-                                    }`}
-                                  >
-                                    {charName} {isIn ? "✓" : ""}
-                                  </button>
-                                );
-                              })}
-                              <div className="w-full flex gap-2 justify-end mt-1">
-                                <button
-                                  onClick={() => setEditingPartyId(null)}
-                                  className="text-[10px] text-text-secondary cursor-pointer"
-                                >
-                                  Cancelar
-                                </button>
-                                <button
-                                  onClick={async () => {
-                                    await updatePartyMembers(party.id, [...editingPartyMembers]);
-                                    setEditingPartyId(null);
-                                  }}
-                                  className="text-[10px] text-white bg-primary px-2 py-0.5 rounded-md cursor-pointer"
-                                >
-                                  Salvar
-                                </button>
-                              </div>
-                            </>
-                          ) : (
-                            memberIds.map((cId) => {
-                              return (
-                                <span key={cId} className="px-2 py-0.5 rounded-full text-[10px] bg-bg border border-border text-text-secondary">
-                                  {memberNames.get(cId) ?? cId.slice(0, 6)}
-                                </span>
-                              );
-                            })
-                          )}
-                          {!isEditing && memberIds.length === 0 && (
-                            <span className="text-[10px] text-text-secondary italic">Sem membros</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Group settings */}
-            {group && (
-              <div className="mt-2">
-                <p className="text-[10px] text-text-secondary font-semibold mb-2">CONFIGURAÇÕES</p>
-                <div className="bg-surface border border-border rounded-md p-3 flex flex-col gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-text-secondary">Alerta antes do spawn:</span>
-                    <div className="flex gap-1">
-                      {([5, 10, 15] as const).map((mins) => (
-                        <button
-                          key={mins}
-                          onClick={() => updateGroup(group.id, { alert_minutes: mins })}
-                          className={`px-2 py-0.5 text-[10px] rounded cursor-pointer transition-colors ${
-                            group.alert_minutes === mins
-                              ? "bg-primary text-white"
-                              : "bg-bg border border-border text-text-secondary hover:text-text-primary"
-                          }`}
-                        >
-                          {mins}min
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs text-text-secondary">Canal Discord (ID):</span>
-                    <input
-                      type="text"
-                      defaultValue={group.discord_channel_id ?? ""}
-                      placeholder="Cole o ID do canal"
-                      onBlur={(e) => {
-                        const val = e.target.value.trim() || null;
-                        if (val !== group.discord_channel_id) {
-                          updateGroup(group.id, { discord_channel_id: val });
-                        }
-                      }}
-                      className="bg-bg border border-border rounded-md px-2.5 py-1.5 text-xs text-text-primary placeholder-text-secondary outline-none focus:border-primary transition-colors"
-                    />
-                    <span className="text-[9px] text-text-secondary">
-                      Clique direito no canal do Discord → Copiar ID do canal
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {!group && (
-              <div className="flex flex-col gap-3">
-                <p className="text-xs text-text-secondary">
-                  Crie um grupo para compartilhar timers de MVP com outros jogadores, ou registre kills solo.
-                </p>
-                {!showCreateGroup ? (
-                  <button
-                    onClick={() => setShowCreateGroup(true)}
-                    className="self-start px-3 py-1.5 text-xs font-semibold text-white bg-primary rounded-md hover:bg-primary-hover cursor-pointer transition-colors"
-                  >
-                    Criar Grupo
-                  </button>
-                ) : (
-                  <div className="bg-surface border border-border rounded-md p-3 flex flex-col gap-2">
-                    <input
-                      type="text"
-                      value={newGroupName}
-                      onChange={(e) => setNewGroupName(e.target.value)}
-                      placeholder="Nome do grupo"
-                      autoFocus
-                      className="bg-bg border border-border rounded-md px-2.5 py-1.5 text-xs text-text-primary placeholder-text-secondary outline-none focus:border-primary transition-colors"
-                      onKeyDown={(e) => {
-                        if (e.key === "Escape") { setShowCreateGroup(false); setNewGroupName(""); }
-                      }}
-                    />
-                    <div className="flex gap-2 justify-end">
-                      <button
-                        onClick={() => { setShowCreateGroup(false); setNewGroupName(""); }}
-                        className="px-2.5 py-1 text-xs text-text-secondary border border-border rounded-md hover:text-text-primary cursor-pointer transition-colors"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        onClick={async () => {
-                          if (!newGroupName.trim() || !serverId) return;
-                          await createGroup(newGroupName.trim(), serverId);
-                          setShowCreateGroup(false);
-                          setNewGroupName("");
-                        }}
-                        disabled={!newGroupName.trim()}
-                        className="px-2.5 py-1 text-xs font-semibold text-white bg-primary rounded-md hover:bg-primary-hover cursor-pointer disabled:opacity-50 transition-colors"
-                      >
-                        Criar
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          <MvpGroupHub
+            group={group}
+            members={members}
+            characters={characters}
+            selectedCharId={selectedCharId}
+            serverId={serverId}
+            memberNames={memberNames}
+            onCreateGroup={createGroup}
+            onUpdateGroup={updateGroup}
+            onInviteCharacter={inviteCharacter}
+            onLeaveGroup={leaveGroup}
+          />
         ) : (
           <>
             {/* Header */}
@@ -774,11 +311,9 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
                       </>
                     )}
                   </div>
-
                   <div className="text-[10px] text-text-secondary">
                     por <span className="text-primary-secondary">{selectedKill.edited_by_name ? `${selectedKill.edited_by_name} (editado)` : selectedKill.registered_by_name}</span>
                   </div>
-
                   {selectedKill.killer_name && (
                     <div>
                       <span className="text-[9px] text-text-secondary font-semibold">KILLER</span>
@@ -877,7 +412,7 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
         )}
       </div>
 
-      {/* Kill modal (for register/edit) */}
+      {/* Kill modal */}
       {showKillModal && selectedMvp && (
         <MvpKillModal
           mvp={selectedMvp}
