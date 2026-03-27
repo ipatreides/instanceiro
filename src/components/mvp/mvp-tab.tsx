@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useMvpData } from "@/hooks/use-mvp-data";
 import { useMvpGroups } from "@/hooks/use-mvp-groups";
 import { useMvpTimers } from "@/hooks/use-mvp-timers";
+import { useMvpParties } from "@/hooks/use-mvp-parties";
 import { MvpTimerList } from "./mvp-timer-list";
 import { MvpKillModal } from "./mvp-kill-modal";
 import { MvpMapPicker } from "./mvp-map-picker";
@@ -64,8 +65,15 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
   const { mvps, mapMeta, drops, loading: mvpLoading } = useMvpData(serverId);
   const { group, members, loading: groupLoading } = useMvpGroups(selectedCharId);
   const { activeKills, loading: killsLoading, registerKill, editKill, deleteKill } = useMvpTimers(group?.id ?? null, serverId);
+  const { parties, partyMembers } = useMvpParties(group?.id ?? null);
 
   const loading = mvpLoading || groupLoading || killsLoading;
+
+  const partiesForModal = parties.map((p) => ({
+    id: p.id,
+    name: p.name,
+    memberIds: partyMembers.get(p.id) ?? [],
+  }));
 
   // Find active kill for selected MVP
   const selectedKill = selectedMvp ? activeKills.find((k) => k.mvp_id === selectedMvp.id) ?? null : null;
@@ -137,6 +145,7 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
     tombY: number | null;
     killerCharacterId: string | null;
     selectedLoots: { itemId: number; itemName: string }[];
+    partyMemberIds: string[];
   }) => {
     if (!selectedMvp || !selectedCharId) return;
 
@@ -158,6 +167,7 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
         killerCharacterId: data.killerCharacterId,
         registeredBy: selectedCharId,
         loots: data.selectedLoots,
+        partyMemberIds: data.partyMemberIds,
       });
     }
     setShowKillModal(false);
@@ -395,6 +405,7 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
           selectedCharId={selectedCharId}
           isGroupMode={!!group}
           initialTime={modalInitialTime}
+          parties={partiesForModal}
           onConfirm={handleConfirmKill}
           onDelete={modalKill ? handleDeleteKill : undefined}
           onClose={() => setShowKillModal(false)}
