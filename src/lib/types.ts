@@ -247,3 +247,16 @@ export interface MvpActiveKill {
 }
 
 export type MvpTimerStatus = 'cooldown' | 'spawn_window' | 'probably_alive' | 'tomb_expired' | 'inactive';
+
+export interface MvpParty {
+  id: string;
+  group_id: string;
+  name: string;
+  created_by: string;
+  created_at: string;
+}
+
+export interface MvpPartyMember {
+  party_id: string;
+  character_id: string;
+}
