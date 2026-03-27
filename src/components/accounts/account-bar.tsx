@@ -175,62 +175,64 @@ export function AccountBar({
         items={accountIds}
         strategy={horizontalListSortingStrategy}
       >
-        <div className="relative group/scroll">
-          {/* Left arrow */}
-          {canScrollLeft && (
-            <button
-              onClick={() => scroll("left")}
-              className="absolute left-0 top-0 bottom-0 z-10 w-8 flex items-center justify-center bg-gradient-to-r from-bg to-transparent cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
-              aria-label="Rolar para esquerda"
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-text-primary">
-                <path d="M10 3L5 8L10 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          )}
+        <div className="flex items-stretch gap-2">
+          {/* Scrollable accounts area */}
+          <div className="relative min-w-0 flex-1">
+            {/* Left arrow */}
+            {canScrollLeft && (
+              <button
+                onClick={() => scroll("left")}
+                className="absolute left-0 top-0 bottom-0 z-10 w-8 flex items-center justify-center bg-gradient-to-r from-bg to-transparent cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
+                aria-label="Rolar para esquerda"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-text-primary">
+                  <path d="M10 3L5 8L10 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            )}
 
-          {/* Scrollable area */}
-          <div
-            ref={scrollRef}
-            className="flex items-stretch gap-2 overflow-x-auto pb-1 select-none scrollbar-thin"
-          >
-            {accounts.map((account) => (
-              <SortableAccountItem
-                key={account.id}
-                account={account}
-                characters={charsByAccount.get(account.id) ?? []}
-                selectedCharId={selectedCharId}
-                onSelectChar={onSelectChar}
-                onEditChar={onEditChar}
-                onOpenAccountModal={() => onOpenAccountModal(account)}
-                onReorderChars={(orderedCharIds) =>
-                  onReorderCharacters(account.id, orderedCharIds)
-                }
-              />
-            ))}
-
-            {/* Add account button */}
-            <button
-              onClick={onCreateAccount}
-              className="flex-shrink-0 flex items-center justify-center w-12 rounded-lg border-2 border-dashed border-border text-text-secondary hover:border-primary-hover hover:text-text-primary transition-colors cursor-pointer"
-              aria-label="Adicionar conta"
+            <div
+              ref={scrollRef}
+              className="flex items-stretch gap-2 overflow-x-auto pb-1 select-none scrollbar-thin"
             >
-              <span className="text-xl leading-none">+</span>
-            </button>
+              {accounts.map((account) => (
+                <SortableAccountItem
+                  key={account.id}
+                  account={account}
+                  characters={charsByAccount.get(account.id) ?? []}
+                  selectedCharId={selectedCharId}
+                  onSelectChar={onSelectChar}
+                  onEditChar={onEditChar}
+                  onOpenAccountModal={() => onOpenAccountModal(account)}
+                  onReorderChars={(orderedCharIds) =>
+                    onReorderCharacters(account.id, orderedCharIds)
+                  }
+                />
+              ))}
+            </div>
+
+            {/* Right arrow */}
+            {canScrollRight && (
+              <button
+                onClick={() => scroll("right")}
+                className="absolute right-0 top-0 bottom-0 z-10 w-8 flex items-center justify-center bg-gradient-to-l from-bg to-transparent cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
+                aria-label="Rolar para direita"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-text-primary">
+                  <path d="M6 3L11 8L6 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            )}
           </div>
 
-          {/* Right arrow */}
-          {canScrollRight && (
-            <button
-              onClick={() => scroll("right")}
-              className="absolute right-0 top-0 bottom-0 z-10 w-8 flex items-center justify-center bg-gradient-to-l from-bg to-transparent cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
-              aria-label="Rolar para direita"
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-text-primary">
-                <path d="M6 3L11 8L6 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          )}
+          {/* Add account button — always visible */}
+          <button
+            onClick={onCreateAccount}
+            className="flex-shrink-0 flex items-center justify-center w-12 rounded-lg border-2 border-dashed border-border text-text-secondary hover:border-primary-hover hover:text-text-primary transition-colors cursor-pointer"
+            aria-label="Adicionar conta"
+          >
+            <span className="text-xl leading-none">+</span>
+          </button>
         </div>
       </SortableContext>
     </DndContext>
