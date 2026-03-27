@@ -309,52 +309,21 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
                   <button
                     onClick={async () => {
                       if (showInvite) { setShowInvite(false); return; }
-                      // Fetch friends' characters on same server
+                      if (!serverId) return;
+
                       const supabase = createClient();
-                      const { data: { user } } = await supabase.auth.getUser();
-                      if (!user || !serverId) return;
+                      const { data } = await supabase.rpc("get_friends_characters_by_server", {
+                        p_server_id: serverId,
+                      });
 
-                      // Get accepted friends
-                      const { data: friendships } = await supabase
-                        .from("friendships")
-                        .select("requester_id, addressee_id")
-                        .eq("status", "accepted");
-
-                      const friendUserIds = (friendships ?? []).map((f) =>
-                        f.requester_id === user.id ? f.addressee_id : f.requester_id
-                      );
-
-                      if (friendUserIds.length === 0) { setFriendChars([]); setShowInvite(true); return; }
-
-                      // Get their characters on the same server
-                      const { data: chars } = await supabase
-                        .from("characters")
-                        .select("id, name, user_id, account_id")
-                        .in("user_id", friendUserIds)
-                        .eq("is_active", true);
-
-                      const { data: accs } = await supabase
-                        .from("accounts")
-                        .select("id, server_id")
-                        .eq("server_id", serverId);
-
-                      const accIds = new Set((accs ?? []).map((a) => a.id));
                       const memberCharIds = new Set(members.map((m) => m.character_id));
-
-                      // Get usernames
-                      const { data: profiles } = await supabase
-                        .from("profiles")
-                        .select("id, username")
-                        .in("id", friendUserIds);
-                      const usernameMap = new Map((profiles ?? []).map((p) => [p.id, p.username ?? "?"]));
-
-                      const eligible = (chars ?? [])
-                        .filter((c) => accIds.has(c.account_id) && !memberCharIds.has(c.id))
+                      const eligible = ((data ?? []) as { character_id: string; character_name: string; user_id: string; username: string }[])
+                        .filter((c) => !memberCharIds.has(c.character_id))
                         .map((c) => ({
-                          charId: c.id,
-                          charName: c.name,
+                          charId: c.character_id,
+                          charName: c.character_name,
                           userId: c.user_id,
-                          username: usernameMap.get(c.user_id) ?? "?",
+                          username: c.username,
                         }));
 
                       setFriendChars(eligible);
