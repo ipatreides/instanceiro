@@ -52,6 +52,7 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [memberNames, setMemberNames] = useState<Map<string, string>>(new Map());
+  const [memberUsernames, setMemberUsernames] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
@@ -81,6 +82,16 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
       for (const c of ((data ?? []) as { id: string; name: string }[])) nameMap.set(c.id, c.name);
       setMemberNames(new Map(nameMap));
     });
+
+    // Also fetch usernames for group members
+    const userIds = [...new Set(members.map((m) => m.user_id))];
+    if (userIds.length > 0) {
+      supabase.from("profiles").select("id, username").in("id", userIds).then(({ data }) => {
+        const uMap = new Map<string, string>();
+        for (const p of (data ?? [])) uMap.set(p.id, p.username ?? "?");
+        setMemberUsernames(uMap);
+      });
+    }
   }, [members, characters]);
 
   // Parties for modal (empty array — parties are now managed in hub)
@@ -426,6 +437,7 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
           initialTime={modalInitialTime}
           parties={partiesForModal}
           memberNames={memberNames}
+          memberUsernames={memberUsernames}
           onConfirm={handleConfirmKill}
           onDelete={modalKill ? handleDeleteKill : undefined}
           onClose={() => setShowKillModal(false)}

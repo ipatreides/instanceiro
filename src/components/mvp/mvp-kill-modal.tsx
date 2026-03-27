@@ -16,6 +16,7 @@ interface MvpKillModalProps {
   initialTime: string | null;
   parties: { id: string; name: string; memberIds: string[] }[];
   memberNames: Map<string, string>;
+  memberUsernames: Map<string, string>; // userId -> username
   onConfirm: (data: {
     killedAt: string;
     tombX: number | null;
@@ -55,6 +56,7 @@ export function MvpKillModal({
   onDelete,
   onClose,
   memberNames,
+  memberUsernames,
 }: MvpKillModalProps) {
   const isEdit = !!existingKill;
 
@@ -255,23 +257,30 @@ export function MvpKillModal({
                 )}
               </div>
               <div className="flex flex-wrap gap-1">
-                {killerCandidates.map((c) => {
-                  const isInParty = partyMemberIds.has(c.id);
-                  return (
-                    <button
-                      key={`party-${c.id}`}
-                      type="button"
-                      onClick={() => togglePartyMember(c.id)}
-                      className={`px-2 py-0.5 rounded-full text-[10px] cursor-pointer transition-colors ${
-                        isInParty
-                          ? "bg-[color-mix(in_srgb,var(--status-available)_15%,transparent)] border border-status-available text-text-primary"
-                          : "bg-surface border border-border text-text-secondary hover:border-primary"
-                      }`}
-                    >
-                      {c.name} {isInParty ? "✓" : ""}
-                    </button>
-                  );
-                })}
+                {/* Show unique users by userId */}
+                {(() => {
+                  const seen = new Set<string>();
+                  return groupMembers.map((m) => {
+                    if (seen.has(m.user_id)) return null;
+                    seen.add(m.user_id);
+                    const username = memberUsernames.get(m.user_id) ?? "?";
+                    const isInParty = partyMemberIds.has(m.user_id);
+                    return (
+                      <button
+                        key={`party-${m.user_id}`}
+                        type="button"
+                        onClick={() => togglePartyMember(m.user_id)}
+                        className={`px-2 py-0.5 rounded-full text-[10px] cursor-pointer transition-colors ${
+                          isInParty
+                            ? "bg-[color-mix(in_srgb,var(--status-available)_15%,transparent)] border border-status-available text-text-primary"
+                            : "bg-surface border border-border text-text-secondary hover:border-primary"
+                        }`}
+                      >
+                        @{username} {isInParty ? "✓" : ""}
+                      </button>
+                    );
+                  });
+                })()}
               </div>
             </div>
           )}
