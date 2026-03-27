@@ -10,6 +10,9 @@ interface DiscordNotificationState {
   scheduleEnabled: boolean;
   discordUsername: string | null;
   isDiscordLogin: boolean;
+  botGuildId: string | null;
+  botChannelId: string | null;
+  alertMinutes: number;
 }
 
 export function useDiscordNotifications() {
@@ -20,6 +23,9 @@ export function useDiscordNotifications() {
     scheduleEnabled: false,
     discordUsername: null,
     isDiscordLogin: false,
+    botGuildId: null,
+    botChannelId: null,
+    alertMinutes: 5,
   });
 
   useEffect(() => {
@@ -43,7 +49,7 @@ export function useDiscordNotifications() {
 
       const { data: notif } = await supabase
         .from("discord_notifications")
-        .select("discord_user_id, hourly_enabled, schedule_enabled")
+        .select("discord_user_id, hourly_enabled, schedule_enabled, bot_guild_id, bot_channel_id, alert_minutes")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -54,6 +60,9 @@ export function useDiscordNotifications() {
         scheduleEnabled: notif?.schedule_enabled ?? false,
         discordUsername: notif ? (discordUsername ?? "Discord") : discordUsername,
         isDiscordLogin,
+        botGuildId: notif?.bot_guild_id ?? null,
+        botChannelId: notif?.bot_channel_id ?? null,
+        alertMinutes: notif?.alert_minutes ?? 5,
       });
     });
   }, []);
@@ -116,6 +125,9 @@ export function useDiscordNotifications() {
       hourlyEnabled: false,
       scheduleEnabled: false,
       discordUsername: s.isDiscordLogin ? s.discordUsername : null,
+      botGuildId: null,
+      botChannelId: null,
+      alertMinutes: 5,
     }));
   }, []);
 
@@ -128,5 +140,40 @@ export function useDiscordNotifications() {
     return { ok: true };
   }, []);
 
-  return { ...state, toggleHourly, toggleSchedule, disconnect, sendTest };
+  const setBotChannel = useCallback(async (channelId: string) => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("discord_notifications").update({ bot_channel_id: channelId }).eq("user_id", user.id);
+    setState((s) => ({ ...s, botChannelId: channelId }));
+  }, []);
+
+  const setAlertMinutes = useCallback(async (mins: number) => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("discord_notifications").update({ alert_minutes: mins }).eq("user_id", user.id);
+    setState((s) => ({ ...s, alertMinutes: mins }));
+  }, []);
+
+  const fetchChannels = useCallback(async (): Promise<{ id: string; name: string }[] | { error: string }> => {
+    const res = await fetch("/api/discord-channels");
+    const data = await res.json();
+    if (!res.ok) return { error: data.error ?? "Erro ao buscar canais" };
+    return data;
+  }, []);
+
+  const getBotOAuthURL = useCallback((): string => {
+    const clientId = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID ?? "";
+    const oauthState = crypto.randomUUID();
+    document.cookie = `discord_bot_oauth_state=${oauthState}; path=/; max-age=600; SameSite=Lax`;
+    const redirectUri = encodeURIComponent(`${window.location.origin}/api/discord-bot-callback`);
+    return `https://discord.com/api/oauth2/authorize?client_id=${clientId}&permissions=3072&scope=bot%20identify&redirect_uri=${redirectUri}&response_type=code&state=${oauthState}`;
+  }, []);
+
+  return {
+    ...state,
+    toggleHourly, toggleSchedule, disconnect, sendTest,
+    setBotChannel, setAlertMinutes, fetchChannels, getBotOAuthURL,
+  };
 }
