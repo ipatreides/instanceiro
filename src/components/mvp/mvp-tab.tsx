@@ -57,6 +57,8 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
   const [editingPartyId, setEditingPartyId] = useState<string | null>(null);
   const [editingPartyMembers, setEditingPartyMembers] = useState<Set<string>>(new Set());
   const [deletingPartyId, setDeletingPartyId] = useState<string | null>(null);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
 
   // Tick every second for detail panel countdown
   useEffect(() => {
@@ -69,7 +71,7 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
   const serverId = account?.server_id ?? null;
 
   const { mvps, mapMeta, drops, loading: mvpLoading } = useMvpData(serverId);
-  const { group, members, loading: groupLoading } = useMvpGroups(selectedCharId);
+  const { group, members, loading: groupLoading, createGroup } = useMvpGroups(selectedCharId);
   const { activeKills, loading: killsLoading, registerKill, editKill, deleteKill } = useMvpTimers(group?.id ?? null, serverId);
   const { parties, partyMembers, createParty, updatePartyMembers, deleteParty } = useMvpParties(group?.id ?? null);
 
@@ -455,9 +457,53 @@ export function MvpTab({ selectedCharId, characters, accounts, onHasUrgentMvp }:
             )}
 
             {!group && (
-              <p className="text-xs text-text-secondary">
-                Registre kills de MVPs para acompanhar os timers de respawn.
-              </p>
+              <div className="flex flex-col gap-3">
+                <p className="text-xs text-text-secondary">
+                  Crie um grupo para compartilhar timers de MVP com outros jogadores, ou registre kills solo.
+                </p>
+                {!showCreateGroup ? (
+                  <button
+                    onClick={() => setShowCreateGroup(true)}
+                    className="self-start px-3 py-1.5 text-xs font-semibold text-white bg-primary rounded-md hover:bg-primary-hover cursor-pointer transition-colors"
+                  >
+                    Criar Grupo
+                  </button>
+                ) : (
+                  <div className="bg-surface border border-border rounded-md p-3 flex flex-col gap-2">
+                    <input
+                      type="text"
+                      value={newGroupName}
+                      onChange={(e) => setNewGroupName(e.target.value)}
+                      placeholder="Nome do grupo"
+                      autoFocus
+                      className="bg-bg border border-border rounded-md px-2.5 py-1.5 text-xs text-text-primary placeholder-text-secondary outline-none focus:border-primary transition-colors"
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") { setShowCreateGroup(false); setNewGroupName(""); }
+                      }}
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={() => { setShowCreateGroup(false); setNewGroupName(""); }}
+                        className="px-2.5 py-1 text-xs text-text-secondary border border-border rounded-md hover:text-text-primary cursor-pointer transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (!newGroupName.trim() || !serverId) return;
+                          await createGroup(newGroupName.trim(), serverId);
+                          setShowCreateGroup(false);
+                          setNewGroupName("");
+                        }}
+                        disabled={!newGroupName.trim()}
+                        className="px-2.5 py-1 text-xs font-semibold text-white bg-primary rounded-md hover:bg-primary-hover cursor-pointer disabled:opacity-50 transition-colors"
+                      >
+                        Criar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         ) : (
