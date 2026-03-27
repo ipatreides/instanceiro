@@ -33,21 +33,27 @@ export function MvpTimerList({ mvps, activeKills, search, loading, selectedMvpId
     });
   }, [mvps, q]);
 
-  // Split into active (has kill, not expired) and inactive
+  // Split: actives always visible (from all mvps), inactives filtered by search
   const now = Date.now();
   const active: { mvp: Mvp; kill: MvpActiveKill }[] = [];
-  const inactive: { mvp: Mvp; killCount: number }[] = [];
+  const activeIds = new Set<number>();
 
-  for (const mvp of filtered) {
+  for (const mvp of mvps) {
     const kill = killMap.get(mvp.id);
     if (kill) {
       const spawnStart = new Date(kill.killed_at).getTime() + mvp.respawn_ms;
       const cardExpiry = spawnStart + 30 * 60 * 1000;
       if (now < cardExpiry) {
         active.push({ mvp, kill });
-        continue;
+        activeIds.add(mvp.id);
       }
     }
+  }
+
+  const inactive: { mvp: Mvp; killCount: number }[] = [];
+  for (const mvp of filtered) {
+    if (activeIds.has(mvp.id)) continue;
+    const kill = killMap.get(mvp.id);
     const killCount = kill?.kill_count ?? 0;
     inactive.push({ mvp, killCount });
   }
