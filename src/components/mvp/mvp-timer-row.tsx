@@ -24,12 +24,11 @@ function computeStatus(kill: MvpActiveKill, mvp: Mvp, now: number): { status: Mv
 }
 
 function formatCountdown(ms: number): string {
-  const totalSec = Math.floor(Math.abs(ms) / 1000);
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
-  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  return `${m}:${String(s).padStart(2, "0")}`;
+  const totalMin = Math.floor(Math.abs(ms) / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, "0")}`;
+  return `${m}min`;
 }
 
 const STATUS_COLORS: Record<MvpTimerStatus, string> = {

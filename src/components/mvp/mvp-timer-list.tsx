@@ -217,13 +217,9 @@ function getTimerColor(kill: MvpActiveKill, mvp: Mvp, now: number): string {
 function formatTimer(kill: MvpActiveKill, mvp: Mvp, now: number): string {
   const spawnStart = new Date(kill.killed_at).getTime() + mvp.respawn_ms;
   const diff = spawnStart - now;
-  const absDiff = Math.abs(diff);
-  const totalSec = Math.floor(absDiff / 1000);
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
-  const time = h > 0
-    ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
-    : `${m}:${String(s).padStart(2, "0")}`;
+  const totalMin = Math.floor(Math.abs(diff) / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  const time = h > 0 ? `${h}:${String(m).padStart(2, "0")}` : `${m}min`;
   return diff <= 0 ? `+${time}` : time;
 }
