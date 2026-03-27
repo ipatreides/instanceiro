@@ -57,20 +57,39 @@ ALTER TABLE discord_notifications
   ADD COLUMN alert_minutes INT DEFAULT 5 CHECK (alert_minutes IN (5, 10, 15));
 ```
 
-Remove `discord_channel_id` and `alert_minutes` from `mvp_groups` (no longer used there).
+Remove `discord_channel_id` and `alert_minutes` from `mvp_groups` **after** updating the alert trigger (migration order matters).
+
+### Bot OAuth Flow
+
+Discord's basic `scope=bot` flow does **not** return `guild_id`. To get it, use `scope=bot identify` which triggers a full authorization code grant. The redirect URL then contains `code` and `guild_id` query params, and the token exchange returns the full `guild` object.
+
+**Bot OAuth URL:**
+```
+https://discord.com/api/oauth2/authorize
+  ?client_id={CLIENT_ID}
+  &permissions=3072            (Send Messages + View Channels)
+  &scope=bot%20identify
+  &redirect_uri={CALLBACK_URL}
+  &response_type=code
+```
+
+Permissions: `3072` = Send Messages (2048) + View Channel (1024). View Channel is needed for the `GET /guilds/{guild_id}/channels` API call to list channels.
 
 ### API Changes
 
-**New route: `POST /api/discord-bot-callback`**
-- OAuth callback for bot addition
-- Receives `guild_id` from Discord OAuth response
-- Saves to `discord_notifications.bot_guild_id`
+**New route: `GET /api/discord-bot-callback`**
+- OAuth callback for bot addition (redirect from Discord)
+- Receives `code` and `guild_id` from query params
+- Exchanges `code` for token (validates the flow)
+- Saves `guild_id` to `discord_notifications.bot_guild_id`
+- Redirects to `/profile?bot=connected`
 
 **New route: `GET /api/discord-channels`**
 - Requires authentication
 - Reads `bot_guild_id` from user's `discord_notifications`
 - Calls `GET /guilds/{guild_id}/channels` with bot token
 - Returns text channels only (type 0)
+- **Cached for 5 minutes** per guild_id (in-memory or response header)
 - Response: `[{ id, name }]`
 
 ### Alert Queue Changes
@@ -138,8 +157,17 @@ If not connected:
 | `supabase/migrations/20260327200000_mvp_alert_trigger.sql` | Modify — update trigger to read from profile |
 | `src/app/api/mvp-alerts/process/route.ts` | Modify — read channel from owner's profile |
 
+### Migration Order
+
+1. Add columns to `discord_notifications` (bot_guild_id, bot_channel_id, alert_minutes)
+2. Update `queue_mvp_alerts` trigger to read from owner's profile
+3. Update alert processing API route
+4. **Then** remove `discord_channel_id` and `alert_minutes` from `mvp_groups`
+
+Steps 2-3 must happen before step 4 to avoid breaking alerts.
+
 ### Out of Scope
 
 - Multiple servers per user (one bot_guild_id per user)
 - Channel permissions validation (trust that bot has send permission)
-- Server name display (future nice-to-have, requires caching guild info)
+- Ownership transfer — if group owner leaves, alerts stop for that group
