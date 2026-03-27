@@ -23,7 +23,7 @@ Each phase is a self-contained spec → plan → implementation cycle.
 - Tab selection persists per session (not per character)
 - The account/character bar stays visible — group membership is per character
 - The MVP tab shows timers for the **selected character's group**. Switching characters may show a different group's timers (or solo timers if the character has no group).
-- A character without a group sees only their own solo timers (simplified UI: no party section, loot optional)
+- A character without a group sees only their own solo timers (simplified UI: no party section, killer is a simple toggle "Eu matei" instead of group badges, loot optional)
 
 ## Groups
 
