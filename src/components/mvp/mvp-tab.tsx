@@ -11,6 +11,7 @@ import { MvpKillModal } from "./mvp-kill-modal";
 import { MvpMapPicker } from "./mvp-map-picker";
 import { MvpGroupHub } from "./mvp-group-hub";
 import { MvpGroupStats } from "./mvp-group-stats";
+import { TelemetrySettings } from "./telemetry-settings";
 
 interface KillHistoryEntry {
   id: string;
@@ -25,6 +26,7 @@ interface MvpTabProps {
   selectedCharId: string | null;
   characters: Character[];
   accounts: Account[];
+  userId?: string | null;
   onHasUrgentMvp?: (hasUrgent: boolean) => void;
 }
 
@@ -44,7 +46,7 @@ function formatCountdown(ms: number): string {
   return `${m}min`;
 }
 
-export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
+export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabProps) {
   const [search, setSearch] = useState("");
   const [selectedMvp, setSelectedMvp] = useState<Mvp | null>(null);
   const [showKillModal, setShowKillModal] = useState(false);
@@ -310,6 +312,11 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
               />
             ) : (
               <MvpGroupStats groupId={group.id} />
+            )}
+            {userId && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <TelemetrySettings userId={userId} />
+              </div>
             )}
           </div>
         ) : (
