@@ -18,12 +18,13 @@ interface MvpGroupStatsProps {
   groupId: string | null;
 }
 
-type Period = "24h" | "7d" | "30d";
+type Period = "24h" | "7d" | "30d" | "all";
 
 const PERIOD_MS: Record<Period, number> = {
   "24h": 24 * 60 * 60 * 1000,
   "7d": 7 * 24 * 60 * 60 * 1000,
   "30d": 30 * 24 * 60 * 60 * 1000,
+  "all": Infinity,
 };
 
 export function MvpGroupStats({ groupId }: MvpGroupStatsProps) {
@@ -107,7 +108,7 @@ export function MvpGroupStats({ groupId }: MvpGroupStatsProps) {
     <div className="flex-1 flex flex-col gap-4 overflow-y-auto">
       {/* Period selector */}
       <div className="flex gap-1">
-        {(["24h", "7d", "30d"] as Period[]).map((p) => (
+        {(["24h", "7d", "30d", "all"] as Period[]).map((p) => (
           <button
             key={p}
             onClick={() => setPeriod(p)}
