@@ -67,7 +67,7 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
 
   const { mvps, mapMeta, drops, loading: mvpLoading } = useMvpData(serverId);
   const { group, members, loading: groupLoading, createGroup, updateGroup, inviteCharacter, leaveGroup } = useMvpGroups(selectedCharId);
-  const { activeKills, loading: killsLoading, registerKill, editKill, deleteKill } = useMvpTimers(group?.id ?? null, serverId);
+  const { activeKills, loading: killsLoading, registerKill, editKill, deleteKill, acceptLootSuggestions, rejectLootSuggestion } = useMvpTimers(group?.id ?? null, serverId);
 
   const loading = mvpLoading || groupLoading || killsLoading;
 
@@ -501,6 +501,8 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
           })()}
           onConfirm={handleConfirmKill}
           onDelete={modalKill ? handleDeleteKill : undefined}
+          onAcceptLootSuggestions={acceptLootSuggestions}
+          onRejectLootSuggestion={rejectLootSuggestion}
           onClose={() => setShowKillModal(false)}
         />
       )}

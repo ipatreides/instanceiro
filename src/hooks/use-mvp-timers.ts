@@ -27,6 +27,8 @@ interface UseMvpTimersReturn {
     editedBy: string;
   }) => Promise<void>;
   deleteKill: (killId: string) => Promise<void>;
+  acceptLootSuggestions: (killId: string) => Promise<void>;
+  rejectLootSuggestion: (lootId: string) => Promise<void>;
 }
 
 export function useMvpTimers(groupId: string | null, serverId: number | null): UseMvpTimersReturn {
@@ -152,5 +154,25 @@ export function useMvpTimers(groupId: string | null, serverId: number | null): U
     await fetchKills();
   }, [fetchKills]);
 
-  return { activeKills, loading, refetch: fetchKills, registerKill, editKill, deleteKill };
+  const acceptLootSuggestions = useCallback(async (killId: string) => {
+    const supabase = createClient();
+    await supabase
+      .from("mvp_kill_loots")
+      .update({ accepted: true })
+      .eq("kill_id", killId)
+      .eq("source", "telemetry")
+      .is("accepted", null);
+    await fetchKills();
+  }, [fetchKills]);
+
+  const rejectLootSuggestion = useCallback(async (lootId: string) => {
+    const supabase = createClient();
+    await supabase
+      .from("mvp_kill_loots")
+      .update({ accepted: false })
+      .eq("id", lootId);
+    await fetchKills();
+  }, [fetchKills]);
+
+  return { activeKills, loading, refetch: fetchKills, registerKill, editKill, deleteKill, acceptLootSuggestions, rejectLootSuggestion };
 }
