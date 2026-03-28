@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
     .from('telemetry_tokens')
     .select('id, temporary_token, exchange_expires_at')
     .eq('exchange_code', exchange_code)
+    .is('revoked_at', null)
     .single()
 
   if (error || !token) {

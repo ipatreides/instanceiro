@@ -30,6 +30,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unknown MVP for this server' }, { status: 400 })
   }
 
+  // Resolve character row UUID for registered_by
+  const { data: charRow } = await supabase
+    .from('characters')
+    .select('id')
+    .eq('user_id', ctx.userId)
+    .limit(1)
+    .single()
+
+  if (!charRow) {
+    return NextResponse.json({ error: 'Character not found' }, { status: 400 })
+  }
+
+  const registeredBy = charRow.id
+
   const killedAt = new Date(timestamp * 1000).toISOString()
 
   // Dedup: same mvp_id in group within last 30 seconds
@@ -63,7 +77,7 @@ export async function POST(request: NextRequest) {
       killed_at: killedAt,
       tomb_x: x ?? null,
       tomb_y: y ?? null,
-      registered_by: ctx.userId,
+      registered_by: registeredBy,
       source: 'telemetry',
       telemetry_session_id: ctx.sessionId,
     })
@@ -97,14 +111,37 @@ export async function POST(request: NextRequest) {
     await supabase.from('mvp_kill_loots').insert(lootRows)
   }
 
-  // Insert party members
+  // Insert party members — resolve RO character IDs (integers) to character UUIDs
   if (party_character_ids && Array.isArray(party_character_ids) && party_character_ids.length > 0) {
-    const partyRows = party_character_ids.map((charId: number) => ({
-      kill_id: kill.id,
-      character_id: String(charId),
-    }))
+    // Look up character UUIDs for this group's members by user
+    const { data: groupMembers } = await supabase
+      .from('mvp_group_members')
+      .select('character_id, characters!inner(id, user_id)')
+      .eq('group_id', ctx.groupId)
 
-    await supabase.from('mvp_kill_party').insert(partyRows)
+    // Build a map from user_id → character UUID for group members
+    const memberCharMap = new Map<string, string>(
+      (groupMembers ?? []).map((m: any) => [m.characters.user_id, m.character_id as string])
+    )
+
+    // Resolve each RO character ID to a group member character UUID via telemetry sessions
+    const { data: sessions } = await supabase
+      .from('telemetry_sessions')
+      .select('user_id, character_id')
+      .eq('group_id', ctx.groupId)
+      .in('character_id', party_character_ids)
+
+    const resolvedIds = (sessions ?? [])
+      .map((s: any) => memberCharMap.get(s.user_id))
+      .filter((id): id is string => id !== undefined)
+
+    if (resolvedIds.length > 0) {
+      const partyRows = resolvedIds.map((charUuid) => ({
+        kill_id: kill.id,
+        character_id: charUuid,
+      }))
+      await supabase.from('mvp_kill_party').insert(partyRows)
+    }
   }
 
   // queue_mvp_alerts trigger fires automatically on insert

@@ -20,6 +20,14 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createAdminClient()
+
+  // Clean up expired pairing rows
+  await supabase
+    .from('telemetry_tokens')
+    .delete()
+    .eq('user_id', '00000000-0000-0000-0000-000000000000')
+    .lt('pairing_expires_at', new Date().toISOString())
+
   const pairingCode = generatePairingCode()
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString()
 

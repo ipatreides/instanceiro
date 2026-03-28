@@ -16,6 +16,33 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
+  // Resolve character row UUID for registered_by
+  const { data: charRow } = await supabase
+    .from('characters')
+    .select('id')
+    .eq('user_id', ctx.userId)
+    .limit(1)
+    .single()
+
+  if (!charRow) {
+    return NextResponse.json({ error: 'Character not found' }, { status: 400 })
+  }
+
+  const registeredBy = charRow.id
+
+  // Get MVP IDs that spawn on this map
+  const { data: mapMvps } = await supabase
+    .from('mvps')
+    .select('id')
+    .eq('map_name', map)
+    .eq('server_id', ctx.serverId)
+
+  const mapMvpIds = mapMvps?.map((m) => m.id) ?? []
+
+  if (mapMvpIds.length === 0) {
+    return NextResponse.json({ action: 'ignored', reason: 'no MVP on this map' })
+  }
+
   // Find recent kill on this map without tomb coords (within 2 minutes)
   const cutoff = new Date(Date.now() - 2 * 60 * 1000).toISOString()
 
@@ -23,6 +50,7 @@ export async function POST(request: NextRequest) {
     .from('mvp_kills')
     .select('id, mvp_id')
     .eq('group_id', ctx.groupId)
+    .in('mvp_id', mapMvpIds)
     .is('tomb_x', null)
     .gte('killed_at', cutoff)
     .order('killed_at', { ascending: false })
@@ -40,19 +68,9 @@ export async function POST(request: NextRequest) {
   }
 
   // No matching kill found — create new kill from tomb data
-  // Resolve MVP by map (may match multiple MVPs)
-  const { data: mvps } = await supabase
-    .from('mvps')
-    .select('id')
-    .eq('map_name', map)
-    .eq('server_id', ctx.serverId)
-
-  if (!mvps || mvps.length === 0) {
-    return NextResponse.json({ action: 'ignored', reason: 'no MVP on this map' })
-  }
-
+  // Use already-resolved mapMvps (filtered by map and server above)
   // If exactly one MVP on this map, create the kill
-  const mvpId = mvps.length === 1 ? mvps[0].id : null
+  const mvpId = mapMvps!.length === 1 ? mapMvps![0].id : null
 
   const { data: newKill } = await supabase
     .from('mvp_kills')
@@ -62,7 +80,7 @@ export async function POST(request: NextRequest) {
       killed_at: new Date().toISOString(),
       tomb_x,
       tomb_y,
-      registered_by: ctx.userId,
+      registered_by: registeredBy,
       source: 'telemetry',
       telemetry_session_id: ctx.sessionId,
     })
@@ -72,6 +90,6 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     action: 'created',
     kill_id: newKill?.id,
-    needs_mvp_resolution: mvps.length > 1,
+    needs_mvp_resolution: mapMvps!.length > 1,
   }, { status: 201 })
 }
