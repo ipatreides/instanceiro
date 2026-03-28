@@ -101,20 +101,20 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
 
   const selectedKill = selectedMvp ? activeKills.find((k) => k.mvp_id === selectedMvp.id) ?? null : null;
 
-  // Kill history — only refetch when MVP changes, not on every activeKills update
+  // Kill history — refetch when MVP changes
   const [killHistory, setKillHistory] = useState<KillHistoryEntry[]>([]);
-  const [killHistoryMvpId, setKillHistoryMvpId] = useState<number | null>(null);
   useEffect(() => {
-    if (!selectedMvp) { setKillHistory([]); setKillHistoryMvpId(null); return; }
-    if (selectedMvp.id === killHistoryMvpId) return; // Already loaded for this MVP
-    setKillHistoryMvpId(selectedMvp.id);
+    if (!selectedMvp) { setKillHistory([]); return; }
     const supabase = createClient();
-    supabase
+    const query = supabase
       .from("mvp_kills")
       .select("id, killed_at, tomb_x, tomb_y, killer_character_id, registered_by")
-      .eq("mvp_id", selectedMvp.id)
-      .order("killed_at", { ascending: false })
-      .limit(20)
+      .eq("mvp_id", selectedMvp.id);
+    if (group) query.eq("group_id", group.id);
+    else query.is("group_id", null);
+    query.order("killed_at", { ascending: false })
+      .limit(20);
+    query
       .then(async ({ data }) => {
         if (!data || data.length === 0) { setKillHistory([]); return; }
         // Resolve character names via RPC (bypasses RLS)
