@@ -1,8 +1,15 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { Mvp, MvpActiveKill, MvpDrop, MvpMapMeta, MvpGroupMember, Character } from "@/lib/types";
+import { createClient } from "@/lib/supabase/client";
 import { MvpMapPicker } from "./mvp-map-picker";
+
+interface PendingLoot {
+  id: string;
+  item_id: number;
+  item_name: string;
+}
 
 interface MvpKillModalProps {
   mvp: Mvp;
@@ -27,6 +34,8 @@ interface MvpKillModalProps {
     partyMemberIds: string[];
   }) => Promise<void>;
   onDelete?: () => Promise<void>;
+  onAcceptLootSuggestions?: (killId: string) => Promise<void>;
+  onRejectLootSuggestion?: (lootId: string) => Promise<void>;
   onClose: () => void;
 }
 
@@ -55,6 +64,8 @@ export function MvpKillModal({
   parties,
   onConfirm,
   onDelete,
+  onAcceptLootSuggestions,
+  onRejectLootSuggestion,
   onClose,
   memberNames,
   memberUsernames,
@@ -83,6 +94,23 @@ export function MvpKillModal({
   const [partyMemberIds, setPartyMemberIds] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  const isTelemetryEdit = isEdit && existingKill?.source === "telemetry";
+  const [pendingLoots, setPendingLoots] = useState<PendingLoot[]>([]);
+
+  useEffect(() => {
+    if (!isTelemetryEdit || !existingKill) return;
+    const supabase = createClient();
+    supabase
+      .from("mvp_kill_loots")
+      .select("id, item_id, item_name")
+      .eq("kill_id", existingKill.kill_id)
+      .eq("source", "telemetry")
+      .is("accepted", null)
+      .then(({ data }) => {
+        setPendingLoots((data ?? []) as PendingLoot[]);
+      });
+  }, [isTelemetryEdit, existingKill?.kill_id]);
 
   const handleCoordsChange = useCallback((x: number | null, y: number | null) => {
     setTombX(x);
@@ -319,6 +347,52 @@ export function MvpKillModal({
                     </button>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* Pending loot suggestions (telemetry edit only) */}
+          {isTelemetryEdit && pendingLoots.length > 0 && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[10px] text-text-secondary font-semibold">
+                  LOOTS SUGERIDOS <span className="font-normal text-primary-secondary">({pendingLoots.length})</span>
+                </p>
+                {onAcceptLootSuggestions && existingKill && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await onAcceptLootSuggestions(existingKill.kill_id);
+                      setPendingLoots([]);
+                    }}
+                    className="text-[9px] px-2 py-0.5 rounded bg-[color-mix(in_srgb,var(--status-available)_15%,transparent)] border border-status-available text-status-available-text hover:opacity-80 cursor-pointer transition-colors"
+                  >
+                    Aceitar todos
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-col gap-1">
+                {pendingLoots.map((loot) => (
+                  <div
+                    key={loot.id}
+                    className="flex items-center justify-between px-2 py-1 rounded-md bg-[color-mix(in_srgb,var(--primary-secondary)_8%,transparent)] border border-border"
+                  >
+                    <span className="text-[11px] text-text-primary">{loot.item_name}</span>
+                    {onRejectLootSuggestion && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await onRejectLootSuggestion(loot.id);
+                          setPendingLoots((prev) => prev.filter((l) => l.id !== loot.id));
+                        }}
+                        className="text-[11px] text-text-secondary hover:text-status-error-text cursor-pointer transition-colors ml-2 leading-none"
+                        title="Rejeitar sugestão"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           )}

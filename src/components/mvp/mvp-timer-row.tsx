@@ -96,6 +96,21 @@ export function MvpTimerRow({ mvp, kill, onEdit }: MvpTimerRowProps) {
           {kill.registered_by_name && (
             <span className="text-[10px] text-text-secondary">
               por {kill.edited_by_name ? `${kill.edited_by_name} (editado)` : kill.registered_by_name}
+              {kill.source === 'telemetry' && (
+                <span
+                  className="text-text-secondary ml-1"
+                  title={`Registrado via telemetria${kill.registered_by_name ? ` por ${kill.registered_by_name}` : ''}`}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="inline">
+                    <path d="M12 20V10M8 14l4-4 4 4M4 4h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </span>
+              )}
+            </span>
+          )}
+          {kill.pending_loots_count > 0 && (
+            <span className="text-xs bg-[color-mix(in_srgb,var(--primary)_15%,transparent)] text-primary rounded-sm px-1.5 py-0.5 ml-2">
+              {kill.pending_loots_count} drop{kill.pending_loots_count > 1 ? 's' : ''}
             </span>
           )}
         </div>

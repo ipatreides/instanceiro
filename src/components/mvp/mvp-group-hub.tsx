@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { MvpGroup, MvpGroupMember, Character } from "@/lib/types";
 import { PremiumGate } from "@/components/tier/premium-gate";
+import { useTelemetrySessions } from "@/hooks/use-telemetry-sessions";
 
 interface MvpGroupHubProps {
   group: MvpGroup | null;
@@ -53,6 +54,8 @@ export function MvpGroupHub({
 
   // Leave
   const [confirmingLeave, setConfirmingLeave] = useState(false);
+
+  const telemetrySessions = useTelemetrySessions(group?.id ?? null);
 
   // Party (users, not characters)
   const [partyUserIds, setPartyUserIds] = useState<Set<string>>(new Set());
@@ -229,6 +232,12 @@ export function MvpGroupHub({
               return (
                 <span key={m.character_id} className="group/member inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] bg-bg border border-border text-text-secondary">
                   {memberNames.get(m.character_id) ?? "?"}
+                  {telemetrySessions.some(s => s.userId === m.user_id) && (
+                    <span
+                      className="inline-block w-2 h-2 rounded-full bg-status-available-text animate-pulse ml-1"
+                      title={`Telemetria ativa — ${telemetrySessions.find(s => s.userId === m.user_id)?.currentMap ?? '?'}`}
+                    />
+                  )}
                   {m.role === "owner" && <span className="text-primary-secondary ml-1">★</span>}
                   {canRemove && (
                     <button

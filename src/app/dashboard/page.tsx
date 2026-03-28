@@ -692,6 +692,7 @@ export default function DashboardPage() {
               selectedCharId={selectedCharId}
               characters={characters}
               accounts={accounts}
+              userId={userId}
             />
           )
         ) : (

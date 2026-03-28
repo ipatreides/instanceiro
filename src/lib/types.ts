@@ -250,6 +250,9 @@ export interface MvpActiveKill {
   registered_by_name: string;
   edited_by_name: string | null;
   kill_count: number;
+  source: 'manual' | 'telemetry';
+  killer_name_raw: string | null;
+  pending_loots_count: number;
 }
 
 export type MvpTimerStatus = 'cooldown' | 'spawn_window' | 'probably_alive' | 'tomb_expired' | 'inactive';
@@ -305,4 +308,39 @@ export interface TrackerLocalData {
   mvp_kills: Record<string, TrackerMvpKillData>;
   /** null = never configured, all instances active. Record = explicit per-instance toggle. */
   active_instances: Record<string, boolean> | null;
+}
+
+// Telemetry
+export interface TelemetryToken {
+  id: string
+  user_id: string
+  name: string | null
+  created_at: string
+  last_used_at: string
+  revoked_at: string | null
+}
+
+export interface TelemetrySession {
+  id: string
+  token_id: string
+  user_id: string
+  character_id: number
+  account_id: number
+  group_id: string
+  current_map: string | null
+  config_version: number
+  last_heartbeat: string
+  started_at: string
+}
+
+export interface TelemetryConfig {
+  config_version: number
+  server_id: number
+  group_id: string
+  events: {
+    mvp_kill: { enabled: boolean; monster_ids: number[]; batch_window_ms: number }
+    mvp_tomb: { enabled: boolean; npc_id: number }
+    mvp_killer: { enabled: boolean }
+    heartbeat: { interval_ms: number }
+  }
 }
