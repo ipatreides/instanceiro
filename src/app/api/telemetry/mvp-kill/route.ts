@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json()
   const { monster_id, map, x, y, timestamp, loots, party_character_ids } = body
 
-  if (!monster_id || !map || timestamp == null) {
+  if (!monster_id || timestamp == null) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
