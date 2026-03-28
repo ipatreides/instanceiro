@@ -101,28 +101,26 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
 
   const selectedKill = selectedMvp ? activeKills.find((k) => k.mvp_id === selectedMvp.id) ?? null : null;
 
-  // Kill history — refetch when MVP changes
-  const [killHistory, setKillHistory] = useState<KillHistoryEntry[]>([]);
+  // Kill history — fetch ALL group kills once, filter per MVP locally
+  const [allKillHistory, setAllKillHistory] = useState<(KillHistoryEntry & { mvp_id: number })[]>([]);
   useEffect(() => {
-    if (!selectedMvp) { setKillHistory([]); return; }
     const supabase = createClient();
     const query = supabase
       .from("mvp_kills")
-      .select("id, killed_at, tomb_x, tomb_y, killer_character_id, registered_by")
-      .eq("mvp_id", selectedMvp.id);
+      .select("id, mvp_id, killed_at, tomb_x, tomb_y, killer_character_id, registered_by");
     if (group) query.eq("group_id", group.id);
     else query.is("group_id", null);
     query.order("killed_at", { ascending: false })
-      .limit(20);
+      .limit(200);
     query
       .then(async ({ data }) => {
-        if (!data || data.length === 0) { setKillHistory([]); return; }
-        // Resolve character names via RPC (bypasses RLS)
+        if (!data || data.length === 0) { setAllKillHistory([]); return; }
         const charIds = [...new Set(data.flatMap((d) => [d.killer_character_id, d.registered_by].filter(Boolean) as string[]))];
         const { data: names } = await supabase.rpc("get_character_names", { char_ids: charIds });
         const nameMap = new Map(((names ?? []) as { id: string; name: string }[]).map((c) => [c.id, c.name]));
-        setKillHistory(data.map((d) => ({
+        setAllKillHistory(data.map((d) => ({
           id: d.id,
+          mvp_id: d.mvp_id,
           killed_at: d.killed_at,
           killer_name: d.killer_character_id ? nameMap.get(d.killer_character_id) ?? null : null,
           registered_by_name: nameMap.get(d.registered_by) ?? "?",
@@ -131,7 +129,12 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
         })));
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMvp?.id]);
+  }, [group?.id]);
+
+  // Filter history for selected MVP
+  const killHistory = selectedMvp
+    ? allKillHistory.filter((h) => h.mvp_id === selectedMvp.id).slice(0, 20)
+    : [];
 
   const handleSelectMvp = useCallback((mvp: Mvp) => {
     setSelectedMvp(mvp);
