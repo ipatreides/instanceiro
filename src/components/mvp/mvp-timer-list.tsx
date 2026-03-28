@@ -24,6 +24,29 @@ export function MvpTimerList({ mvps, activeKills, search, loading, selectedMvpId
     return map;
   }, [activeKills]);
 
+  // Build cooldown group -> latest kill map
+  const groupKillMap = useMemo(() => {
+    const map = new Map<string, MvpActiveKill>();
+    for (const mvp of mvps) {
+      if (!mvp.cooldown_group) continue;
+      const kill = killMap.get(mvp.id);
+      if (!kill) continue;
+      const existing = map.get(mvp.cooldown_group);
+      if (!existing || kill.killed_at > existing.killed_at) {
+        map.set(mvp.cooldown_group, kill);
+      }
+    }
+    return map;
+  }, [mvps, killMap]);
+
+  // Resolve effective kill: for grouped MVPs use group's latest kill
+  const getEffectiveKill = useCallback((mvp: Mvp): MvpActiveKill | undefined => {
+    if (mvp.cooldown_group) {
+      return groupKillMap.get(mvp.cooldown_group);
+    }
+    return killMap.get(mvp.id);
+  }, [killMap, groupKillMap]);
+
   const q = search.toLowerCase().trim();
 
   const filtered = useMemo(() => {
@@ -39,7 +62,7 @@ export function MvpTimerList({ mvps, activeKills, search, loading, selectedMvpId
   const activeIds = new Set<number>();
 
   for (const mvp of mvps) {
-    const kill = killMap.get(mvp.id);
+    const kill = getEffectiveKill(mvp);
     if (kill) {
       const spawnStart = new Date(kill.killed_at).getTime() + mvp.respawn_ms;
       const cardExpiry = spawnStart + 30 * 60 * 1000;
@@ -137,7 +160,12 @@ export function MvpTimerList({ mvps, activeKills, search, loading, selectedMvpId
               >
                 <div className="flex-1 min-w-0">
                   <div className="text-[11px] font-medium text-text-primary truncate">{mvp.name}</div>
-                  <div className="text-[9px] text-text-secondary">{mvp.map_name}</div>
+                  <div className="text-[9px] text-text-secondary">
+                    {mvp.map_name}
+                    {mvp.cooldown_group && (
+                      <span title="Cooldown compartilhado com outros MVPs do grupo"> ⟷</span>
+                    )}
+                  </div>
                 </div>
                 <span className="text-[11px] font-bold tabular-nums" style={{ color: getTimerColor(kill, mvp, now) }}>
                   {formatTimer(kill, mvp, now)}
@@ -170,7 +198,12 @@ export function MvpTimerList({ mvps, activeKills, search, loading, selectedMvpId
               >
                 <div className="flex-1 min-w-0">
                   <div className="text-[11px] text-text-secondary">{mvp.name}</div>
-                  <div className="text-[9px] text-text-secondary opacity-60">{mvp.map_name}</div>
+                  <div className="text-[9px] text-text-secondary opacity-60">
+                    {mvp.map_name}
+                    {mvp.cooldown_group && (
+                      <span title="Cooldown compartilhado com outros MVPs do grupo"> ⟷</span>
+                    )}
+                  </div>
                 </div>
                 {killCount > 0 && (
                   <span className="text-[9px] text-text-secondary">×{killCount}</span>
@@ -207,7 +240,11 @@ export function MvpTimerList({ mvps, activeKills, search, loading, selectedMvpId
 function getTimerColor(kill: MvpActiveKill, mvp: Mvp, now: number): string {
   const spawnStart = new Date(kill.killed_at).getTime() + mvp.respawn_ms;
   const remaining = spawnStart - now;
-  if (remaining <= 0) return "var(--status-available)";
+  if (remaining <= 0) {
+    // Bio Lab 5: mechanic-dependent, not guaranteed alive
+    if (mvp.cooldown_group === 'bio_lab_5') return "var(--status-soon)";
+    return "var(--status-available)";
+  }
   if (remaining < 5 * 60 * 1000) return "var(--status-available)";
   if (remaining < 30 * 60 * 1000) return "var(--status-soon)";
   return "var(--status-cooldown)";
@@ -217,6 +254,9 @@ function getTimerColor(kill: MvpActiveKill, mvp: Mvp, now: number): string {
 function formatTimer(kill: MvpActiveKill, mvp: Mvp, now: number): string {
   const spawnStart = new Date(kill.killed_at).getTime() + mvp.respawn_ms;
   const diff = spawnStart - now;
+  if (diff <= 0 && mvp.cooldown_group === 'bio_lab_5') {
+    return "Mecânica";
+  }
   const totalMin = Math.floor(Math.abs(diff) / 60000);
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
