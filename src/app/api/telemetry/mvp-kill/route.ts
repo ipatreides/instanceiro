@@ -60,13 +60,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ action: 'dedup' })
   }
 
-  // Overwrite: delete active kill for this MVP if exists (older than 30s)
-  await supabase
+  // Overwrite: delete only the most recent (active timer) kill for this MVP, not the entire history
+  const { data: activeKill } = await supabase
     .from('mvp_kills')
-    .delete()
+    .select('id')
     .eq('mvp_id', mvp.id)
     .eq('group_id', ctx.groupId)
     .lt('killed_at', dedupCutoff)
+    .order('killed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (activeKill) {
+    await supabase
+      .from('mvp_kills')
+      .delete()
+      .eq('id', activeKill.id)
+  }
 
   // Insert new kill
   const { data: kill, error: killErr } = await supabase
