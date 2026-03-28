@@ -244,6 +244,9 @@ export interface MvpActiveKill {
   registered_by_name: string;
   edited_by_name: string | null;
   kill_count: number;
+  source: 'manual' | 'telemetry';
+  killer_name_raw: string | null;
+  pending_loots_count: number;
 }
 
 export type MvpTimerStatus = 'cooldown' | 'spawn_window' | 'probably_alive' | 'tomb_expired' | 'inactive';
