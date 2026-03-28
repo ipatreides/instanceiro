@@ -1,15 +1,65 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { generateMapWithTomb } from "@/lib/map-image";
 
 const DISCORD_API = "https://discord.com/api/v10";
 
-async function sendChannelMessage(botToken: string, channelId: string, content: string): Promise<boolean> {
-  const res = await fetch(`${DISCORD_API}/channels/${channelId}/messages`, {
+async function sendChannelMessage(
+  botToken: string,
+  channelId: string,
+  content: string,
+  embed?: { title: string; description: string; color: number },
+  imageBuffer?: Buffer
+): Promise<boolean> {
+  const url = `${DISCORD_API}/channels/${channelId}/messages`;
+  const headers: Record<string, string> = {
+    Authorization: `Bot ${botToken}`,
+  };
+
+  // If we have an image, send as multipart/form-data with embed
+  if (imageBuffer && embed) {
+    const boundary = `----formdata-${Date.now()}`;
+    headers["Content-Type"] = `multipart/form-data; boundary=${boundary}`;
+
+    const payloadJson = JSON.stringify({
+      content,
+      embeds: [
+        {
+          title: embed.title,
+          description: embed.description,
+          image: { url: "attachment://map.png" },
+          color: embed.color,
+        },
+      ],
+      allowed_mentions: { parse: ["everyone"] },
+    });
+
+    const parts = [
+      `--${boundary}\r\n`,
+      `Content-Disposition: form-data; name="payload_json"\r\n`,
+      `Content-Type: application/json\r\n\r\n`,
+      payloadJson,
+      `\r\n--${boundary}\r\n`,
+      `Content-Disposition: form-data; name="files[0]"; filename="map.png"\r\n`,
+      `Content-Type: image/png\r\n\r\n`,
+    ];
+    const closing = `\r\n--${boundary}--\r\n`;
+
+    const body = Buffer.concat([
+      Buffer.from(parts.join(""), "utf8"),
+      imageBuffer,
+      Buffer.from(closing, "utf8"),
+    ]);
+
+    const res = await fetch(url, { method: "POST", headers, body });
+    return res.ok;
+  }
+
+  // No image — send JSON content-only (current behavior)
+  headers["Content-Type"] = "application/json";
+  const res = await fetch(url, {
     method: "POST",
-    headers: {
-      Authorization: `Bot ${botToken}`,
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify({ content, allowed_mentions: { parse: ["everyone"] } }),
   });
   return res.ok;
@@ -81,6 +131,19 @@ export async function POST(request: Request) {
   const { data: mvpsData } = await supabase.from("mvps").select("id, name, map_name, respawn_ms, delay_ms").in("id", mvpIds);
   const mvpMap = new Map((mvpsData ?? []).map((m: Record<string, unknown>) => [m.id as number, m]));
 
+  // Fetch map metadata for coordinate conversion
+  const mapNames = [...new Set((mvpsData ?? []).map((m: Record<string, unknown>) => m.map_name as string))];
+  const { data: mapMetaData } = await supabase
+    .from("mvp_map_meta")
+    .select("map_name, width, height")
+    .in("map_name", mapNames);
+  const mapMetaMap = new Map(
+    (mapMetaData ?? []).map((m: Record<string, unknown>) => [
+      m.map_name as string,
+      { width: m.width as number, height: m.height as number },
+    ])
+  );
+
   // Collect sent alert IDs for batch update
   const sentIds: string[] = [];
 
@@ -100,7 +163,9 @@ export async function POST(request: Request) {
     const spawnAt = new Date(killedAt.getTime() + mvp.respawn_ms);
     const spawnEnd = new Date(spawnAt.getTime() + mvp.delay_ms);
 
-    let message: string;
+    let content: string;
+    let embed: { title: string; description: string; color: number } | undefined;
+    let imageBuffer: Buffer | undefined;
 
     if (alert.alert_type === "pre_spawn") {
       const parts = [
@@ -109,17 +174,46 @@ export async function POST(request: Request) {
         `⏰ Spawn em ${discordConfig.alert_minutes} minutos (${formatBrt(spawnAt)} ~ ${formatBrt(spawnEnd)} BRT)`,
       ];
       if (kill.tomb_x != null) parts.push(`📍 Tumba: ${kill.tomb_x}, ${kill.tomb_y}`);
-      message = parts.join("\n");
+      content = parts.join("\n");
+
+      // Build embed + image when tomb coords exist
+      const mapMeta = mapMetaMap.get(mvp.map_name);
+      if (kill.tomb_x != null && kill.tomb_y != null && mapMeta) {
+        embed = {
+          title: `🔴 ${mvp.name} (${mvp.map_name})`,
+          description: `⏰ Spawn em ${discordConfig.alert_minutes} minutos (${formatBrt(spawnAt)} ~ ${formatBrt(spawnEnd)} BRT)\n📍 Tumba: ${kill.tomb_x}, ${kill.tomb_y}`,
+          color: 12350259, // 0xB87333 copper
+        };
+        try {
+          imageBuffer = await generateMapWithTomb(mvp.map_name, kill.tomb_x as number, kill.tomb_y as number, mapMeta.width, mapMeta.height);
+        } catch (e) {
+          console.warn(`Failed to generate map image for ${mvp.map_name}:`, e);
+        }
+      }
     } else {
       const parts = [
         `@everyone`,
         `🟢 **${mvp.name}** (${mvp.map_name}) pode ter nascido!`,
       ];
       if (kill.tomb_x != null) parts.push(`📍 Última tumba: ${kill.tomb_x}, ${kill.tomb_y}`);
-      message = parts.join("\n");
+      content = parts.join("\n");
+
+      const mapMeta = mapMetaMap.get(mvp.map_name);
+      if (kill.tomb_x != null && kill.tomb_y != null && mapMeta) {
+        embed = {
+          title: `🟢 ${mvp.name} (${mvp.map_name}) pode ter nascido!`,
+          description: `📍 Última tumba: ${kill.tomb_x}, ${kill.tomb_y}`,
+          color: 12350259,
+        };
+        try {
+          imageBuffer = await generateMapWithTomb(mvp.map_name, kill.tomb_x as number, kill.tomb_y as number, mapMeta.width, mapMeta.height);
+        } catch (e) {
+          console.warn(`Failed to generate map image for ${mvp.map_name}:`, e);
+        }
+      }
     }
 
-    const sent = await sendChannelMessage(botToken, discordConfig.bot_channel_id, message);
+    const sent = await sendChannelMessage(botToken, discordConfig.bot_channel_id, content, embed, imageBuffer);
     if (sent) {
       sentIds.push(alert.id);
       processed++;
