@@ -15,7 +15,8 @@ Cobrir custos operacionais (~$40/mês) com um modelo freemium. Base de ~100-200 
 - MVP timer: lista de MVPs, registra kill time, calcula respawn
 - Filtros por cooldown type, level, liga tier, mapa
 - Seletor de servidor (Freya/Nidhogg) persistido em localStorage
-- 100% localStorage, zero chamadas autenticadas ao backend
+- localStorage para state local, zero chamadas autenticadas ao backend
+- MVP kills enviados via `POST /api/mvp-kills` (sem auth, rate limit por IP: 10/min)
 - Sem conceito de personagem — checklist pessoal único
 - Dados estáticos (instâncias, MVPs) via API pública cacheada (ISR/CDN)
 
@@ -25,7 +26,7 @@ Tudo do visitante, mais:
 
 - 1 personagem vinculado a 1 conta
 - Features sociais de instâncias: parties, friends, schedules
-- MVP timer local (igual visitante), mas kills enviados silenciosamente ao banco como `verified = false` (sem party/loot, para stats futuras) via POST a cada kill registrado
+- MVP timer local (igual visitante), kills enviados via mesmo endpoint `POST /api/mvp-kills` (com `user_id` opcional se logado)
 - Dados do localStorage permanecem no browser até migração (ver seção 5)
 - Trial de 7 dias de premium na primeira tentativa de assinar (não no signup)
 
@@ -57,8 +58,10 @@ Tudo do free, mais:
 
 ```sql
 ALTER TABLE profiles ADD COLUMN stripe_customer_id TEXT UNIQUE;
--- tier é derivado, não armazenado diretamente na profiles
--- lido via JWT custom claim para performance
+ALTER TABLE profiles ADD COLUMN tier TEXT NOT NULL DEFAULT 'free' CHECK (tier IN ('free', 'premium', 'legacy_premium'));
+-- tier armazenado na profiles para UI (lido via Realtime, atualização instantânea)
+-- tier TAMBÉM propagado como JWT custom claim para RLS (performance, sem JOINs)
+-- webhook atualiza ambos simultaneamente
 ```
 
 ### Tabela `subscriptions` (nova)
@@ -178,11 +181,16 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
 
-### JWT Custom Claims
+### Tier Sync (Dual-Write)
 
-- Trigger em `subscriptions` (INSERT/UPDATE/DELETE) chama `get_user_tier()` e atualiza claim `tier` no JWT via `auth.update_user_metadata()`
-- RLS policies leem `auth.jwt()->>'tier'`
-- Client faz token refresh após mudança de tier (notificado via Supabase Realtime)
+Quando o tier muda (webhook Stripe, gift code, expiração):
+
+1. Trigger em `subscriptions` (INSERT/UPDATE/DELETE) chama `get_user_tier()`
+2. Atualiza `profiles.tier` (coluna real) — UI lê via Realtime subscription, atualização instantânea
+3. Atualiza `auth.users.raw_app_meta_data.tier` via `auth.admin.updateUserById()` — RLS lê do JWT
+4. Client faz token refresh em background após notificação Realtime
+
+**Resultado:** UI reage imediatamente (Realtime na profiles), RLS funciona após JWT refresh (segundos). Sem janela "paguei mas mostra free".
 
 ---
 
@@ -227,6 +235,13 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 - Idempotência via tabela `stripe_events`: ignora eventos já processados
 - Webhook responde 200 imediatamente
 
+### Configuração
+
+- Moeda: `currency: 'brl'` explícito no Checkout Session
+- Smart Retries habilitado (default Stripe): 4 tentativas em ~3 semanas antes de cancelar
+- Env vars necessárias: `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`
+- Development: usar Stripe test mode keys (`sk_test_*`, `pk_test_*`)
+
 ---
 
 ## 4. Gift Codes
@@ -266,13 +281,15 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 A home do site é o próprio tracker — ferramenta funcional como landing page.
 
+Hero mínimo no topo (3 linhas): logo + "Rastreie instâncias e MVPs do Ragnarok Online — grátis, sem conta" + CTAs [Começar ↓] [Entrar]. Scroll suave pro tracker abaixo. Quem já conhece nem nota o hero.
+
 ### Features
 
 - Instance tracker com checklist + cooldowns locais
-- MVP timer com kill tracking local
+- MVP timer com kill tracking local + POST silencioso de kills
 - Filtros por cooldown type, level, liga tier, mapa
 - Seletor de servidor (Freya/Nidhogg)
-- 100% localStorage
+- localStorage para state, API pública para dados estáticos e envio de kills
 
 ### localStorage Schema
 
@@ -301,10 +318,12 @@ A migração acontece quando o usuário cria seu **primeiro personagem** (não n
 
 1. Usuário cria conta (free ou premium) — dados permanecem no localStorage
 2. Ao criar o primeiro personagem no dashboard, sistema detecta `instanceiro_tracker` no localStorage
-3. Migração automática e silenciosa: completions e MVP kills (`verified = false`) são vinculados ao personagem criado
-4. Limpa localStorage após migração bem-sucedida
+3. Valida dados locais: instance IDs existem? Datas são válidas? Dados corrompidos são ignorados silenciosamente
+4. Migração automática e silenciosa: completions e MVP kills (`verified = false`) são vinculados ao personagem criado
+5. **Só limpa localStorage após migração 100% bem-sucedida**
+6. Se migração falha (erro de rede, constraint violation): localStorage permanece intacto, retry automático no próximo acesso
 
-Isso garante que os dados só são migrados quando têm um personagem destino.
+Isso garante que os dados só são migrados quando têm um personagem destino e que nenhum dado é perdido em caso de falha.
 
 ### Routing
 
@@ -432,6 +451,21 @@ CREATE POLICY "mvp_kills_free_insert" ON mvp_kills
     END
   );
 ```
+
+---
+
+## 10. Endpoint MVP Kills (`POST /api/mvp-kills`)
+
+Endpoint público para coletar kill times de todos os tiers (visitantes, free, premium).
+
+- **Sem auth obrigatória** — visitantes podem enviar
+- **Rate limit: 10 requests por minuto por IP** (middleware na API route)
+- Body: `{ mvp_id: string, killed_at: string, server_id: string }`
+- Se request vem de usuário autenticado: `user_id` extraído da session server-side (não enviado pelo client)
+- Insere com `verified = false`, `group_id = null`
+- Kills de premium em grupos continuam usando o fluxo existente (`mvp_kills` com `verified = true`)
+- Validação: `mvp_id` deve existir, `killed_at` não pode ser no futuro, `server_id` deve existir
+- Resposta: `201 Created` (sem body útil — fire and forget do lado do client)
 
 ---
 
