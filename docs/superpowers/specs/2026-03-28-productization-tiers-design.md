@@ -381,6 +381,16 @@ Quando um usuário premium (não-fundador) cancela e a subscription expira:
 - MVP kills cloud: mantidos mas não recebe novos
 - Stats: inacessíveis até re-assinar
 
+### Exportação para localStorage (uma única vez)
+
+No primeiro acesso após downgrade:
+
+1. Sistema detecta mudança de tier (premium → free)
+2. Exporta completions + MVP kills da primeira conta/personagem listado pro localStorage (formato `instanceiro_tracker`)
+3. Aviso in-app: "Seus dados foram salvos localmente. Assine novamente para recuperar acesso completo."
+4. Flag `downgrade_exported` salvo no localStorage — garante que a exportação acontece apenas uma vez
+5. Dados no banco permanecem intactos (read-only) caso re-assine
+
 ---
 
 ## 8. Degradação Graciosa (`past_due`)
