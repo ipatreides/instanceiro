@@ -484,6 +484,18 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
           parties={partiesForModal}
           memberNames={memberNames}
           memberUsernames={memberUsernames}
+          killerKillCounts={(() => {
+            const map = new Map<string, number>();
+            for (const h of killHistory) {
+              if (h.killer_name) {
+                // Find character_id by name from memberNames
+                for (const [charId, name] of memberNames) {
+                  if (name === h.killer_name) map.set(charId, (map.get(charId) ?? 0) + 1);
+                }
+              }
+            }
+            return map;
+          })()}
           onConfirm={handleConfirmKill}
           onDelete={modalKill ? handleDeleteKill : undefined}
           onClose={() => setShowKillModal(false)}

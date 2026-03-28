@@ -17,6 +17,7 @@ interface MvpKillModalProps {
   parties: { id: string; name: string; memberIds: string[] }[];
   memberNames: Map<string, string>;
   memberUsernames: Map<string, string>; // userId -> username
+  killerKillCounts?: Map<string, number>; // character_id -> kill count for this MVP
   onConfirm: (data: {
     killedAt: string;
     tombX: number | null;
@@ -57,6 +58,7 @@ export function MvpKillModal({
   onClose,
   memberNames,
   memberUsernames,
+  killerKillCounts,
 }: MvpKillModalProps) {
   const isEdit = !!existingKill;
 
@@ -73,7 +75,9 @@ export function MvpKillModal({
     existingKill?.killer_character_id ?? (initialTime === "now" ? selectedCharId : null)
   );
 
-  const mvpDrops = drops.filter((d) => d.mvp_monster_id === mvp.monster_id);
+  const mvpDrops = drops
+    .filter((d) => d.mvp_monster_id === mvp.monster_id)
+    .sort((a, b) => (a.drop_rate ?? 100) - (b.drop_rate ?? 100));
   const [selectedLoots, setSelectedLoots] = useState<Set<number>>(new Set());
   const [selectedPartyId, setSelectedPartyId] = useState<string | null>(null);
   const [partyMemberIds, setPartyMemberIds] = useState<Set<string>>(new Set());
@@ -144,9 +148,10 @@ export function MvpKillModal({
     ? groupMembers.map((m) => ({
         id: m.character_id,
         name: memberNames.get(m.character_id) ?? "?",
-      }))
+        killCount: killerKillCounts?.get(m.character_id) ?? 0,
+      })).sort((a, b) => b.killCount - a.killCount)
     : selectedCharId
-      ? [{ id: selectedCharId, name: memberNames.get(selectedCharId) ?? characters.find((c) => c.id === selectedCharId)?.name ?? "?" }]
+      ? [{ id: selectedCharId, name: memberNames.get(selectedCharId) ?? characters.find((c) => c.id === selectedCharId)?.name ?? "?", killCount: 0 }]
       : [];
 
   return (
