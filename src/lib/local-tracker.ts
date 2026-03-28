@@ -4,19 +4,20 @@ const STORAGE_KEY = "instanceiro_tracker";
 
 function getTrackerData(): TrackerLocalData {
   if (typeof window === "undefined") {
-    return { server: "freya", instances: {}, mvp_kills: {} };
+    return { server: "freya", instances: {}, mvp_kills: {}, active_instances: null };
   }
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { server: "freya", instances: {}, mvp_kills: {} };
+    if (!raw) return { server: "freya", instances: {}, mvp_kills: {}, active_instances: null };
     const parsed = JSON.parse(raw);
     return {
       server: parsed.server ?? "freya",
       instances: parsed.instances ?? {},
       mvp_kills: parsed.mvp_kills ?? {},
+      active_instances: parsed.active_instances ?? null,
     };
   } catch {
-    return { server: "freya", instances: {}, mvp_kills: {} };
+    return { server: "freya", instances: {}, mvp_kills: {}, active_instances: null };
   }
 }
 
@@ -61,6 +62,34 @@ export function registerMvpKill(mvpId: string): void {
   saveTrackerData(data);
 }
 
+/**
+ * Returns the set of active instance IDs, or null if the user has never
+ * configured active instances (meaning ALL instances are active by default).
+ */
+export function getActiveInstances(): Record<string, boolean> | null {
+  return getTrackerData().active_instances ?? null;
+}
+
+export function setInstanceActive(instanceId: string, active: boolean): void {
+  const data = getTrackerData();
+  if (!data.active_instances) {
+    // First time — user is explicitly toggling, so we initialize the set
+    data.active_instances = {};
+  }
+  data.active_instances[instanceId] = active;
+  saveTrackerData(data);
+}
+
+/**
+ * Returns true if the given instance is "active" for the tracker.
+ * When active_instances is null (never configured), all instances are active.
+ */
+export function isInstanceActive(instanceId: string): boolean {
+  const map = getTrackerData().active_instances;
+  if (map === null) return true;
+  return map[instanceId] !== false;
+}
+
 export function getFullTrackerData(): TrackerLocalData | null {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem(STORAGE_KEY);
@@ -97,7 +126,7 @@ export function exportToLocalStorage(
   mvpKills: Record<string, TrackerMvpKillData>,
   server: string
 ): void {
-  const data: TrackerLocalData = { server, instances, mvp_kills: mvpKills };
+  const data: TrackerLocalData = { server, instances, mvp_kills: mvpKills, active_instances: null };
   saveTrackerData(data);
   setDowngradeExported();
 }

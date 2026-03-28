@@ -89,8 +89,10 @@ export default function TrackerPage() {
           <InstanceChecklist
             instances={instances}
             completions={tracker.instances}
+            activeInstances={tracker.activeInstances}
             onMarkDone={tracker.markInstanceDone}
             onClear={tracker.clearInstance}
+            onToggleActive={tracker.toggleInstanceActive}
           />
         ) : (
           <MvpTracker

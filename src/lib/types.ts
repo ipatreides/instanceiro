@@ -303,4 +303,6 @@ export interface TrackerLocalData {
   server: string;
   instances: Record<string, TrackerInstanceData>;
   mvp_kills: Record<string, TrackerMvpKillData>;
+  /** null = never configured, all instances active. Record = explicit per-instance toggle. */
+  active_instances: Record<string, boolean> | null;
 }
