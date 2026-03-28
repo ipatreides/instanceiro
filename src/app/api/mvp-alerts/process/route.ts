@@ -190,8 +190,8 @@ export async function POST(request: Request) {
         };
         try {
           imageBuffer = await generateMapWithTomb(mvp.map_name, kill.tomb_x as number, kill.tomb_y as number, mapMeta.width, mapMeta.height);
-        } catch {
-          // Map file missing or sharp error — send without image
+        } catch (e) {
+          console.warn(`Failed to generate map image for ${mvp.map_name}:`, e);
         }
       }
     } else {
@@ -211,8 +211,8 @@ export async function POST(request: Request) {
         };
         try {
           imageBuffer = await generateMapWithTomb(mvp.map_name, kill.tomb_x as number, kill.tomb_y as number, mapMeta.width, mapMeta.height);
-        } catch {
-          // Map file missing or sharp error — send without image
+        } catch (e) {
+          console.warn(`Failed to generate map image for ${mvp.map_name}:`, e);
         }
       }
     }
