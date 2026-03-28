@@ -30,7 +30,7 @@ export function useMvpData(serverId: number | null): UseMvpDataReturn {
     if (!serverMvps) {
       const { data } = await supabase
         .from("mvps")
-        .select("id, server_id, monster_id, name, map_name, respawn_ms, delay_ms, level, hp")
+        .select("id, server_id, monster_id, name, map_name, respawn_ms, delay_ms, level, hp, has_tomb, cooldown_group, linked_monster_id")
         .eq("server_id", serverId)
         .order("name");
       serverMvps = (data ?? []) as Mvp[];
