@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
 import { CharacterForm } from "@/components/characters/character-form";
+import { useTier } from "@/hooks/use-tier";
+import { PremiumBadge } from "@/components/tier/premium-badge";
 import type { Account, Character, Server } from "@/lib/types";
 
 interface AccountModalProps {
@@ -16,6 +18,7 @@ interface AccountModalProps {
   onCreateCharacter: (data: { name: string; class_name: string; class_path: string[]; level: number; account_id: string }) => Promise<void>;
   onDeleteCharacter: (charId: string) => Promise<void>;
   autoShowCharForm?: boolean;
+  totalCharacterCount?: number;
 }
 
 export function AccountModal({
@@ -29,7 +32,9 @@ export function AccountModal({
   onCreateCharacter,
   onDeleteCharacter,
   autoShowCharForm,
+  totalCharacterCount,
 }: AccountModalProps) {
+  const { isPremium } = useTier();
   const [editName, setEditName] = useState("");
   const [showCharForm, setShowCharForm] = useState(false);
   const [confirmDeleteChar, setConfirmDeleteChar] = useState<string | null>(null);
@@ -188,6 +193,16 @@ export function AccountModal({
               onCancel={() => setShowCharForm(false)}
               submitLabel="Adicionar"
             />
+          </div>
+        ) : !isPremium && (totalCharacterCount ?? 0) >= 1 ? (
+          <div className="flex items-center gap-2 w-full py-2 rounded-md border border-dashed border-border px-3">
+            <button
+              disabled
+              className="flex-1 text-sm text-disabled-text text-left cursor-not-allowed"
+            >
+              + Adicionar personagem
+            </button>
+            <PremiumBadge feature="multi-character" />
           </div>
         ) : (
           <button

@@ -3,24 +3,26 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { LoginButton } from "@/components/auth/login-button";
-import { Logo } from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { HeroSection } from "@/components/tracker/hero-section";
+import { ServerSelector } from "@/components/tracker/server-selector";
+import { InstanceChecklist } from "@/components/tracker/instance-checklist";
+import { MvpTracker } from "@/components/tracker/mvp-tracker";
+import { useLocalTracker } from "@/hooks/use-local-tracker";
+import type { Instance, Mvp } from "@/lib/types";
 
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
-  return (
-    <div className="bg-surface border border-border rounded-xl p-5 text-left hover:border-primary/40 transition-colors">
-      <div className="text-primary mb-3">{icon}</div>
-      <h3 className="text-text-primary font-semibold text-sm mb-1">{title}</h3>
-      <p className="text-text-secondary text-sm leading-relaxed">{description}</p>
-    </div>
-  );
-}
+const SERVER_IDS: Record<string, number> = { freya: 1, nidhogg: 2 };
 
-export default function LandingPage() {
+export default function TrackerPage() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
+  const [tab, setTab] = useState<"instances" | "mvps">("instances");
+  const [instances, setInstances] = useState<Instance[]>([]);
+  const [mvps, setMvps] = useState<Mvp[]>([]);
 
+  const tracker = useLocalTracker();
+
+  // Redirect logged-in users to dashboard
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -32,6 +34,18 @@ export default function LandingPage() {
     });
   }, [router]);
 
+  // Fetch static data
+  useEffect(() => {
+    if (checking) return;
+    Promise.all([
+      fetch("/api/instances").then((r) => r.json()),
+      fetch(`/api/mvps?server_id=${SERVER_IDS[tracker.server]}`).then((r) => r.json()),
+    ]).then(([inst, mvpData]) => {
+      setInstances(inst);
+      setMvps(mvpData);
+    });
+  }, [checking, tracker.server]);
+
   if (checking) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
@@ -42,61 +56,52 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
-      {/* Theme toggle — fixed top-right */}
       <div className="fixed top-4 right-4 z-50">
         <ThemeToggle />
       </div>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-16">
-        <div className="max-w-2xl w-full text-center space-y-10">
-          {/* Hero */}
-          <div className="space-y-4">
-            <div className="flex justify-center">
-              <Logo size="lg" />
-            </div>
-            <p className="text-text-secondary text-lg max-w-md mx-auto leading-relaxed">
-              Acompanhe suas instâncias de Ragnarok Online.
-              Gerencie cooldowns, histórico e progresso de todos os seus personagens em um só lugar.
-            </p>
-          </div>
+      <HeroSection />
 
-          {/* Feature cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <FeatureCard
-              icon={
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" stroke="var(--primary)" fill="none">
-                  <path d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" fill="var(--primary)" fillOpacity="var(--icon-fill-opacity)" stroke="var(--primary)" />
-                </svg>
-              }
-              title="Cooldowns em tempo real"
-              description="Saiba exatamente quando cada instância fica disponível, com timers que atualizam automaticamente."
-            />
-            <FeatureCard
-              icon={
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" stroke="var(--primary)" fill="none">
-                  <path d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" fill="var(--primary)" fillOpacity="var(--icon-fill-opacity)" stroke="var(--primary)" />
-                </svg>
-              }
-              title="Histórico completo"
-              description="Registre cada conclusão e acompanhe seu progresso ao longo do tempo."
-            />
-            <FeatureCard
-              icon={
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" stroke="var(--primary)" fill="none">
-                  <path d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" fill="var(--primary)" fillOpacity="var(--icon-fill-opacity)" stroke="var(--primary)" />
-                </svg>
-              }
-              title="Multi-personagem"
-              description="Gerencie instâncias de todos os seus personagens em um único painel."
-            />
+      <main id="tracker" className="flex-1 max-w-2xl w-full mx-auto px-4 pb-16">
+        <div className="flex items-center justify-between mb-6">
+          <ServerSelector server={tracker.server} onServerChange={tracker.setServer} />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setTab("instances")}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                tab === "instances" ? "bg-primary text-white" : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              Instâncias
+            </button>
+            <button
+              onClick={() => setTab("mvps")}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                tab === "mvps" ? "bg-primary text-white" : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              MVPs
+            </button>
           </div>
-
-          {/* CTA — Social Login */}
-          <LoginButton />
         </div>
+
+        {tab === "instances" ? (
+          <InstanceChecklist
+            instances={instances}
+            completions={tracker.instances}
+            onMarkDone={tracker.markInstanceDone}
+            onClear={tracker.clearInstance}
+          />
+        ) : (
+          <MvpTracker
+            mvps={mvps}
+            kills={tracker.mvpKills}
+            serverId={SERVER_IDS[tracker.server]}
+            onRegisterKill={tracker.registerMvpKill}
+          />
+        )}
       </main>
 
-      {/* Footer */}
       <footer className="py-6 text-center">
         <p className="text-text-secondary text-sm">
           Feito para jogadores de Ragnarok Online LATAM
@@ -105,4 +110,3 @@ export default function LandingPage() {
     </div>
   );
 }
-

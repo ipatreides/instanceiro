@@ -34,6 +34,11 @@ import { Logo } from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import type { Account, Character, InstanceState } from "@/lib/types";
 import { MvpTab } from "@/components/mvp/mvp-tab";
+import { TierContext, useTierProvider } from "@/hooks/use-tier";
+import { TierIndicator } from "@/components/tier/tier-indicator";
+import { PremiumGate } from "@/components/tier/premium-gate";
+import { PremiumBadge } from "@/components/tier/premium-badge";
+import { wasDowngradeExported, exportToLocalStorage } from "@/lib/local-tracker";
 
 interface Profile {
   display_name: string | null;
@@ -77,11 +82,13 @@ export default function DashboardPage() {
   const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [needsUsername, setNeedsUsername] = useState(false);
+  const [downgradeNotice, setDowngradeNotice] = useState(false);
   const [usernameInput, setUsernameInput] = useState("");
   const [usernameSaving, setUsernameSaving] = useState(false);
   const usernameStatus = useUsernameCheck(usernameInput);
   const { pendingReceived } = useFriendships();
   const { notifications, unreadCount, respondToPartyConfirm } = useNotifications();
+  const tierValue = useTierProvider(userId);
 
   const { accounts, servers, loading: accountsLoading, createAccount, updateAccount, deleteAccount, reorderAccounts, reorderCharacters: reorderChars, refetch: refetchAccounts } = useAccounts();
   const [accountModalAccount, setAccountModalAccount] = useState<Account | null>(null);
@@ -215,6 +222,68 @@ export default function DashboardPage() {
     }
     setTabInitialized(true);
   }, [profile, tabInitialized]);
+
+  // Task 19: Downgrade export — when a premium user loses access, export their data to localStorage
+  useEffect(() => {
+    if (tierValue.loading || tierValue.isPremium) return;
+    if (wasDowngradeExported()) return;
+
+    const run = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Fetch first account
+        const { data: accs } = await supabase
+          .from("accounts")
+          .select("id, server_id")
+          .eq("user_id", user.id)
+          .limit(1)
+          .single();
+        if (!accs) return;
+
+        // Fetch first character of that account
+        const { data: char } = await supabase
+          .from("characters")
+          .select("id")
+          .eq("account_id", accs.id)
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true })
+          .limit(1)
+          .single();
+        if (!char) return;
+
+        // Fetch completions for that character
+        const { data: comps } = await supabase
+          .from("instance_completions")
+          .select("instance_id, completed_at")
+          .eq("character_id", char.id);
+
+        // Fetch MVP kills for that character
+        const { data: kills } = await supabase
+          .from("mvp_kills")
+          .select("mvp_id, killed_at")
+          .eq("character_id", char.id);
+
+        const instances: Record<string, { completed_at: string }> = {};
+        for (const c of comps ?? []) {
+          instances[String(c.instance_id)] = { completed_at: c.completed_at };
+        }
+
+        const mvpKills: Record<string, { killed_at: string }> = {};
+        for (const k of kills ?? []) {
+          mvpKills[String(k.mvp_id)] = { killed_at: k.killed_at };
+        }
+
+        exportToLocalStorage(instances, mvpKills, accs.server_id ?? "freya");
+        setDowngradeNotice(true);
+      } catch {
+        // Don't crash the dashboard on export failure
+      }
+    };
+    run();
+  }, [tierValue.loading, tierValue.isPremium]);
 
   const handleSaveUsername = useCallback(async () => {
     if (!userId || usernameStatus !== "available") return;
@@ -438,6 +507,7 @@ export default function DashboardPage() {
   };
 
   return (
+    <TierContext.Provider value={tierValue}>
     <div className="h-screen flex flex-col bg-bg text-text-primary overflow-hidden">
       {/* Header */}
       <header className="bg-surface border-b border-border sticky top-0 z-40">
@@ -472,6 +542,7 @@ export default function DashboardPage() {
               unreadCount={unreadCount}
               onRespond={respondToPartyConfirm}
             />
+            <TierIndicator />
             <ThemeToggle />
             <button
               onClick={handleLogout}
@@ -482,6 +553,14 @@ export default function DashboardPage() {
           </div>
         </div>
       </header>
+
+      {/* Downgrade notice */}
+      {downgradeNotice && (
+        <div className="bg-[color-mix(in_srgb,var(--status-error)_12%,transparent)] border-b border-status-error px-5 py-2 flex items-center justify-between text-sm">
+          <span className="text-status-error-text">Seu plano foi alterado para gratuito. Seus dados foram salvos localmente.</span>
+          <button onClick={() => setDowngradeNotice(false)} className="text-status-error-text opacity-70 hover:opacity-100 ml-4 cursor-pointer">✕</button>
+        </div>
+      )}
 
       <div className="flex-1 overflow-hidden">
       {/* Main content */}
@@ -760,6 +839,7 @@ export default function DashboardPage() {
         autoShowCharForm={accountModalAccount ? characters.filter(c => c.account_id === accountModalAccount.id).length === 0 : false}
         account={accountModalAccount}
         characters={characters.filter(c => c.account_id === accountModalAccount?.id)}
+        totalCharacterCount={characters.length}
         servers={servers}
         onUpdateName={async (name) => {
           if (!accountModalAccount) return;
@@ -993,5 +1073,6 @@ export default function DashboardPage() {
         </div>
       )}
     </div>
+    </TierContext.Provider>
   );
 }

@@ -1,11 +1,17 @@
 export type CooldownType = "hourly" | "daily" | "three_day" | "weekly";
 
+// Tier types
+
+export type Tier = 'free' | 'premium' | 'legacy_premium';
+
 export interface Profile {
   id: string;
   display_name: string;
   avatar_url: string;
   username: string | null;
   onboarding_completed: boolean;
+  tier: Tier;
+  stripe_customer_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -259,4 +265,42 @@ export interface MvpParty {
 export interface MvpPartyMember {
   party_id: string;
   character_id: string;
+}
+
+export interface Subscription {
+  id: string;
+  user_id: string;
+  stripe_subscription_id: string | null;
+  stripe_price_id: string | null;
+  status: 'active' | 'past_due' | 'canceled' | 'trialing' | 'gifted' | 'gifted_lifetime';
+  current_period_start: string | null;
+  current_period_end: string | null;
+  cancel_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GiftCode {
+  id: string;
+  code: string;
+  duration: string | null;
+  redeemed_by: string | null;
+  redeemed_at: string | null;
+  created_by: string | null;
+  expires_at: string | null;
+  created_at: string;
+}
+
+export interface TrackerInstanceData {
+  completed_at: string;
+}
+
+export interface TrackerMvpKillData {
+  killed_at: string;
+}
+
+export interface TrackerLocalData {
+  server: string;
+  instances: Record<string, TrackerInstanceData>;
+  mvp_kills: Record<string, TrackerMvpKillData>;
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Character } from "@/lib/types";
+import { hasTrackerData, getFullTrackerData, clearTrackerData } from "@/lib/local-tracker";
 
 interface CreateCharacterData {
   name: string;
@@ -128,10 +129,56 @@ export function useCharacters(): UseCharactersReturn {
         }
       }
 
+      // Task 20: Migrate localStorage data on first character creation
+      if (characters.length === 0 && hasTrackerData()) {
+        try {
+          const localData = getFullTrackerData();
+          if (localData) {
+            const completionRows: { character_id: string; instance_id: number; completed_at: string }[] = [];
+            for (const [rawId, val] of Object.entries(localData.instances ?? {})) {
+              const id = parseInt(rawId, 10);
+              if (!isNaN(id)) {
+                completionRows.push({ character_id: character.id, instance_id: id, completed_at: val.completed_at });
+              }
+            }
+
+            const killRows: { character_id: string; mvp_id: number; killed_at: string; verified: boolean }[] = [];
+            for (const [rawId, val] of Object.entries(localData.mvp_kills ?? {})) {
+              const id = parseInt(rawId, 10);
+              if (!isNaN(id)) {
+                killRows.push({ character_id: character.id, mvp_id: id, killed_at: val.killed_at, verified: false });
+              }
+            }
+
+            let allOk = true;
+            if (completionRows.length > 0) {
+              const { error: compErr } = await supabase.from("instance_completions").insert(completionRows);
+              if (compErr) {
+                console.error("localStorage migration: completions insert failed", compErr);
+                allOk = false;
+              }
+            }
+            if (allOk && killRows.length > 0) {
+              const { error: killErr } = await supabase.from("mvp_kills").insert(killRows);
+              if (killErr) {
+                console.error("localStorage migration: mvp_kills insert failed", killErr);
+                allOk = false;
+              }
+            }
+            if (allOk) {
+              clearTrackerData();
+            }
+          }
+        } catch (migrationErr) {
+          console.error("localStorage migration error:", migrationErr);
+          // Don't clear on failure
+        }
+      }
+
       setCharacters((prev) => [...prev, character]);
       return character;
     },
-    []
+    [characters]
   );
 
   const updateCharacter = useCallback(

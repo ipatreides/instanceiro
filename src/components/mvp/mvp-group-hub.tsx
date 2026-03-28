@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { MvpGroup, MvpGroupMember, Character } from "@/lib/types";
+import { PremiumGate } from "@/components/tier/premium-gate";
 
 interface MvpGroupHubProps {
   group: MvpGroup | null;
@@ -125,12 +126,14 @@ export function MvpGroupHub({
           Crie um grupo para compartilhar timers de MVP com outros jogadores, ou registre kills solo.
         </p>
         {!showCreateGroup ? (
-          <button
-            onClick={() => setShowCreateGroup(true)}
-            className="px-4 py-2 text-sm font-semibold text-white bg-primary rounded-md hover:bg-primary-hover cursor-pointer transition-colors"
-          >
-            Criar Grupo
-          </button>
+          <PremiumGate feature="mvp-group">
+            <button
+              onClick={() => setShowCreateGroup(true)}
+              className="px-4 py-2 text-sm font-semibold text-white bg-primary rounded-md hover:bg-primary-hover cursor-pointer transition-colors"
+            >
+              Criar Grupo
+            </button>
+          </PremiumGate>
         ) : (
           <div className="w-full max-w-xs bg-surface border border-border rounded-xl p-4 flex flex-col gap-3">
             <input
