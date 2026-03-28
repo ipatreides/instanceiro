@@ -260,3 +260,38 @@ export interface MvpPartyMember {
   party_id: string;
   character_id: string;
 }
+
+// Telemetry
+export interface TelemetryToken {
+  id: string
+  user_id: string
+  name: string | null
+  created_at: string
+  last_used_at: string
+  revoked_at: string | null
+}
+
+export interface TelemetrySession {
+  id: string
+  token_id: string
+  user_id: string
+  character_id: number
+  account_id: number
+  group_id: string
+  current_map: string | null
+  config_version: number
+  last_heartbeat: string
+  started_at: string
+}
+
+export interface TelemetryConfig {
+  config_version: number
+  server_id: number
+  group_id: string
+  events: {
+    mvp_kill: { enabled: boolean; monster_ids: number[]; batch_window_ms: number }
+    mvp_tomb: { enabled: boolean; npc_id: number }
+    mvp_killer: { enabled: boolean }
+    heartbeat: { interval_ms: number }
+  }
+}
