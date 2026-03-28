@@ -45,14 +45,10 @@ async function sendChannelMessage(
     ];
     const closing = `\r\n--${boundary}--\r\n`;
 
-    const textEncoder = new TextEncoder();
-    const prefixBytes = textEncoder.encode(parts.join(""));
-    const suffixBytes = textEncoder.encode(closing);
-
     const body = Buffer.concat([
-      Buffer.from(prefixBytes),
+      Buffer.from(parts.join(""), "utf8"),
       imageBuffer,
-      Buffer.from(suffixBytes),
+      Buffer.from(closing, "utf8"),
     ]);
 
     const res = await fetch(url, { method: "POST", headers, body });
