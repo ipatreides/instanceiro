@@ -152,10 +152,11 @@ export function MvpKillModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
-        className="bg-surface border border-border rounded-lg w-full max-w-[420px] max-h-[90vh] overflow-y-auto mx-4"
+        className="bg-surface border border-border rounded-lg w-full max-w-[640px] max-h-[66vh] overflow-y-auto mx-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-5">
+          {/* Header */}
           <div className="flex justify-between items-center mb-4">
             <div>
               <h3 className="text-[15px] font-semibold text-text-primary">{mvp.name}</h3>
@@ -166,51 +167,58 @@ export function MvpKillModal({
             <button onClick={onClose} className="text-text-secondary hover:text-text-primary text-lg cursor-pointer">×</button>
           </div>
 
-          <MvpMapPicker
-            mapName={mvp.map_name}
-            mapMeta={mapMeta}
-            tombX={tombX}
-            tombY={tombY}
-            onCoordsChange={handleCoordsChange}
-          />
+          {/* Two-column layout */}
+          <div className="flex gap-4">
+            {/* Left: Map + Time + Coords */}
+            <div className="w-[200px] flex-shrink-0 flex flex-col gap-2">
+              <MvpMapPicker
+                mapName={mvp.map_name}
+                mapMeta={mapMeta}
+                tombX={tombX}
+                tombY={tombY}
+                onCoordsChange={handleCoordsChange}
+              />
+              <div className="flex gap-1.5">
+                <div className="flex-1">
+                  <label className="text-[9px] text-text-secondary font-semibold">HORA</label>
+                  <input
+                    type="time"
+                    value={timeStr}
+                    onChange={(e) => setTimeStr(e.target.value)}
+                    tabIndex={1}
+                    className="w-full bg-bg border border-border rounded-md px-2 py-1 text-xs text-text-primary outline-none focus:border-primary transition-colors"
+                  />
+                </div>
+                <div className="w-[50px]">
+                  <label className="text-[9px] text-text-secondary font-semibold">X</label>
+                  <input
+                    type="number"
+                    value={tombX ?? ""}
+                    onChange={(e) => setTombX(e.target.value ? Number(e.target.value) : null)}
+                    tabIndex={2}
+                    className="w-full bg-bg border border-border rounded-md px-2 py-1 text-xs text-text-primary outline-none focus:border-primary transition-colors"
+                  />
+                </div>
+                <div className="w-[50px]">
+                  <label className="text-[9px] text-text-secondary font-semibold">Y</label>
+                  <input
+                    type="number"
+                    value={tombY ?? ""}
+                    onChange={(e) => setTombY(e.target.value ? Number(e.target.value) : null)}
+                    tabIndex={3}
+                    className="w-full bg-bg border border-border rounded-md px-2 py-1 text-xs text-text-primary outline-none focus:border-primary transition-colors"
+                  />
+                </div>
+              </div>
+            </div>
 
-          <div className="flex gap-2 mt-3 mb-4">
-            <div className="flex-1">
-              <label className="text-[9px] text-text-secondary font-semibold">HORA</label>
-              <input
-                type="time"
-                value={timeStr}
-                onChange={(e) => setTimeStr(e.target.value)}
-                tabIndex={1}
-                className="w-full bg-bg border border-border rounded-md px-2.5 py-1.5 text-sm text-text-primary outline-none focus:border-primary transition-colors"
-              />
-            </div>
-            <div className="w-[70px]">
-              <label className="text-[9px] text-text-secondary font-semibold">X</label>
-              <input
-                type="number"
-                value={tombX ?? ""}
-                onChange={(e) => setTombX(e.target.value ? Number(e.target.value) : null)}
-                tabIndex={2}
-                className="w-full bg-bg border border-border rounded-md px-2.5 py-1.5 text-sm text-text-primary outline-none focus:border-primary transition-colors"
-              />
-            </div>
-            <div className="w-[70px]">
-              <label className="text-[9px] text-text-secondary font-semibold">Y</label>
-              <input
-                type="number"
-                value={tombY ?? ""}
-                onChange={(e) => setTombY(e.target.value ? Number(e.target.value) : null)}
-                tabIndex={3}
-                className="w-full bg-bg border border-border rounded-md px-2.5 py-1.5 text-sm text-text-primary outline-none focus:border-primary transition-colors"
-              />
-            </div>
-          </div>
-
-          <div className="mb-3">
-            <p className="text-[10px] text-text-secondary font-semibold mb-1">
-              {isGroupMode ? "KILLER" : "EU MATEI"}
-            </p>
+            {/* Right: Killer + Party + Loot */}
+            <div className="flex-1 flex flex-col gap-3 min-w-0">
+              {/* Killer */}
+              <div>
+                <p className="text-[10px] text-text-secondary font-semibold mb-1">
+                  {isGroupMode ? "KILLER" : "EU MATEI"}
+                </p>
             <div className="flex flex-wrap gap-1">
               {killerCandidates.map((c) => {
                 const isSelected = killerId === c.id;
@@ -309,6 +317,8 @@ export function MvpKillModal({
               </div>
             </div>
           )}
+            </div>{/* end right column */}
+          </div>{/* end two-column */}
 
           <div className="flex justify-between items-center pt-3 border-t border-border">
             <div>
