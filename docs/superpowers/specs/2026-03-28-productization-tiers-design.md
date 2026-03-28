@@ -25,9 +25,9 @@ Tudo do visitante, mais:
 
 - 1 personagem vinculado a 1 conta
 - Features sociais de instâncias: parties, friends, schedules
-- MVP timer local (igual visitante), mas kills salvos no banco como `verified = false` (sem party/loot, para stats futuras)
-- Migração automática e silenciosa dos dados do localStorage ao criar conta
-- Trial de 7 dias de premium no primeiro cadastro (Stripe trial nativo)
+- MVP timer local (igual visitante), mas kills enviados silenciosamente ao banco como `verified = false` (sem party/loot, para stats futuras) via POST a cada kill registrado
+- Dados do localStorage permanecem no browser até migração (ver seção 5)
+- Trial de 7 dias de premium na primeira tentativa de assinar (não no signup)
 
 ### Premium (R$ 9,90/mês ou R$ 99,90/ano)
 
@@ -200,7 +200,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 1. Usuário clica "Assinar Premium" na `/premium`
 2. API route cria Stripe Customer (se não existe, salva `stripe_customer_id` na profiles)
-3. Redireciona pra Stripe Checkout Session com `trial_period_days: 7` (se primeiro cadastro)
+3. Redireciona pra Stripe Checkout Session com `trial_period_days: 7` (se nunca teve subscription ativa antes)
 4. Stripe Checkout coleta pagamento → redireciona pra `/profile?upgraded=true`
 5. Webhook `checkout.session.completed` → cria registro em `subscriptions` → trigger atualiza JWT claim
 6. App detecta novo tier via Realtime → UI atualiza
@@ -243,7 +243,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 1. Usuário vai em `/profile` → seção "Código de resgate"
 2. Input de 12 caracteres + botão "Resgatar"
-3. RPC `redeem_gift_code` valida (existe, não usado, não expirado) em transaction
+3. API route `/api/gift/redeem` valida (existe, não usado, não expirado), chama RPC em transaction
 4. Cria subscription com status `gifted` ou `gifted_lifetime`
 5. Trigger atualiza JWT claim → tier muda
 
@@ -256,7 +256,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 - Códigos gerados via admin panel ou script direto no banco
 - Formato: 12 chars alfanumérico uppercase (`gen_random_uuid()` formatado)
-- Rate limit no resgate: 5 tentativas por minuto por IP
+- Rate limit no resgate: 5 tentativas por minuto por IP (enforced na API route via middleware)
 
 ---
 
@@ -295,18 +295,29 @@ A home do site é o próprio tracker — ferramenta funcional como landing page.
 - Instâncias e MVPs via API pública sem auth (`/api/instances`, `/api/mvps`)
 - Cache via ISR/CDN — atualiza sem rebuild
 
-### Migração no Signup
+### Migração de Dados Locais
 
-- Ao criar conta, migração automática e silenciosa
-- Lê `instanceiro_tracker` do localStorage
-- Cria personagem default (nome solicitado no onboarding, classe/level preenchidos depois) + completions + MVP kills (`verified = false`)
-- Limpa localStorage após migração bem-sucedida
+A migração acontece quando o usuário cria seu **primeiro personagem** (não no signup):
 
-### Abstração de Data Source
+1. Usuário cria conta (free ou premium) — dados permanecem no localStorage
+2. Ao criar o primeiro personagem no dashboard, sistema detecta `instanceiro_tracker` no localStorage
+3. Migração automática e silenciosa: completions e MVP kills (`verified = false`) são vinculados ao personagem criado
+4. Limpa localStorage após migração bem-sucedida
 
-- Hook `useTrackerData()` resolve pra localStorage ou Supabase conforme auth state
-- Componentes de UI compartilhados entre tracker e dashboard
-- Zero if/else nos componentes — provider cuida da fonte de dados
+Isso garante que os dados só são migrados quando têm um personagem destino.
+
+### Routing
+
+- `/` — tracker offline, visitantes apenas
+- Usuário logado acessando `/` → redirect pra `/dashboard`
+- `/dashboard` continua como hub principal (personagens, instâncias, MVP, perfil)
+
+### Arquitetura
+
+- Página `/` é isolada — usa localStorage diretamente, sem abstração compartilhada com o dashboard
+- Dashboard continua usando hooks existentes (`use-instances`, `use-characters`, etc.)
+- Componentes de UI (cards de instância, timer de MVP) podem ser compartilhados, mas data source é separado por página
+- Sem hook de abstração dual — complexidade desnecessária já que são páginas distintas com redirect
 
 ---
 
