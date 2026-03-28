@@ -10,9 +10,10 @@ interface MvpMapPickerProps {
   tombY: number | null;
   onCoordsChange: (x: number | null, y: number | null) => void;
   readOnly?: boolean;
+  heatmapPoints?: { x: number; y: number }[];
 }
 
-export function MvpMapPicker({ mapName, mapMeta, tombX, tombY, onCoordsChange, readOnly }: MvpMapPickerProps) {
+export function MvpMapPicker({ mapName, mapMeta, tombX, tombY, onCoordsChange, readOnly, heatmapPoints }: MvpMapPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleMapClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -47,6 +48,20 @@ export function MvpMapPicker({ mapName, mapMeta, tombX, tombY, onCoordsChange, r
         className="w-full h-full object-cover"
         draggable={false}
       />
+      {/* Heatmap: historical kill locations */}
+      {heatmapPoints && mapMeta && heatmapPoints.map((p, i) => (
+        <div
+          key={i}
+          className="absolute w-2.5 h-2.5 rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+          style={{
+            left: `${(p.x / mapMeta.width) * 100}%`,
+            top: `${((mapMeta.height - p.y) / mapMeta.height) * 100}%`,
+            backgroundColor: "var(--status-error)",
+            opacity: 0.25,
+          }}
+        />
+      ))}
+      {/* Current tomb position */}
       {dotStyle && (
         <div
           className="absolute w-3 h-3 rounded-full border-2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"

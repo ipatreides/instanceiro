@@ -309,6 +309,9 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
                   tombY={selectedKill?.tomb_y ?? null}
                   onCoordsChange={() => {}}
                   readOnly
+                  heatmapPoints={killHistory
+                    .filter((h) => h.tomb_x != null && h.tomb_y != null)
+                    .map((h) => ({ x: h.tomb_x!, y: h.tomb_y! }))}
                 />
               </div>
 
