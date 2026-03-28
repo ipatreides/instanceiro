@@ -11,7 +11,7 @@ CREATE TABLE app_config (
 ALTER TABLE app_config ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "app_config_public_read" ON app_config FOR SELECT USING (true);
 
-INSERT INTO app_config (key, value) VALUES ('tier_launch_date', '2026-04-15T00:00:00Z');
+INSERT INTO app_config (key, value) VALUES ('tier_launch_date', '2026-03-31T00:00:00Z');
 
 -- 2. Profiles alterations
 ALTER TABLE profiles ADD COLUMN stripe_customer_id TEXT UNIQUE;
