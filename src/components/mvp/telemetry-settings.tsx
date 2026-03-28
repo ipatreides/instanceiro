@@ -20,7 +20,7 @@ export function TelemetrySettings({ userId }: TelemetrySettingsProps) {
     const supabase = createClient()
     const { data } = await supabase
       .from('telemetry_tokens')
-      .select('id, name, created_at, last_used_at, revoked_at')
+      .select('id, user_id, name, created_at, last_used_at, revoked_at')
       .eq('user_id', userId)
       .is('revoked_at', null)
       .order('created_at', { ascending: false })
