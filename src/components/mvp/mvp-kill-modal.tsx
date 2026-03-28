@@ -130,8 +130,8 @@ export function MvpKillModal({
     try {
       await onConfirm({
         killedAt: killedAt.toISOString(),
-        tombX,
-        tombY,
+        tombX: mvp.has_tomb ? tombX : null,
+        tombY: mvp.has_tomb ? tombY : null,
         killerCharacterId: killerId,
         selectedLoots: [...selectedLoots].map((itemId) => {
           const drop = mvpDrops.find((d) => d.item_id === itemId);
@@ -176,13 +176,15 @@ export function MvpKillModal({
           <div className="flex gap-4">
             {/* Left: Map + Time + Coords */}
             <div className="w-[300px] flex-shrink-0 flex flex-col gap-2">
-              <MvpMapPicker
-                mapName={mvp.map_name}
-                mapMeta={mapMeta}
-                tombX={tombX}
-                tombY={tombY}
-                onCoordsChange={handleCoordsChange}
-              />
+              {mvp.has_tomb && (
+                <MvpMapPicker
+                  mapName={mvp.map_name}
+                  mapMeta={mapMeta}
+                  tombX={tombX}
+                  tombY={tombY}
+                  onCoordsChange={handleCoordsChange}
+                />
+              )}
               <div className="flex gap-1.5">
                 <div className="flex-1">
                   <label className="text-[9px] text-text-secondary font-semibold">HORA</label>
@@ -194,26 +196,30 @@ export function MvpKillModal({
                     className="w-full bg-bg border border-border rounded-md px-2 py-1 text-xs text-text-primary outline-none focus:border-primary transition-colors"
                   />
                 </div>
-                <div className="w-[50px]">
-                  <label className="text-[9px] text-text-secondary font-semibold">X</label>
-                  <input
-                    type="number"
-                    value={tombX ?? ""}
-                    onChange={(e) => setTombX(e.target.value ? Number(e.target.value) : null)}
-                    tabIndex={2}
-                    className="w-full bg-bg border border-border rounded-md px-2 py-1 text-xs text-text-primary outline-none focus:border-primary transition-colors"
-                  />
-                </div>
-                <div className="w-[50px]">
-                  <label className="text-[9px] text-text-secondary font-semibold">Y</label>
-                  <input
-                    type="number"
-                    value={tombY ?? ""}
-                    onChange={(e) => setTombY(e.target.value ? Number(e.target.value) : null)}
-                    tabIndex={3}
-                    className="w-full bg-bg border border-border rounded-md px-2 py-1 text-xs text-text-primary outline-none focus:border-primary transition-colors"
-                  />
-                </div>
+                {mvp.has_tomb && (
+                  <div className="w-[50px]">
+                    <label className="text-[9px] text-text-secondary font-semibold">X</label>
+                    <input
+                      type="number"
+                      value={tombX ?? ""}
+                      onChange={(e) => setTombX(e.target.value ? Number(e.target.value) : null)}
+                      tabIndex={2}
+                      className="w-full bg-bg border border-border rounded-md px-2 py-1 text-xs text-text-primary outline-none focus:border-primary transition-colors"
+                    />
+                  </div>
+                )}
+                {mvp.has_tomb && (
+                  <div className="w-[50px]">
+                    <label className="text-[9px] text-text-secondary font-semibold">Y</label>
+                    <input
+                      type="number"
+                      value={tombY ?? ""}
+                      onChange={(e) => setTombY(e.target.value ? Number(e.target.value) : null)}
+                      tabIndex={3}
+                      className="w-full bg-bg border border-border rounded-md px-2 py-1 text-xs text-text-primary outline-none focus:border-primary transition-colors"
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
