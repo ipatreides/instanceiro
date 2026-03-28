@@ -3,6 +3,14 @@ import { stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type Stripe from "stripe";
 
+function getSubscriptionPeriod(subscription: Stripe.Subscription) {
+  const item = subscription.items.data[0];
+  return {
+    start: item ? new Date(item.current_period_start * 1000).toISOString() : null,
+    end: item ? new Date(item.current_period_end * 1000).toISOString() : null,
+  };
+}
+
 export async function POST(request: Request) {
   const body = await request.text();
   const signature = request.headers.get("stripe-signature");
@@ -47,13 +55,14 @@ export async function POST(request: Request) {
         session.subscription as string
       );
 
+      const period = getSubscriptionPeriod(subscription);
       await admin.from("subscriptions").insert({
         user_id: userId,
         stripe_subscription_id: subscription.id,
         stripe_price_id: subscription.items.data[0]?.price.id,
         status: subscription.status === "trialing" ? "trialing" : "active",
-        current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        current_period_start: period.start,
+        current_period_end: period.end,
       });
 
       // Sync JWT claim
@@ -63,17 +72,18 @@ export async function POST(request: Request) {
 
     case "invoice.paid": {
       const invoice = event.data.object as Stripe.Invoice;
-      const subscriptionId = invoice.subscription as string;
-      if (!subscriptionId) break;
+      const subscriptionId = invoice.parent?.subscription_details?.subscription;
+      if (!subscriptionId || typeof subscriptionId !== "string") break;
 
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
+      const paidPeriod = getSubscriptionPeriod(subscription);
       await admin
         .from("subscriptions")
         .update({
           status: "active",
-          current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          current_period_start: paidPeriod.start,
+          current_period_end: paidPeriod.end,
           updated_at: new Date().toISOString(),
         })
         .eq("stripe_subscription_id", subscriptionId);
@@ -83,8 +93,8 @@ export async function POST(request: Request) {
 
     case "invoice.payment_failed": {
       const invoice = event.data.object as Stripe.Invoice;
-      const subscriptionId = invoice.subscription as string;
-      if (!subscriptionId) break;
+      const subscriptionId = invoice.parent?.subscription_details?.subscription;
+      if (!subscriptionId || typeof subscriptionId !== "string") break;
 
       const { data: sub } = await admin
         .from("subscriptions")
@@ -100,11 +110,12 @@ export async function POST(request: Request) {
     case "customer.subscription.updated": {
       const subscription = event.data.object as Stripe.Subscription;
 
+      const updatedPeriod = getSubscriptionPeriod(subscription);
       const updateData: Record<string, unknown> = {
         status: subscription.status === "trialing" ? "trialing" : subscription.status,
         stripe_price_id: subscription.items.data[0]?.price.id,
-        current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        current_period_start: updatedPeriod.start,
+        current_period_end: updatedPeriod.end,
         cancel_at: subscription.cancel_at
           ? new Date(subscription.cancel_at * 1000).toISOString()
           : null,
