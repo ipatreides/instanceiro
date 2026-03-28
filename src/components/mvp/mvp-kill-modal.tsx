@@ -152,7 +152,7 @@ export function MvpKillModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
-        className="bg-surface border border-border rounded-lg w-full max-w-[640px] max-h-[66vh] overflow-y-auto mx-4"
+        className="bg-surface border border-border rounded-lg w-full max-w-[720px] max-h-[66vh] overflow-y-auto mx-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-5">
@@ -170,7 +170,7 @@ export function MvpKillModal({
           {/* Two-column layout */}
           <div className="flex gap-4">
             {/* Left: Map + Time + Coords */}
-            <div className="w-[200px] flex-shrink-0 flex flex-col gap-2">
+            <div className="w-[300px] flex-shrink-0 flex flex-col gap-2">
               <MvpMapPicker
                 mapName={mvp.map_name}
                 mapMeta={mapMeta}
@@ -219,7 +219,7 @@ export function MvpKillModal({
                 <p className="text-[10px] text-text-secondary font-semibold mb-1">
                   {isGroupMode ? "KILLER" : "EU MATEI"}
                 </p>
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1.5">
               {killerCandidates.map((c) => {
                 const isSelected = killerId === c.id;
                 return (
@@ -264,7 +264,7 @@ export function MvpKillModal({
                   </div>
                 )}
               </div>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1.5">
                 {/* Show unique users by userId */}
                 {(() => {
                   const seen = new Set<string>();
@@ -296,7 +296,7 @@ export function MvpKillModal({
           {mvpDrops.length > 0 && (
             <div className="mb-4">
               <p className="text-[10px] text-text-secondary font-semibold mb-1">LOOT <span className="font-normal">(opcional)</span></p>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1.5">
                 {mvpDrops.map((drop) => {
                   const isSelected = selectedLoots.has(drop.item_id);
                   return (
