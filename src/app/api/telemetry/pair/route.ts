@@ -20,39 +20,47 @@ export async function POST(request: NextRequest) {
 
   const supabase = createAdminClient()
 
-  const { data: token, error } = await supabase
-    .from('telemetry_tokens')
-    .select('id, pairing_callback, pairing_expires_at')
+  // Look up pairing request (from the separate table)
+  const { data: pairingReq, error: pairErr } = await supabase
+    .from('telemetry_pairing_requests')
+    .select('id, callback_url, expires_at')
     .eq('pairing_code', pairing_code)
-    .is('revoked_at', null)
     .single()
 
-  if (error || !token) {
+  if (pairErr || !pairingReq) {
     return NextResponse.json({ error: 'Invalid pairing code' }, { status: 400 })
   }
 
-  if (new Date(token.pairing_expires_at) < new Date()) {
+  if (new Date(pairingReq.expires_at) < new Date()) {
+    // Clean up expired
+    await supabase.from('telemetry_pairing_requests').delete().eq('id', pairingReq.id)
     return NextResponse.json({ error: 'Pairing code expired' }, { status: 400 })
   }
 
+  // Generate API token and exchange code
   const apiToken = randomUUID()
   const exchangeCode = randomUUID()
   const exchangeExpiresAt = new Date(Date.now() + 60 * 1000).toISOString()
 
-  await supabase
+  // Create the real telemetry_tokens row with the authenticated user
+  const { error: tokenErr } = await supabase
     .from('telemetry_tokens')
-    .update({
+    .insert({
       user_id: user.id,
       token_hash: hashToken(apiToken),
-      pairing_code: null,
-      pairing_expires_at: null,
       exchange_code: exchangeCode,
       exchange_expires_at: exchangeExpiresAt,
       temporary_token: apiToken,
     })
-    .eq('id', token.id)
 
-  const callbackUrl = `${token.pairing_callback}?exchange_code=${exchangeCode}`
+  if (tokenErr) {
+    return NextResponse.json({ error: 'Failed to create token' }, { status: 500 })
+  }
+
+  // Delete the pairing request (used)
+  await supabase.from('telemetry_pairing_requests').delete().eq('id', pairingReq.id)
+
+  const callbackUrl = `${pairingReq.callback_url}?exchange_code=${exchangeCode}`
 
   return NextResponse.json({ callback_url: callbackUrl })
 }

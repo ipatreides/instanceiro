@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { randomUUID } from 'crypto'
 
 function generatePairingCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -21,25 +20,21 @@ export async function POST(request: NextRequest) {
 
   const supabase = createAdminClient()
 
-  // Clean up expired pairing rows
+  // Clean up expired pairing requests
   await supabase
-    .from('telemetry_tokens')
+    .from('telemetry_pairing_requests')
     .delete()
-    .eq('user_id', '00000000-0000-0000-0000-000000000000')
-    .lt('pairing_expires_at', new Date().toISOString())
+    .lt('expires_at', new Date().toISOString())
 
   const pairingCode = generatePairingCode()
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString()
 
-  // Create a placeholder token row with pairing info (no user yet)
   const { error } = await supabase
-    .from('telemetry_tokens')
+    .from('telemetry_pairing_requests')
     .insert({
-      user_id: '00000000-0000-0000-0000-000000000000',
-      token_hash: 'pending-' + randomUUID(),
       pairing_code: pairingCode,
-      pairing_callback: callback_url,
-      pairing_expires_at: expiresAt,
+      callback_url,
+      expires_at: expiresAt,
     })
 
   if (error) {
