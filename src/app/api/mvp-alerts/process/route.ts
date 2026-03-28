@@ -170,18 +170,18 @@ export async function POST(request: Request) {
     if (alert.alert_type === "pre_spawn") {
       const parts = [
         `@everyone`,
-        `🔴 **${mvp.name}** (${mvp.map_name})`,
-        `⏰ Spawn em ${discordConfig.alert_minutes} minutos (${formatBrt(spawnAt)} ~ ${formatBrt(spawnEnd)} BRT)`,
+        `🔴 **${mvp.name}** \`${mvp.map_name}\``,
+        `⏰ Spawn em \`${discordConfig.alert_minutes}min\` — \`${formatBrt(spawnAt)} ~ ${formatBrt(spawnEnd)} BRT\``,
       ];
-      if (kill.tomb_x != null) parts.push(`📍 Tumba: ${kill.tomb_x}, ${kill.tomb_y}`);
+      if (kill.tomb_x != null) parts.push(`📍 Tumba: \`${kill.tomb_x}, ${kill.tomb_y}\``);
       content = parts.join("\n");
 
       // Build embed + image when tomb coords exist
       const mapMeta = mapMetaMap.get(mvp.map_name);
       if (kill.tomb_x != null && kill.tomb_y != null && mapMeta) {
         embed = {
-          title: `🔴 ${mvp.name} (${mvp.map_name})`,
-          description: `⏰ Spawn em ${discordConfig.alert_minutes} minutos (${formatBrt(spawnAt)} ~ ${formatBrt(spawnEnd)} BRT)\n📍 Tumba: ${kill.tomb_x}, ${kill.tomb_y}`,
+          title: `🔴 ${mvp.name} — ${mvp.map_name}`,
+          description: `⏰ Spawn em \`${discordConfig.alert_minutes}min\` — \`${formatBrt(spawnAt)} ~ ${formatBrt(spawnEnd)} BRT\`\n📍 Tumba: \`${kill.tomb_x}, ${kill.tomb_y}\``,
           color: 12350259, // 0xB87333 copper
         };
         try {
@@ -193,16 +193,16 @@ export async function POST(request: Request) {
     } else {
       const parts = [
         `@everyone`,
-        `🟢 **${mvp.name}** (${mvp.map_name}) pode ter nascido!`,
+        `🟢 **${mvp.name}** \`${mvp.map_name}\` pode ter nascido!`,
       ];
-      if (kill.tomb_x != null) parts.push(`📍 Última tumba: ${kill.tomb_x}, ${kill.tomb_y}`);
+      if (kill.tomb_x != null) parts.push(`📍 Última tumba: \`${kill.tomb_x}, ${kill.tomb_y}\``);
       content = parts.join("\n");
 
       const mapMeta = mapMetaMap.get(mvp.map_name);
       if (kill.tomb_x != null && kill.tomb_y != null && mapMeta) {
         embed = {
-          title: `🟢 ${mvp.name} (${mvp.map_name}) pode ter nascido!`,
-          description: `📍 Última tumba: ${kill.tomb_x}, ${kill.tomb_y}`,
+          title: `🟢 ${mvp.name} — ${mvp.map_name} — pode ter nascido!`,
+          description: `📍 Última tumba: \`${kill.tomb_x}, ${kill.tomb_y}\``,
           color: 12350259,
         };
         try {

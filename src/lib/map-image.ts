@@ -3,14 +3,18 @@ import path from "path";
 
 const MAP_SIZE = 512;
 
-const MARKER_SVG = `<svg width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+const MARKER_SIZE = 40;
+const MARKER_HALF = MARKER_SIZE / 2;
+
+const MARKER_SVG = `<svg width="${MARKER_SIZE}" height="${MARKER_SIZE}" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <filter id="glow">
-      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feGaussianBlur stdDeviation="4" result="blur"/>
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
-  <circle cx="12" cy="12" r="6" fill="#B87333" stroke="#F59E0B" stroke-width="2" filter="url(#glow)"/>
+  <circle cx="${MARKER_HALF}" cy="${MARKER_HALF}" r="10" fill="#FF6B00" stroke="#FFFFFF" stroke-width="3" filter="url(#glow)"/>
+  <circle cx="${MARKER_HALF}" cy="${MARKER_HALF}" r="4" fill="#FFFFFF"/>
 </svg>`;
 
 /**
@@ -29,9 +33,9 @@ export async function generateMapWithTomb(
   const pixelX = Math.round((tombX / mapWidth) * MAP_SIZE);
   const pixelY = Math.round(((mapHeight - tombY) / mapHeight) * MAP_SIZE);
 
-  // Clamp marker position so the 24x24 SVG stays within the image bounds
-  const markerLeft = Math.max(0, Math.min(pixelX - 12, MAP_SIZE - 24));
-  const markerTop = Math.max(0, Math.min(pixelY - 12, MAP_SIZE - 24));
+  // Clamp marker position so the SVG stays within the image bounds
+  const markerLeft = Math.max(0, Math.min(pixelX - MARKER_HALF, MAP_SIZE - MARKER_SIZE));
+  const markerTop = Math.max(0, Math.min(pixelY - MARKER_HALF, MAP_SIZE - MARKER_SIZE));
 
   const mapBuffer = await sharp(mapPath)
     .resize(MAP_SIZE, MAP_SIZE, { fit: "fill" })
