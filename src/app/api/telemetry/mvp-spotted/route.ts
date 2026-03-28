@@ -10,20 +10,25 @@ export async function POST(request: NextRequest) {
   const { ctx } = result
   const supabase = createAdminClient()
 
-  const { monster_id, map, x, y } = await request.json()
+  const body = await request.json()
+  const { monster_id, x, y } = body
+  const map = body.map || 'unknown'
 
-  if (!monster_id || !map || x == null || y == null) {
+  if (!monster_id || x == null || y == null) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  // Resolve monster_id → mvp_id
+  // Resolve monster_id → mvp_id + map_name
   const { data: mvp } = await supabase
     .from('mvps')
-    .select('id')
+    .select('id, map_name')
     .eq('monster_id', monster_id)
     .eq('server_id', ctx.serverId)
     .limit(1)
     .maybeSingle()
+
+  // Use MVP's known map if sniffer didn't provide one
+  const resolvedMap = (map && map !== 'unknown') ? map : (mvp?.map_name ?? 'unknown')
 
   if (!mvp) {
     return NextResponse.json({ error: 'Unknown MVP' }, { status: 400 })
@@ -43,7 +48,7 @@ export async function POST(request: NextRequest) {
     // Update position instead of inserting
     await supabase
       .from('mvp_sightings')
-      .update({ map_name: map, x, y, spotted_at: new Date().toISOString() })
+      .update({ map_name: resolvedMap, x, y, spotted_at: new Date().toISOString() })
       .eq('id', recent[0].id)
 
     return NextResponse.json({ action: 'updated', sighting_id: recent[0].id })
@@ -55,7 +60,7 @@ export async function POST(request: NextRequest) {
     .insert({
       mvp_id: mvp.id,
       group_id: ctx.groupId,
-      map_name: map,
+      map_name: resolvedMap,
       x,
       y,
       telemetry_session_id: ctx.sessionId,
