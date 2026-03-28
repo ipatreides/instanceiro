@@ -80,8 +80,8 @@ VALUES
 -- ============================================================
 INSERT INTO mvp_map_meta (map_name, width, height)
 VALUES
-  ('niflheim', 253, 252),
-  ('lhz_dun03', 200, 200),
+  ('niflheim', 400, 300),
+  ('lhz_dun03', 280, 280),
   ('lhz_dun05', 200, 200)
 ON CONFLICT (map_name) DO NOTHING;
 
