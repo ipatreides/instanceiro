@@ -24,10 +24,11 @@ Inno Setup — modern installer framework, supports code signing, custom UI, sil
    - If present and version >= 1.60: skip to step 4
    - If absent or too old: show message "O Npcap e necessario para captura de pacotes"
 3. **Npcap install**:
-   - Npcap installer is **embedded** in the Claudinho installer (~1MB extra, avoids network dependency)
-   - Execute with flags: `/S /winpcap_mode=yes` (silent install, WinPcap compatible mode)
-   - WinPcap compatible mode allows packet capture without admin on subsequent runs
-   - Wait for Npcap installer to complete before continuing
+   - The free Npcap license does NOT allow redistribution/bundling. We cannot embed the installer.
+   - Show a page: "O Npcap e necessario. Clique para baixar." with a button that opens `https://npcap.com/#download`
+   - Instruction text: "Instale o Npcap com a opcao 'WinPcap API-compatible Mode' marcada, e 'Restrict Npcap driver access to Administrators only' desmarcada."
+   - The installer waits and re-checks the registry after the user returns. "Ja instalou? Clique em Proximo."
+   - If Npcap still not detected: show error, can't proceed
 4. **Directory selection**: Default `C:\Program Files\Claudinho\`
 5. **Install files**:
    - `Claudinho.exe` (single static binary, no DLLs)
@@ -37,9 +38,9 @@ Inno Setup — modern installer framework, supports code signing, custom UI, sil
 
 ### UAC / Permissions
 
-- Installer requests admin elevation (UAC prompt) — needed for Npcap driver installation
-- Claudinho.exe itself does NOT require admin to run (WinPcap compatible mode enables this)
-- Users see the admin prompt only once (at install time)
+- Installer itself does NOT need admin (Claudinho installs to user directory or Program Files with user consent)
+- Npcap installer (run separately by user) requests admin for driver installation
+- Claudinho.exe does NOT require admin to run (if Npcap installed with "non-admin capture" option)
 
 ### Uninstaller
 
