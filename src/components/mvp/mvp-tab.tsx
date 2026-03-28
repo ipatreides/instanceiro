@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import type { Account, Character, Mvp, MvpActiveKill } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { useMvpData } from "@/hooks/use-mvp-data";
@@ -101,7 +101,32 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
   // Parties for modal (empty array — parties are now managed in hub)
   const partiesForModal: { id: string; name: string; memberIds: string[] }[] = [];
 
-  const selectedKill = selectedMvp ? activeKills.find((k) => k.mvp_id === selectedMvp.id) ?? null : null;
+  const selectedKill = useMemo(() => {
+    if (!selectedMvp) return null;
+
+    // Direct kill for this MVP
+    const directKill = activeKills.find((k) => k.mvp_id === selectedMvp.id) ?? null;
+
+    // If MVP has a cooldown group, find the latest kill across the group
+    if (selectedMvp.cooldown_group) {
+      const groupMvpIds = new Set(
+        mvps
+          .filter((m) => m.cooldown_group === selectedMvp.cooldown_group)
+          .map((m) => m.id)
+      );
+      let latestKill: MvpActiveKill | null = null;
+      for (const kill of activeKills) {
+        if (groupMvpIds.has(kill.mvp_id)) {
+          if (!latestKill || kill.killed_at > latestKill.killed_at) {
+            latestKill = kill;
+          }
+        }
+      }
+      return latestKill;
+    }
+
+    return directKill;
+  }, [selectedMvp, activeKills, mvps]);
 
   // Kill history — fetch ALL group kills once, filter per MVP locally
   const [allKillHistory, setAllKillHistory] = useState<(KillHistoryEntry & { mvp_id: number })[]>([]);
@@ -222,7 +247,8 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
     const remaining = spawnStart - now;
     const isAlive = now >= spawnStart;
     const countUp = isAlive ? now - spawnEnd : 0;
-    return { remaining, isAlive, countUp };
+    const mechanicMode = isAlive && selectedMvp.cooldown_group === 'bio_lab_5';
+    return { remaining, isAlive, countUp, mechanicMode };
   })() : null;
 
   return (
@@ -328,15 +354,18 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                 <p className="text-[11px] text-text-secondary">
                   {selectedMvp.map_name} · Respawn: {formatRespawn(selectedMvp.respawn_ms)}
                   {selectedKill && selectedKill.kill_count > 0 && ` · ×${selectedKill.kill_count} kills`}
+                  {selectedMvp.cooldown_group && (
+                    <span className="ml-1" title="Cooldown compartilhado com outros MVPs do grupo">⟷</span>
+                  )}
                 </p>
               </div>
               {selectedKill && detailStatus && (
                 <div className="text-right">
-                  <div className="text-xl font-bold tabular-nums" style={{ color: detailStatus.isAlive ? "var(--status-available-text)" : "var(--status-cooldown-text)" }}>
-                    {detailStatus.isAlive ? `+${formatCountdown(detailStatus.countUp)}` : formatCountdown(detailStatus.remaining)}
+                  <div className="text-xl font-bold tabular-nums" style={{ color: detailStatus.mechanicMode ? "var(--status-soon-text)" : detailStatus.isAlive ? "var(--status-available-text)" : "var(--status-cooldown-text)" }}>
+                    {detailStatus.mechanicMode ? "Mecânica" : detailStatus.isAlive ? `+${formatCountdown(detailStatus.countUp)}` : formatCountdown(detailStatus.remaining)}
                   </div>
-                  <div className="text-[10px]" style={{ color: detailStatus.isAlive ? "var(--status-available-text)" : "var(--status-cooldown-text)" }}>
-                    {detailStatus.isAlive ? "Provavelmente vivo" : "Cooldown"}
+                  <div className="text-[10px]" style={{ color: detailStatus.mechanicMode ? "var(--status-soon-text)" : detailStatus.isAlive ? "var(--status-available-text)" : "var(--status-cooldown-text)" }}>
+                    {detailStatus.mechanicMode ? "Mecânica disponível" : detailStatus.isAlive ? "Provavelmente vivo" : "Cooldown"}
                   </div>
                 </div>
               )}
@@ -348,13 +377,13 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                 <MvpMapPicker
                   mapName={selectedMvp.map_name}
                   mapMeta={mapMeta.get(selectedMvp.map_name)}
-                  tombX={selectedKill?.tomb_x ?? null}
-                  tombY={selectedKill?.tomb_y ?? null}
+                  tombX={selectedMvp.has_tomb ? (selectedKill?.tomb_x ?? null) : null}
+                  tombY={selectedMvp.has_tomb ? (selectedKill?.tomb_y ?? null) : null}
                   onCoordsChange={() => {}}
                   readOnly
-                  heatmapPoints={killHistory
-                    .filter((h) => h.tomb_x != null && h.tomb_y != null)
-                    .map((h) => ({ x: h.tomb_x!, y: h.tomb_y! }))}
+                  heatmapPoints={selectedMvp.has_tomb
+                    ? killHistory.filter((h) => h.tomb_x != null && h.tomb_y != null).map((h) => ({ x: h.tomb_x!, y: h.tomb_y! }))
+                    : []}
                 />
               </div>
 
@@ -365,7 +394,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                       <span className="text-[9px] text-text-secondary font-semibold">HORA</span>
                       <div className="text-xs text-text-primary">{new Date(selectedKill.killed_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div>
                     </div>
-                    {selectedKill.tomb_x != null && (
+                    {selectedMvp.has_tomb && selectedKill.tomb_x != null && (
                       <>
                         <div>
                           <span className="text-[9px] text-text-secondary font-semibold">X</span>
@@ -417,7 +446,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                       ) : (
                         <span className="text-text-secondary italic">sem killer</span>
                       )}
-                      {h.tomb_x != null && (
+                      {selectedMvp.has_tomb && h.tomb_x != null && (
                         <span className="text-text-secondary ml-auto">{h.tomb_x},{h.tomb_y}</span>
                       )}
                       <span className="text-text-secondary ml-auto">por {h.registered_by_name}</span>

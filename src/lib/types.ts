@@ -203,6 +203,9 @@ export interface Mvp {
   delay_ms: number;
   level: number | null;
   hp: number | null;
+  has_tomb: boolean;
+  cooldown_group: string | null;
+  linked_monster_id: number | null;
 }
 
 export interface MvpMapMeta {
