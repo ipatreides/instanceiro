@@ -149,7 +149,7 @@ On every startup, Claudinho auto-detects which network interface carries RO traf
 ### Algorithm
 
 1. List all available Npcap interfaces via `pcap_findalldevs()`
-2. For each interface, open a capture handle with a BPF filter for the RO server IPs (`capture_ips` from telemetry config, fallback to hardcoded `172.65.169.160`)
+2. For each interface, open a capture handle with a BPF filter for the RO server IPs. Source: `capture_ips` from telemetry config if available, otherwise hardcoded fallback `172.65.169.160`. The hardcoded IPs are updated via auto-update when the sniffer version changes.
 3. Run `pcap_loop` with a short timeout (3 seconds) on each interface in parallel (one thread per interface)
 4. First interface to receive a matching packet wins — close all other handles
 5. If no interface receives traffic within 10 seconds: retry every 30 seconds (game might not be running yet)
@@ -291,6 +291,45 @@ WinMain()
 ```
 
 The existing sniffer code (Sniffer::start_capture, packet handlers, telemetry) runs on background threads. The main thread runs the Win32 message loop for the tray UI.
+
+### Single Instance
+
+Uses a named mutex (`Global\ClaudinhoMutex`) to prevent multiple instances. If the mutex already exists on startup, the second instance shows a toast "Claudinho ja esta rodando" and exits.
+
+### Explorer Restart Recovery
+
+If Windows Explorer crashes and restarts, all tray icons are lost. Claudinho registers for the `TaskbarCreated` window message and re-adds its tray icon when received.
+
+### Graceful Shutdown
+
+The pcap read timeout is set to 250ms (instead of the current 1000ms) to ensure responsive shutdown. When the user clicks "Sair":
+1. Remove tray icon immediately (responsive UI)
+2. Call `pcap_breakloop()` (thread-safe, causes `pcap_loop` to return)
+3. Join capture thread (blocks at most ~250ms)
+4. Send final heartbeat
+5. Destroy window and exit
+
+### Pairing Local HTTP Server
+
+On first run, Claudinho starts a minimal Winsock2 HTTP server on `127.0.0.1` with a random port (OS-assigned via `sin_port = 0`). The server:
+1. Accepts ONE GET request (the browser redirect with `?exchange_code=xxx`)
+2. Parses the exchange code from the query string
+3. Responds with HTML: "Pronto! Voce pode fechar esta janela."
+4. Shuts down after the single request
+5. The exchange code is sent to `/api/telemetry/pair/exchange` to obtain the API token
+
+No external dependencies — uses `ws2_32.lib` which is already linked in the project.
+
+### Version String
+
+Defined at compile time via CMake:
+
+```cmake
+set(CLAUDINHO_VERSION "1.0.0")
+target_compile_definitions(ROSniffer PRIVATE CLAUDINHO_VERSION="${CLAUDINHO_VERSION}")
+```
+
+The Inno Setup script reads the same version from a shared file or is updated by the build script. The version is shown in the tray context menu, toast notifications, and the auto-update comparison.
 
 ### CLI Compatibility
 
