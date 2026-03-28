@@ -12,6 +12,7 @@ import { MvpMapPicker } from "./mvp-map-picker";
 import { MvpGroupHub } from "./mvp-group-hub";
 import { MvpGroupStats } from "./mvp-group-stats";
 import { TelemetrySettings } from "./telemetry-settings";
+import { useMvpSightings } from "@/hooks/use-mvp-sightings";
 
 interface KillHistoryEntry {
   id: string;
@@ -70,6 +71,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
   const { mvps, mapMeta, drops, loading: mvpLoading } = useMvpData(serverId);
   const { group, members, loading: groupLoading, createGroup, updateGroup, inviteCharacter, leaveGroup } = useMvpGroups(selectedCharId);
   const { activeKills, loading: killsLoading, registerKill, editKill, deleteKill, acceptLootSuggestions, rejectLootSuggestion } = useMvpTimers(group?.id ?? null, serverId);
+  const sightings = useMvpSightings(group?.id ?? null);
 
   const loading = mvpLoading || groupLoading || killsLoading;
 
@@ -384,6 +386,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                   heatmapPoints={selectedMvp.has_tomb
                     ? killHistory.filter((h) => h.tomb_x != null && h.tomb_y != null).map((h) => ({ x: h.tomb_x!, y: h.tomb_y! }))
                     : []}
+                  sighting={sightings.find((s) => s.mvp_id === selectedMvp.id && s.map_name === selectedMvp.map_name) ?? null}
                 />
               </div>
 

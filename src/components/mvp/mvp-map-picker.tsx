@@ -3,6 +3,12 @@
 import { useRef, useCallback } from "react";
 import type { MvpMapMeta } from "@/lib/types";
 
+interface MvpSightingPoint {
+  x: number;
+  y: number;
+  spotted_at: string;
+}
+
 interface MvpMapPickerProps {
   mapName: string;
   mapMeta: MvpMapMeta | undefined;
@@ -11,9 +17,10 @@ interface MvpMapPickerProps {
   onCoordsChange: (x: number | null, y: number | null) => void;
   readOnly?: boolean;
   heatmapPoints?: { x: number; y: number }[];
+  sighting?: MvpSightingPoint | null;
 }
 
-export function MvpMapPicker({ mapName, mapMeta, tombX, tombY, onCoordsChange, readOnly, heatmapPoints }: MvpMapPickerProps) {
+export function MvpMapPicker({ mapName, mapMeta, tombX, tombY, onCoordsChange, readOnly, heatmapPoints, sighting }: MvpMapPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleMapClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -61,6 +68,20 @@ export function MvpMapPicker({ mapName, mapMeta, tombX, tombY, onCoordsChange, r
           }}
         />
       ))}
+      {/* MVP sighting: live position (green pulsing dot) */}
+      {sighting && mapMeta && (
+        <div
+          className="absolute w-4 h-4 rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none animate-pulse"
+          style={{
+            left: `${(sighting.x / mapMeta.width) * 100}%`,
+            top: `${((mapMeta.height - sighting.y) / mapMeta.height) * 100}%`,
+            backgroundColor: "var(--status-available)",
+            border: "2px solid var(--status-available-text)",
+            boxShadow: "0 0 12px color-mix(in srgb, var(--status-available) 60%, transparent)",
+          }}
+          title={`MVP visto aqui — ${new Date(sighting.spotted_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`}
+        />
+      )}
       {/* Current tomb position */}
       {dotStyle && (
         <div
