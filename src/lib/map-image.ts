@@ -3,18 +3,18 @@ import path from "path";
 
 const MAP_SIZE = 512;
 
-const MARKER_SIZE = 40;
+const MARKER_SIZE = 56;
 const MARKER_HALF = MARKER_SIZE / 2;
 
 const MARKER_SVG = `<svg width="${MARKER_SIZE}" height="${MARKER_SIZE}" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <filter id="glow">
-      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feGaussianBlur stdDeviation="5" result="blur"/>
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
-  <circle cx="${MARKER_HALF}" cy="${MARKER_HALF}" r="10" fill="#FF6B00" stroke="#FFFFFF" stroke-width="3" filter="url(#glow)"/>
-  <circle cx="${MARKER_HALF}" cy="${MARKER_HALF}" r="4" fill="#FFFFFF"/>
+  <circle cx="${MARKER_HALF}" cy="${MARKER_HALF}" r="14" fill="#FF6B00" stroke="#FFFFFF" stroke-width="3.5" filter="url(#glow)"/>
+  <circle cx="${MARKER_HALF}" cy="${MARKER_HALF}" r="5" fill="#FFFFFF"/>
 </svg>`;
 
 /**
