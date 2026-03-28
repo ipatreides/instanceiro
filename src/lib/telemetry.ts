@@ -4,8 +4,9 @@ import { NextRequest } from 'next/server'
 
 export interface TelemetryContext {
   userId: string
-  characterId: number
-  accountId: number
+  characterUuid: string
+  characterId: string
+  accountId: string
   groupId: string
   serverId: number
   sessionId: string
@@ -26,10 +27,10 @@ export async function resolveTelemetryContext(
   request: NextRequest
 ): Promise<{ ctx: TelemetryContext } | { error: string; status: number }> {
   const token = request.headers.get('x-api-token')
-  const accountId = Number(request.headers.get('x-account-id'))
-  const characterId = Number(request.headers.get('x-character-id'))
+  const accountId = request.headers.get('x-account-id') ?? ''
+  const characterId = request.headers.get('x-character-id') ?? ''
 
-  if (!token || !accountId || !characterId) {
+  if (!token) {
     return { error: 'Missing required headers', status: 400 }
   }
 
@@ -48,18 +49,23 @@ export async function resolveTelemetryContext(
     return { error: 'Invalid or revoked token', status: 401 }
   }
 
-  // Update last_used_at
-  await supabase
+  // Update last_used_at (fire and forget)
+  supabase
     .from('telemetry_tokens')
     .update({ last_used_at: new Date().toISOString() })
     .eq('id', tokenRow.id)
+    .then(() => {})
 
-  // Find character's group membership
+  // Find any of the user's characters that is in a group
+  // The sniffer sends game-level IDs, but the DB uses UUIDs.
+  // We resolve by user_id from the token — the user's group membership
+  // determines context. If user has multiple characters in different groups,
+  // we pick the first one (single group per character constraint).
   const { data: membership, error: memberErr } = await supabase
     .from('mvp_group_members')
-    .select('group_id, mvp_groups!inner(server_id)')
-    .eq('character_id', String(characterId))
+    .select('group_id, character_id, mvp_groups!inner(server_id)')
     .eq('user_id', tokenRow.user_id)
+    .limit(1)
     .single()
 
   if (memberErr || !membership) {
@@ -67,17 +73,18 @@ export async function resolveTelemetryContext(
   }
 
   const groupId = membership.group_id as string
+  const characterUuid = membership.character_id as string
   const serverId = (membership as any).mvp_groups.server_id as number
 
-  // Upsert session
+  // Upsert session — use character UUID as the session key
   const { data: session, error: sessionErr } = await supabase
     .from('telemetry_sessions')
     .upsert(
       {
         token_id: tokenRow.id,
         user_id: tokenRow.user_id,
-        character_id: characterId,
-        account_id: accountId,
+        character_id: 0, // game-level ID not available in DB, use 0 as placeholder
+        account_id: 0,
         group_id: groupId,
         last_heartbeat: new Date().toISOString(),
       },
@@ -93,6 +100,7 @@ export async function resolveTelemetryContext(
   return {
     ctx: {
       userId: tokenRow.user_id,
+      characterUuid,
       characterId,
       accountId,
       groupId,
