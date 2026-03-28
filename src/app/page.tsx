@@ -62,7 +62,7 @@ export default function TrackerPage() {
 
       <HeroSection />
 
-      <main id="tracker" className="flex-1 max-w-2xl w-full mx-auto px-4 pb-16">
+      <main id="tracker" className="flex-1 max-w-7xl w-full mx-auto px-4 pb-16">
         <div className="flex items-center justify-between mb-6">
           <ServerSelector server={tracker.server} onServerChange={tracker.setServer} />
           <div className="flex items-center gap-2">

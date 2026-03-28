@@ -16,7 +16,7 @@ interface InstanceChecklistProps {
 
 type LocalStatus = "available" | "soon" | "cooldown";
 
-interface InstanceRow {
+interface InstanceRowData {
   instance: Instance;
   status: LocalStatus;
   cooldownExpiresAt: Date | null;
@@ -32,7 +32,7 @@ const COOLDOWN_LABELS: Record<CooldownType, string> = {
 
 const COOLDOWN_ORDER: CooldownType[] = ["hourly", "daily", "three_day", "weekly"];
 
-const SOON_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
+const SOON_THRESHOLD_MS = 30 * 60 * 1000;
 
 function formatCountdown(ms: number): string {
   if (ms <= 0) return "agora";
@@ -41,17 +41,9 @@ function formatCountdown(ms: number): string {
   const hours = Math.floor((totalSec % 86400) / 3600);
   const minutes = Math.floor((totalSec % 3600) / 60);
   const secs = totalSec % 60;
-  if (days > 0) {
-    if (hours > 0) return `${days}d ${hours}h`;
-    return `${days}d`;
-  }
-  if (hours > 0) {
-    if (minutes > 0) return `${hours}h ${minutes}min`;
-    return `${hours}h`;
-  }
-  if (minutes > 0) {
-    return `${minutes}m ${String(secs).padStart(2, "0")}s`;
-  }
+  if (days > 0) return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+  if (hours > 0) return minutes > 0 ? `${hours}h ${minutes}min` : `${hours}h`;
+  if (minutes > 0) return `${minutes}m ${String(secs).padStart(2, "0")}s`;
   return `${secs}s`;
 }
 
@@ -63,7 +55,6 @@ function matchesSearch(instance: Instance, query: string): boolean {
   return false;
 }
 
-// Live countdown cell that ticks every second
 function CountdownCell({ expiresAt }: { expiresAt: Date }) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -74,13 +65,13 @@ function CountdownCell({ expiresAt }: { expiresAt: Date }) {
   return <span>{formatCountdown(ms)}</span>;
 }
 
-function InstanceRow({
+function InstanceCard({
   row,
   onMarkDone,
   onClear,
   onToggleActive,
 }: {
-  row: InstanceRow;
+  row: InstanceRowData;
   onMarkDone: (id: string) => void;
   onClear: (id: string) => void;
   onToggleActive: (id: string, active: boolean) => void;
@@ -99,43 +90,31 @@ function InstanceRow({
 
   return (
     <div
-      className={`flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-md)] bg-surface border border-border border-l-4 ${borderClass} ${
-        isActive ? "hover:bg-card-hover-bg" : "opacity-60"
+      className={`flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius-md)] bg-surface border border-border border-l-4 ${borderClass} ${
+        isActive ? "hover:bg-card-hover-bg" : "opacity-50"
       } transition-colors`}
     >
-      {/* Active toggle */}
       <button
         onClick={() => onToggleActive(id, !isActive)}
-        title={isActive ? "Desativar instância" : "Ativar instância"}
-        className="flex-shrink-0 w-4 h-4 rounded border border-border flex items-center justify-center cursor-pointer transition-colors hover:border-primary"
+        title={isActive ? "Desativar" : "Ativar"}
+        className="flex-shrink-0 w-3.5 h-3.5 rounded border border-border flex items-center justify-center cursor-pointer transition-colors hover:border-primary"
         style={{
           background: isActive ? "var(--primary)" : "transparent",
           borderColor: isActive ? "var(--primary)" : undefined,
         }}
       >
         {isActive && (
-          <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+          <svg width="7" height="7" viewBox="0 0 8 8" fill="none">
             <path d="M1 4L3 6L7 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
       </button>
 
-      {/* Name + status */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium text-text-primary truncate">{instance.name}</span>
-          {instance.mutual_exclusion_group && (
-            <span
-              className="text-xs text-primary flex-shrink-0"
-              title={`Compartilha cooldown com o grupo "${instance.mutual_exclusion_group}"`}
-            >
-              ⟷
-            </span>
-          )}
-        </div>
+        <span className="text-xs font-medium text-text-primary truncate block">{instance.name}</span>
         {isActive && status !== "available" && cooldownExpiresAt && (
           <span
-            className={`text-xs font-medium ${
+            className={`text-[11px] font-medium ${
               status === "soon" ? "text-status-soon-text" : "text-status-cooldown-text"
             }`}
           >
@@ -144,8 +123,7 @@ function InstanceRow({
         )}
       </div>
 
-      {/* Right side: badge + action button */}
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-1.5 flex-shrink-0">
         {isActive && (
           <StatusBadge
             status={status === "available" ? "available" : status === "soon" ? "soon" : "cooldown"}
@@ -153,10 +131,8 @@ function InstanceRow({
         )}
         {isActive && (
           <button
-            onClick={() =>
-              status !== "available" ? onClear(id) : onMarkDone(id)
-            }
-            className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+            onClick={() => (status !== "available" ? onClear(id) : onMarkDone(id))}
+            className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition-colors ${
               status !== "available"
                 ? "text-status-cooldown-text hover:bg-[color-mix(in_srgb,var(--status-cooldown)_10%,transparent)]"
                 : "bg-primary text-white hover:bg-primary-hover"
@@ -170,6 +146,133 @@ function InstanceRow({
   );
 }
 
+function TrackerColumn({
+  cooldownType,
+  rows,
+  onMarkDone,
+  onClear,
+  onToggleActive,
+  forceShowInactive,
+}: {
+  cooldownType: CooldownType;
+  rows: InstanceRowData[];
+  onMarkDone: (id: string) => void;
+  onClear: (id: string) => void;
+  onToggleActive: (id: string, active: boolean) => void;
+  forceShowInactive: boolean;
+}) {
+  const [showInactive, setShowInactive] = useState(false);
+
+  const active = rows.filter((r) => r.isActive);
+  const inactive = rows.filter((r) => !r.isActive);
+  const availableCount = active.filter((r) => r.status === "available").length;
+
+  const sorted = [...active].sort((a, b) => {
+    const statusOrder: Record<LocalStatus, number> = { available: 0, soon: 1, cooldown: 2 };
+    const diff = statusOrder[a.status] - statusOrder[b.status];
+    if (diff !== 0) return diff;
+    return a.instance.name.localeCompare(b.instance.name, "pt-BR");
+  });
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between px-1 mb-0.5">
+        <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+          {COOLDOWN_LABELS[cooldownType]}
+        </h3>
+        <span className="text-xs text-text-secondary">
+          {availableCount}/{active.length}
+        </span>
+      </div>
+
+      {sorted.map((row) => (
+        <InstanceCard
+          key={row.instance.id}
+          row={row}
+          onMarkDone={onMarkDone}
+          onClear={onClear}
+          onToggleActive={onToggleActive}
+        />
+      ))}
+
+      {inactive.length > 0 && (
+        <>
+          <button
+            onClick={() => setShowInactive((v) => !v)}
+            className="text-xs text-text-secondary hover:text-text-primary transition-colors cursor-pointer flex items-center gap-1 px-1 py-1"
+          >
+            <span className={`transition-transform inline-block ${showInactive ? "rotate-180" : ""}`}>▾</span>
+            {inactive.length} inativa{inactive.length > 1 ? "s" : ""}
+          </button>
+          {(showInactive || forceShowInactive) &&
+            inactive.map((row) => (
+              <InstanceCard
+                key={row.instance.id}
+                row={row}
+                onMarkDone={onMarkDone}
+                onClear={onClear}
+                onToggleActive={onToggleActive}
+              />
+            ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+// Mobile: tab-based single column
+function MobileTrackerTabs({
+  grouped,
+  onMarkDone,
+  onClear,
+  onToggleActive,
+  forceShowInactive,
+}: {
+  grouped: { type: CooldownType; rows: InstanceRowData[] }[];
+  onMarkDone: (id: string) => void;
+  onClear: (id: string) => void;
+  onToggleActive: (id: string, active: boolean) => void;
+  forceShowInactive: boolean;
+}) {
+  const [activeTab, setActiveTab] = useState<CooldownType>("hourly");
+
+  const currentGroup = grouped.find((g) => g.type === activeTab) ?? grouped[0];
+
+  return (
+    <div className="md:hidden">
+      <div className="flex gap-1 mb-3 overflow-x-auto">
+        {COOLDOWN_ORDER.map((type) => {
+          const group = grouped.find((g) => g.type === type);
+          const count = group?.rows.filter((r) => r.isActive).length ?? 0;
+          return (
+            <button
+              key={type}
+              onClick={() => setActiveTab(type)}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors ${
+                activeTab === type
+                  ? "bg-primary text-white"
+                  : "bg-surface text-text-secondary border border-border"
+              }`}
+            >
+              {COOLDOWN_LABELS[type]} ({count})
+            </button>
+          );
+        })}
+      </div>
+      {currentGroup && (
+        <TrackerColumn
+          cooldownType={currentGroup.type}
+          rows={currentGroup.rows}
+          onMarkDone={onMarkDone}
+          onClear={onClear}
+          onToggleActive={onToggleActive}
+          forceShowInactive={forceShowInactive}
+        />
+      )}
+    </div>
+  );
+}
+
 export function InstanceChecklist({
   instances,
   completions,
@@ -179,9 +282,8 @@ export function InstanceChecklist({
   onToggleActive,
 }: InstanceChecklistProps) {
   const [search, setSearch] = useState("");
-  const [showInactive, setShowInactive] = useState(false);
 
-  // Recompute rows on a 30-second tick so "soon" status updates
+  // Recompute on a 30-second tick so "soon" status updates
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 30_000);
@@ -190,21 +292,16 @@ export function InstanceChecklist({
 
   const rows = useMemo(() => {
     const now = new Date();
-    return instances.map((inst): InstanceRow => {
+    return instances.map((inst): InstanceRowData => {
       const id = String(inst.id);
-      const isActive = activeInstances === null ? true : (activeInstances[id] !== false);
+      const isActive = activeInstances === null ? true : activeInstances[id] !== false;
       const completion = completions[id];
       let status: LocalStatus = "available";
       let cooldownExpiresAt: Date | null = null;
 
       if (completion) {
         const completedAt = new Date(completion.completed_at);
-        cooldownExpiresAt = calculateCooldownExpiry(
-          completedAt,
-          inst.cooldown_type,
-          inst.cooldown_hours,
-          inst.available_day
-        );
+        cooldownExpiresAt = calculateCooldownExpiry(completedAt, inst.cooldown_type, inst.cooldown_hours, inst.available_day);
         if (cooldownExpiresAt && cooldownExpiresAt > now) {
           const remaining = cooldownExpiresAt.getTime() - now.getTime();
           status = remaining <= SOON_THRESHOLD_MS ? "soon" : "cooldown";
@@ -221,7 +318,8 @@ export function InstanceChecklist({
     return rows.filter((r) => matchesSearch(r.instance, search));
   }, [rows, search]);
 
-  // Group by cooldown type
+  const isSearching = search.length > 0;
+
   const grouped = useMemo(() => {
     return COOLDOWN_ORDER.map((type) => ({
       type,
@@ -229,15 +327,10 @@ export function InstanceChecklist({
     })).filter((g) => g.rows.length > 0);
   }, [filteredRows]);
 
-  const totalInactive = useMemo(
-    () => rows.filter((r) => !r.isActive).length,
-    [rows]
-  );
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Search */}
-      <div className="relative">
+      <div className="relative max-w-md">
         <svg
           className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
           width="14"
@@ -265,64 +358,65 @@ export function InstanceChecklist({
         )}
       </div>
 
-      {/* Show inactive toggle */}
-      {totalInactive > 0 && !search && (
-        <button
-          onClick={() => setShowInactive((v) => !v)}
-          className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors"
-        >
-          <span
-            className={`transition-transform inline-block ${showInactive ? "rotate-180" : ""}`}
-          >
-            ▾
-          </span>
-          {showInactive ? "Ocultar" : "Mostrar"} {totalInactive} instância
-          {totalInactive !== 1 ? "s" : ""} inativa{totalInactive !== 1 ? "s" : ""}
-        </button>
+      {isSearching && (
+        <p className="text-xs text-text-secondary">
+          {filteredRows.length} de {rows.length} instâncias
+        </p>
       )}
 
-      {/* Groups */}
       {grouped.length === 0 ? (
         <p className="text-text-secondary text-sm text-center py-8">
           {search ? "Nenhuma instância encontrada." : "Nenhuma instância disponível."}
         </p>
       ) : (
-        grouped.map(({ type, rows: groupRows }) => {
-          const active = groupRows.filter((r) => r.isActive);
-          const inactive = groupRows.filter((r) => !r.isActive);
-          const displayRows = showInactive || search ? groupRows : active;
+        <>
+          {/* Mobile: tabs */}
+          <MobileTrackerTabs
+            grouped={grouped}
+            onMarkDone={onMarkDone}
+            onClear={onClear}
+            onToggleActive={onToggleActive}
+            forceShowInactive={isSearching}
+          />
 
-          if (displayRows.length === 0) return null;
-
-          const availableCount = active.filter((r) => r.status === "available").length;
-
-          return (
-            <div key={type} className="space-y-1.5">
-              {/* Column header */}
-              <div className="flex items-center justify-between px-1 mb-1">
-                <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                  {COOLDOWN_LABELS[type]}
-                </h3>
-                <span className="text-xs text-text-secondary">
-                  {availableCount}/{active.length}
-                  {inactive.length > 0 && (
-                    <span className="text-disabled-text"> +{inactive.length} inativa{inactive.length !== 1 ? "s" : ""}</span>
-                  )}
-                </span>
-              </div>
-
-              {displayRows.map((row) => (
-                <InstanceRow
-                  key={row.instance.id}
-                  row={row}
+          {/* Tablet: 2 columns */}
+          <div className="hidden md:grid lg:hidden grid-cols-2 gap-4">
+            {COOLDOWN_ORDER.map((type) => {
+              const group = grouped.find((g) => g.type === type);
+              if (!group) return null;
+              return (
+                <TrackerColumn
+                  key={type}
+                  cooldownType={type}
+                  rows={group.rows}
                   onMarkDone={onMarkDone}
                   onClear={onClear}
                   onToggleActive={onToggleActive}
+                  forceShowInactive={isSearching}
                 />
-              ))}
-            </div>
-          );
-        })
+              );
+            })}
+          </div>
+
+          {/* Desktop: 4 columns */}
+          <div className="hidden lg:grid grid-cols-4 gap-4">
+            {COOLDOWN_ORDER.map((type) => {
+              const group = grouped.find((g) => g.type === type);
+              if (!group) return null;
+              return (
+                <TrackerColumn
+                  key={type}
+                  cooldownType={type}
+                  rows={group.rows}
+                  onMarkDone={onMarkDone}
+                  onClear={onClear}
+                  onToggleActive={onToggleActive}
+                  forceShowInactive={isSearching}
+                />
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );
