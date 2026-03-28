@@ -10,6 +10,7 @@ import { MvpTimerList } from "./mvp-timer-list";
 import { MvpKillModal } from "./mvp-kill-modal";
 import { MvpMapPicker } from "./mvp-map-picker";
 import { MvpGroupHub } from "./mvp-group-hub";
+import { MvpGroupStats } from "./mvp-group-stats";
 
 interface KillHistoryEntry {
   id: string;
@@ -50,6 +51,7 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
   const [modalInitialTime, setModalInitialTime] = useState<string | null>(null);
   const [modalKill, setModalKill] = useState<MvpActiveKill | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [hubTab, setHubTab] = useState<"grupo" | "stats">("grupo");
   const [now, setNow] = useState(Date.now());
   const [memberNames, setMemberNames] = useState<Map<string, string>>(new Map());
   const [memberUsernames, setMemberUsernames] = useState<Map<string, string>>(new Map());
@@ -263,19 +265,50 @@ export function MvpTab({ selectedCharId, characters, accounts }: MvpTabProps) {
       {/* RIGHT PANEL — Detail or Hub (2/3) */}
       <div className="flex-1 flex flex-col overflow-y-auto p-4 min-w-0">
         {!selectedMvp ? (
-          <MvpGroupHub
-            group={group}
-            members={members}
-            characters={characters}
-            selectedCharId={selectedCharId}
-            serverId={serverId}
-            memberNames={memberNames}
-            memberUsernames={memberUsernames}
-            onCreateGroup={createGroup}
-            onUpdateGroup={updateGroup}
-            onInviteCharacter={inviteCharacter}
-            onLeaveGroup={leaveGroup}
-          />
+          <div className="flex-1 flex flex-col min-h-0">
+            {/* Hub tabs */}
+            {group && (
+              <div className="flex gap-1 mb-3">
+                <button
+                  onClick={() => setHubTab("grupo")}
+                  className={`px-3 py-1 text-xs font-medium rounded-md cursor-pointer transition-colors ${
+                    hubTab === "grupo"
+                      ? "text-text-primary border-b-2 border-primary"
+                      : "text-text-secondary hover:text-text-primary"
+                  }`}
+                >
+                  Grupo
+                </button>
+                <button
+                  onClick={() => setHubTab("stats")}
+                  className={`px-3 py-1 text-xs font-medium rounded-md cursor-pointer transition-colors ${
+                    hubTab === "stats"
+                      ? "text-text-primary border-b-2 border-primary"
+                      : "text-text-secondary hover:text-text-primary"
+                  }`}
+                >
+                  Stats
+                </button>
+              </div>
+            )}
+            {(!group || hubTab === "grupo") ? (
+              <MvpGroupHub
+                group={group}
+                members={members}
+                characters={characters}
+                selectedCharId={selectedCharId}
+                serverId={serverId}
+                memberNames={memberNames}
+                memberUsernames={memberUsernames}
+                onCreateGroup={createGroup}
+                onUpdateGroup={updateGroup}
+                onInviteCharacter={inviteCharacter}
+                onLeaveGroup={leaveGroup}
+              />
+            ) : (
+              <MvpGroupStats groupId={group.id} />
+            )}
+          </div>
         ) : (
           <>
             {/* Header */}
