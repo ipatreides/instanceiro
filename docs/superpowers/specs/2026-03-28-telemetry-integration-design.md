@@ -42,6 +42,10 @@ This spec covers Phase 1. Phase 2 is documented as constraints at the end.
 
 The sniffer is a thin client. All filtering logic is configured server-side and consumed via `/api/telemetry/config`. Changes propagate without sniffer redeploy via the `config_version` mechanism in the heartbeat.
 
+### Map Name Normalization
+
+The game client uses map names with `.gat` suffix (e.g., `beach_dun.gat`). The sniffer strips this suffix before sending to the API, sending just `beach_dun`. All map names in telemetry payloads use the normalized form (matching Instanceiro's `mvps.map_name` format).
+
 ---
 
 ## Authentication: Pairing Flow
@@ -56,10 +60,11 @@ Zero-config authentication via browser redirect (no manual token copying).
 4. Opens the user's default browser to `instanceiro.com/telemetry/pair?code=A3F7-X9K2&callback=http://localhost:48721/callback`
 5. User logs into Instanceiro (or is already logged in)
 6. Page shows: "Conectar sniffer? Codigo: A3F7-X9K2" with a confirm button
-7. On confirm, backend generates an API token, associates it with the user, marks the pairing code as resolved
-8. Browser redirects to `http://localhost:48721/callback?token=<api_token>`
-9. Sniffer receives the token, saves it to `config.json`, shuts down the local HTTP server
-10. Subsequent runs: token already exists, skip pairing, go straight to `/api/telemetry/config`
+7. On confirm, backend generates an API token, associates it with the user, returns a one-time `exchange_code`
+8. Browser redirects to `http://localhost:48721/callback?exchange_code=<code>`
+9. Sniffer receives the exchange code, calls `POST /api/telemetry/pair/exchange` with it to obtain the actual API token (token never appears in browser URL/history)
+10. Sniffer saves token to `config.json`, shuts down the local HTTP server
+11. Subsequent runs: token already exists, skip pairing, go straight to `/api/telemetry/config`
 
 ### Token Revocation & Re-pairing
 
@@ -97,7 +102,7 @@ Zero-config authentication via browser redirect (no manual token copying).
 | `account_id` | INT | Account ID (from game packet) |
 | `group_id` | UUID FK → mvp_groups | Resolved group |
 | `current_map` | TEXT nullable | Current map (from heartbeat) |
-| `config_version` | INT | Incremented when group config changes |
+| `config_version` | INT | Incremented on: MVP list changes for the server, member joins/leaves group, group event settings change |
 | `last_heartbeat` | TIMESTAMPTZ | |
 | `started_at` | TIMESTAMPTZ | |
 
@@ -121,6 +126,15 @@ Zero-config authentication via browser redirect (no manual token copying).
 | `accepted` | BOOLEAN nullable | null = pending suggestion, true = accepted, false = rejected |
 
 Loots from telemetry enter with `source='telemetry'` and `accepted=null`. When the user confirms them in the UI, `accepted` is set to `true` and they become active. Rejected loots get `accepted=false`.
+
+### New table: `items` (reference data)
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `item_id` | INT PK | Game item ID |
+| `name_pt` | TEXT | Item name in Portuguese (from Divine Pride) |
+
+Static reference table populated from Divine Pride data. Used to resolve `item_id` → display name for telemetry loots. The `mvp_kill_loots.item_name` column is populated by looking up `items.name_pt` on insert. Items not found in this table are stored with `item_name = 'Item #<id>'` as fallback.
 
 ---
 
@@ -187,7 +201,6 @@ Main event. Sent after ActorDied for an MVP, batched with loots and party from a
 
 ```json
 {
-  "mvp_id": 42,
   "monster_id": 1583,
   "map": "beach_dun",
   "x": 153,
@@ -203,7 +216,7 @@ Main event. Sent after ActorDied for an MVP, batched with loots and party from a
 
 **Server-side logic:**
 
-1. Validate mvp_id exists for the group's server
+1. Resolve `monster_id` → `mvp_id` from the `mvps` table for the group's server. Reject if not found.
 2. **Dedup**: query `mvp_kills` for same `mvp_id` in group within last 30 seconds → if exists, return `{ "action": "dedup" }` (200)
 3. **Overwrite**: if active kill exists for this MVP (older than 30s) → delete it (cascades to loots, party, alert queue)
 4. Insert into `mvp_kills` with `source='telemetry'`, `telemetry_session_id`
@@ -236,7 +249,7 @@ Sent when NPC ID matching `events.mvp_tomb.npc_id` (default 565) appears on the 
 
 1. Find the most recent `mvp_kills` in the group on this map without `tomb_x`/`tomb_y`, within 2 minutes
 2. If found → update with tomb coordinates
-3. If not found → ignore (kill might belong to another group)
+3. If not found → create a new kill with `source='telemetry'`, `killed_at=NOW()`, `tomb_x`/`tomb_y` set. The MVP is resolved by matching `map` → `mvps.map_name` for the group's server. If the map has multiple MVPs, the kill is created without `mvp_id` and flagged for manual resolution in the UI. This handles the case where the sniffer wasn't on the map when the MVP died but arrives later and sees the tomb.
 
 **Response (200):**
 
@@ -318,9 +331,37 @@ Called by the Instanceiro web page when the user confirms pairing.
 **Server-side logic:**
 
 1. Validate pairing code exists and is not expired
-2. Generate API token (UUID v4)
-3. Store SHA-256 hash in `telemetry_tokens`
-4. Redirect browser to the `pairing_callback` URL with `?token=<plaintext_token>`
+2. Generate API token (UUID v4) and a one-time `exchange_code` (UUID v4, TTL 60 seconds)
+3. Store SHA-256 hash of the API token in `telemetry_tokens`, store `exchange_code` temporarily
+4. Redirect browser to the `pairing_callback` URL with `?exchange_code=<code>`
+
+### POST /api/telemetry/pair/exchange (sniffer-side)
+
+Called by the sniffer after receiving the exchange code from the browser redirect.
+
+**Request:**
+
+```json
+{
+  "exchange_code": "uuid"
+}
+```
+
+**Server-side logic:**
+
+1. Validate exchange code exists and is not expired (60s TTL)
+2. Return the plaintext API token
+3. Delete the exchange code (single use)
+
+**Response (200):**
+
+```json
+{
+  "token": "uuid-v4-api-token"
+}
+```
+
+The token never appears in browser URLs, history, or server logs. Only the sniffer receives it via this server-to-server call.
 
 ---
 
@@ -384,7 +425,7 @@ The sniffer already tracks game connections by PID (destination port → PID via
 | Duplicate loot from two sniffers | Kill dedup prevents the second kill, so second loot batch never arrives |
 | Telemetry kill arrives but manual kill exists for same MVP | Telemetry overwrites (sniffer is more reliable and has loots + coords) |
 | Manual kill arrives but telemetry kill exists | Manual kill overwrites (user explicitly chose to register) |
-| Tomb coords for a kill that doesn't exist | Ignored (kill might belong to another group) |
+| Tomb coords for a kill that doesn't exist | Creates a new kill from tomb data (MVP resolved by map). If map has multiple MVPs, flagged for manual resolution |
 | Killer name doesn't match any group member | Stored as metadata text, `killer_character_id` left null |
 
 ---
@@ -476,7 +517,9 @@ The killer name is always the last NPC_TALK before CLOSE, and it is not encoded.
 
 - API tokens stored as SHA-256 hash in database, never plaintext
 - Pairing codes expire after 5 minutes
-- Localhost callback only accepts the expected pairing code
+- Exchange codes expire after 60 seconds and are single-use
+- API token never appears in browser URLs or history (exchange code pattern)
+- Localhost callback only accepts the expected exchange code
 - 401 response triggers automatic re-pairing (token revoked or expired)
 - Rate limiting on all telemetry endpoints (to be defined per endpoint)
 - Server-side validation: character must belong to the group, mvp_id must exist for the server
