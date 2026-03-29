@@ -113,12 +113,12 @@ export function hasTrackerData(): boolean {
 
 export function setDowngradeExported(): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem("instanceiro_downgrade_exported", "true");
+  localStorage.setItem("instanceiro_downgrade_exported_v2", "true");
 }
 
 export function wasDowngradeExported(): boolean {
   if (typeof window === "undefined") return false;
-  return localStorage.getItem("instanceiro_downgrade_exported") === "true";
+  return localStorage.getItem("instanceiro_downgrade_exported_v2") === "true";
 }
 
 export function exportToLocalStorage(

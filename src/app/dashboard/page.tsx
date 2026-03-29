@@ -225,6 +225,7 @@ export default function DashboardPage() {
 
   // Task 19: Downgrade export — when a premium user loses access, export their data to localStorage
   useEffect(() => {
+    if (!userId) return; // Wait for auth — without userId, tier defaults to free
     if (tierValue.loading || tierValue.isPremium) return;
     if (wasDowngradeExported()) return;
 
