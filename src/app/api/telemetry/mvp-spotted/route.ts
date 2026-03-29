@@ -34,6 +34,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unknown MVP' }, { status: 400 })
   }
 
+  // Ignore sighting if MVP was killed recently (within 5 minutes)
+  const killCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+  const { data: recentKill } = await supabase
+    .from('mvp_kills')
+    .select('id')
+    .eq('mvp_id', mvp.id)
+    .eq('group_id', ctx.groupId)
+    .gte('killed_at', killCutoff)
+    .limit(1)
+
+  if (recentKill && recentKill.length > 0) {
+    return NextResponse.json({ action: 'ignored', reason: 'MVP killed recently' })
+  }
+
   // Dedup: don't insert if we already spotted this MVP in the last 30 seconds
   const cutoff = new Date(Date.now() - 30000).toISOString()
   const { data: recent } = await supabase
