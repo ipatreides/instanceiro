@@ -31,33 +31,88 @@ export async function POST(request: NextRequest) {
     .limit(1)
     .maybeSingle()
 
-  if (!kill) {
-    return NextResponse.json({ action: 'ignored', reason: 'no matching kill' })
-  }
-
   // Try to resolve killer_name to a character_id in the group
   const { data: members } = await supabase
     .from('mvp_group_members')
     .select('character_id, characters!inner(name)')
     .eq('group_id', ctx.groupId)
 
-  const match = members?.find(
+  const killerMatch = members?.find(
     (m: any) => m.characters?.name === killer_name
   )
 
-  const updates: Record<string, any> = { killer_name_raw: killer_name }
-  if (match) {
-    updates.killer_character_id = match.character_id
+  if (kill) {
+    // Update existing kill with killer info
+    const updates: Record<string, any> = { killer_name_raw: killer_name }
+    if (killerMatch) {
+      updates.killer_character_id = killerMatch.character_id
+    }
+    // Also update tomb coords if provided and not already set
+    if (tomb_x != null && tomb_y != null) {
+      updates.tomb_x = tomb_x
+      updates.tomb_y = tomb_y
+    }
+
+    await supabase
+      .from('mvp_kills')
+      .update(updates)
+      .eq('id', kill.id)
+
+    return NextResponse.json({
+      action: 'updated',
+      kill_id: kill.id,
+      killer_resolved: !!killerMatch,
+    })
   }
 
-  await supabase
+  // No existing kill — create one from tomb click info
+  // This is the most reliable source: user clicked the tomb and we have killer name
+  // killed_at=NOW() is approximate (MVP died sometime before now)
+
+  // Resolve MVP by map
+  const resolvedMap = (map && map !== 'unknown') ? map : null
+  let mvpId: number | null = null
+
+  if (resolvedMap) {
+    const { data: mvps } = await supabase
+      .from('mvps')
+      .select('id')
+      .eq('map_name', resolvedMap)
+      .eq('server_id', ctx.serverId)
+
+    if (mvps && mvps.length === 1) {
+      mvpId = mvps[0].id
+    }
+  }
+
+  // Resolve character for registered_by
+  const { data: charRow } = await supabase
+    .from('characters')
+    .select('id')
+    .eq('user_id', ctx.userId)
+    .limit(1)
+    .single()
+
+  const { data: newKill } = await supabase
     .from('mvp_kills')
-    .update(updates)
-    .eq('id', kill.id)
+    .insert({
+      group_id: ctx.groupId,
+      mvp_id: mvpId,
+      killed_at: new Date().toISOString(),
+      tomb_x: tomb_x ?? null,
+      tomb_y: tomb_y ?? null,
+      killer_character_id: killerMatch?.character_id ?? null,
+      killer_name_raw: killer_name,
+      registered_by: charRow?.id ?? ctx.userId,
+      source: 'telemetry',
+      telemetry_session_id: ctx.sessionId,
+    })
+    .select('id')
+    .single()
 
   return NextResponse.json({
-    action: 'updated',
-    kill_id: kill.id,
-    killer_resolved: !!match,
-  })
+    action: 'created',
+    kill_id: newKill?.id,
+    killer_resolved: !!killerMatch,
+  }, { status: 201 })
 }
