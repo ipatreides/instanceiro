@@ -3,6 +3,7 @@
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import type { Mvp, MvpActiveKill } from "@/lib/types";
 import type { MvpSighting } from "@/hooks/use-mvp-sightings";
+import type { MvpBroadcast } from "@/hooks/use-mvp-broadcasts";
 
 const GROUP_DISPLAY_NAMES: Record<string, string> = {
   bio_lab_3: "Bio Lab 3",
@@ -13,13 +14,14 @@ interface MvpTimerListProps {
   mvps: Mvp[];
   activeKills: MvpActiveKill[];
   sightings: MvpSighting[];
+  broadcasts?: MvpBroadcast[];
   search: string;
   loading: boolean;
   selectedMvpId: number | null;
   onSelectMvp: (mvp: Mvp) => void;
 }
 
-export function MvpTimerList({ mvps, activeKills, sightings, search, loading, selectedMvpId, onSelectMvp }: MvpTimerListProps) {
+export function MvpTimerList({ mvps, activeKills, sightings, broadcasts, search, loading, selectedMvpId, onSelectMvp }: MvpTimerListProps) {
   const [inactiveCollapsed, setInactiveCollapsed] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollUp, setCanScrollUp] = useState(false);
@@ -110,6 +112,21 @@ export function MvpTimerList({ mvps, activeKills, sightings, search, loading, se
     }
   }
 
+  // MVPs with active broadcasts but no kill timer → promote to active list
+  if (broadcasts) {
+    for (const br of broadcasts) {
+      if (new Date(br.expires_at) <= new Date()) continue;
+      const repId = groupRepresentativeId.get(br.cooldown_group);
+      if (repId && !activeIds.has(repId)) {
+        const mvp = collapsedMvps.find(m => m.id === repId);
+        if (mvp) {
+          active.push({ mvp, kill: getEffectiveKill(mvp) ?? null });
+          activeIds.add(repId);
+        }
+      }
+    }
+  }
+
   const inactive: { mvp: Mvp; killCount: number }[] = [];
   for (const mvp of filtered) {
     if (activeIds.has(mvp.id)) continue;
@@ -118,8 +135,12 @@ export function MvpTimerList({ mvps, activeKills, sightings, search, loading, se
     inactive.push({ mvp, killCount });
   }
 
-  // Sort active: MVPs with sightings (alive) first, then by nearest spawn
+  // Sort active: broadcasts first, then sightings (alive), then by nearest spawn
   active.sort((a, b) => {
+    const aBroadcast = a.mvp.cooldown_group ? broadcasts?.some(br => br.cooldown_group === a.mvp.cooldown_group && new Date(br.expires_at) > new Date()) ?? false : false;
+    const bBroadcast = b.mvp.cooldown_group ? broadcasts?.some(br => br.cooldown_group === b.mvp.cooldown_group && new Date(br.expires_at) > new Date()) ?? false : false;
+    if (aBroadcast && !bBroadcast) return -1;
+    if (!aBroadcast && bBroadcast) return 1;
     const aAlive = sightings.some(s => s.mvp_id === a.mvp.id && (!a.kill || new Date(s.spotted_at).getTime() > new Date(a.kill.killed_at).getTime()));
     const bAlive = sightings.some(s => s.mvp_id === b.mvp.id && (!b.kill || new Date(s.spotted_at).getTime() > new Date(b.kill.killed_at).getTime()));
     if (aAlive && !bAlive) return -1;
@@ -189,12 +210,16 @@ export function MvpTimerList({ mvps, activeKills, sightings, search, loading, se
           <div className="flex flex-col gap-1 mb-2">
             <p className="text-[10px] text-text-secondary font-semibold px-1">ATIVOS ({active.length})</p>
             {active.map(({ mvp, kill }) => {
+              // Broadcast is active if the group has a non-expired broadcast
+              const hasBroadcast = mvp.cooldown_group && broadcasts?.some(
+                br => br.cooldown_group === mvp.cooldown_group && new Date(br.expires_at) > new Date()
+              );
               // Sighting is only valid if it's newer than the kill (MVP was seen alive AFTER dying)
               const hasSighting = sightings.some(s =>
                 s.mvp_id === mvp.id &&
                 (!kill || new Date(s.spotted_at).getTime() > new Date(kill.killed_at).getTime())
               );
-              const timerColor = hasSighting ? "var(--status-available)" : kill ? getTimerColor(kill, mvp, now) : "var(--status-available)";
+              const timerColor = hasBroadcast ? "var(--status-available)" : hasSighting ? "var(--status-available)" : kill ? getTimerColor(kill, mvp, now) : "var(--status-available)";
               return (
               <button
                 key={mvp.id}
@@ -214,7 +239,11 @@ export function MvpTimerList({ mvps, activeKills, sightings, search, loading, se
                     {mvp.map_name}
                   </div>
                 </div>
-                {hasSighting ? (
+                {hasBroadcast ? (
+                  <span className="text-[11px] font-bold animate-pulse" style={{ color: "var(--status-available-text)" }}>
+                    Em breve
+                  </span>
+                ) : hasSighting ? (
                   <span className="text-[11px] font-bold animate-pulse" style={{ color: "var(--status-available-text)" }}>
                     Vivo
                   </span>

@@ -13,6 +13,7 @@ import { MvpGroupHub } from "./mvp-group-hub";
 import { MvpGroupStats } from "./mvp-group-stats";
 import { TelemetrySettings } from "./telemetry-settings";
 import { useMvpSightings } from "@/hooks/use-mvp-sightings";
+import { useMvpBroadcasts } from "@/hooks/use-mvp-broadcasts";
 import { formatTimeBRT, formatDateBRT } from "@/lib/date-brt";
 
 const GROUP_DISPLAY_NAMES: Record<string, string> = {
@@ -79,6 +80,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
   const { group, members, loading: groupLoading, createGroup, updateGroup, inviteCharacter, leaveGroup } = useMvpGroups(selectedCharId);
   const { activeKills, loading: killsLoading, registerKill, editKill, deleteKill, acceptLootSuggestions, rejectLootSuggestion } = useMvpTimers(group?.id ?? null, serverId);
   const sightings = useMvpSightings(group?.id ?? null);
+  const broadcasts = useMvpBroadcasts(group?.id ?? null);
 
   const loading = mvpLoading || groupLoading || killsLoading;
 
@@ -316,6 +318,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
           mvps={mvps}
           activeKills={activeKills}
           sightings={sightings}
+          broadcasts={broadcasts}
           search={search}
           loading={loading}
           selectedMvpId={selectedMvp?.id ?? null}
