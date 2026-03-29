@@ -42,6 +42,14 @@ function formatWindow(ms: number): string {
   return `±${m}min`;
 }
 
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Sao_Paulo",
+  });
+}
+
 function matchesMvpSearch(mvp: Mvp, query: string): boolean {
   if (!query) return true;
   const q = query.toLowerCase();
@@ -59,12 +67,16 @@ function LiveTimer({ spawnAt, spawnEndAt, status }: { spawnAt: Date | null; spaw
   if (status === "alive") return null;
 
   if (status === "spawn_window" && spawnAt && spawnEndAt) {
-    const elapsed = now - spawnAt.getTime();
-    const windowMs = spawnEndAt.getTime() - spawnAt.getTime();
+    const remaining = spawnEndAt.getTime() - now;
     return (
-      <span className="text-xs font-bold tabular-nums text-status-available-text">
-        +{formatCountdown(elapsed)} / {formatCountdown(windowMs)}
-      </span>
+      <div className="flex flex-col items-end">
+        <span className="text-xs font-bold tabular-nums text-status-available-text">
+          {formatTime(spawnAt)} ~ {formatTime(spawnEndAt)}
+        </span>
+        <span className="text-[10px] tabular-nums text-text-secondary">
+          Janela fecha em {formatCountdown(remaining)}
+        </span>
+      </div>
     );
   }
 
@@ -73,9 +85,14 @@ function LiveTimer({ spawnAt, spawnEndAt, status }: { spawnAt: Date | null; spaw
     const isSoon = remaining <= 5 * 60 * 1000;
     const colorClass = isSoon ? "text-status-soon-text" : "text-status-cooldown-text";
     return (
-      <span className={`text-sm font-bold tabular-nums min-w-[80px] text-right ${colorClass}`}>
-        {formatCountdown(remaining)}
-      </span>
+      <div className="flex flex-col items-end">
+        <span className={`text-sm font-bold tabular-nums ${colorClass}`}>
+          {formatCountdown(remaining)}
+        </span>
+        <span className="text-[10px] tabular-nums text-text-secondary">
+          Spawn ~{formatTime(spawnAt)}
+        </span>
+      </div>
     );
   }
 
@@ -194,7 +211,7 @@ export function MvpTracker({ mvps, kills, serverId, onRegisterKill }: MvpTracker
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-text-primary truncate">{mvp.name}</span>
                     {status === "spawn_window" && (
-                      <StatusBadge status="available" label="Pode nascer" />
+                      <StatusBadge status="soon" label="Janela de spawn" />
                     )}
                     {status === "cooldown" && spawnAt && (() => {
                       const remaining = spawnAt.getTime() - Date.now();
