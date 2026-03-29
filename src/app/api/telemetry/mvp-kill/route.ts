@@ -17,30 +17,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  // Resolve monster_id → mvp_id
-  const { data: mvp } = await supabase
+  // Resolve monster_id → ALL mvp_ids (same monster can have multiple map entries)
+  const { data: mvpRows } = await supabase
     .from('mvps')
     .select('id')
     .eq('monster_id', monster_id)
     .eq('server_id', ctx.serverId)
-    .limit(1)
-    .single()
 
-  if (!mvp) {
+  if (!mvpRows || mvpRows.length === 0) {
     return NextResponse.json({ error: 'Unknown MVP for this server' }, { status: 400 })
   }
+
+  const mvpIds = mvpRows.map(m => m.id)
+  const mvpId = mvpRows[0].id // Use first for insert
 
   // Use the character that's in the MVP group
   const registeredBy = ctx.characterUuid
 
   const killedAt = new Date(timestamp * 1000).toISOString()
 
-  // Dedup: same mvp_id in group within last 30 seconds
+  // Dedup: any of this monster's mvp_ids in group within last 30 seconds
   const dedupCutoff = new Date(timestamp * 1000 - 30000).toISOString()
   const { data: existing } = await supabase
     .from('mvp_kills')
     .select('id')
-    .eq('mvp_id', mvp.id)
+    .in('mvp_id', mvpIds)
     .eq('group_id', ctx.groupId)
     .gte('killed_at', dedupCutoff)
     .limit(1)
@@ -49,11 +50,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ action: 'dedup' })
   }
 
-  // Overwrite: delete only the most recent (active timer) kill for this MVP, not the entire history
+  // Overwrite: delete only the most recent (active timer) kill for this monster
   const { data: activeKill } = await supabase
     .from('mvp_kills')
     .select('id')
-    .eq('mvp_id', mvp.id)
+    .in('mvp_id', mvpIds)
     .eq('group_id', ctx.groupId)
     .lt('killed_at', dedupCutoff)
     .order('killed_at', { ascending: false })
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
     .from('mvp_kills')
     .insert({
       group_id: ctx.groupId,
-      mvp_id: mvp.id,
+      mvp_id: mvpId,
       killed_at: killedAt,
       tomb_x: x ?? null,
       tomb_y: y ?? null,
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
     await supabase
       .from('mvp_sightings')
       .delete()
-      .eq('mvp_id', mvp.id)
+      .in('mvp_id', mvpIds)
       .eq('group_id', ctx.groupId)
   }
 

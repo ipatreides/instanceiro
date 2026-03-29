@@ -18,28 +18,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  // Resolve monster_id → mvp_id + map_name
-  const { data: mvp } = await supabase
+  // Resolve monster_id → ALL mvp_ids + map_name
+  const { data: mvpRows } = await supabase
     .from('mvps')
     .select('id, map_name')
     .eq('monster_id', monster_id)
     .eq('server_id', ctx.serverId)
-    .limit(1)
-    .maybeSingle()
 
-  // Use MVP's known map if sniffer didn't provide one
-  const resolvedMap = (map && map !== 'unknown') ? map : (mvp?.map_name ?? 'unknown')
-
-  if (!mvp) {
+  if (!mvpRows || mvpRows.length === 0) {
     return NextResponse.json({ error: 'Unknown MVP' }, { status: 400 })
   }
+
+  const mvpIds = mvpRows.map(m => m.id)
+  const mvpId = mvpRows[0].id
+  const resolvedMap = (map && map !== 'unknown') ? map : (mvpRows[0].map_name ?? 'unknown')
 
   // Ignore sighting if MVP was killed recently (within 5 minutes)
   const killCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString()
   const { data: recentKill } = await supabase
     .from('mvp_kills')
     .select('id')
-    .eq('mvp_id', mvp.id)
+    .in('mvp_id', mvpIds)
     .eq('group_id', ctx.groupId)
     .gte('killed_at', killCutoff)
     .limit(1)
@@ -53,7 +52,7 @@ export async function POST(request: NextRequest) {
   const { data: recent } = await supabase
     .from('mvp_sightings')
     .select('id')
-    .eq('mvp_id', mvp.id)
+    .eq('mvp_id', mvpId)
     .eq('group_id', ctx.groupId)
     .gte('spotted_at', cutoff)
     .limit(1)
@@ -72,7 +71,7 @@ export async function POST(request: NextRequest) {
   const { data: sighting } = await supabase
     .from('mvp_sightings')
     .insert({
-      mvp_id: mvp.id,
+      mvp_id: mvpId,
       group_id: ctx.groupId,
       map_name: resolvedMap,
       x,
