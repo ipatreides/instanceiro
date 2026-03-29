@@ -57,30 +57,62 @@ export function useMvpTimers(groupId: string | null, serverId: number | null): U
     setLoading(false);
   }, [groupId, serverId]);
 
+  // Initial load
   useEffect(() => {
     setLoading(true);
     fetchKills();
+  }, [fetchKills]);
+
+  // Realtime subscription — incremental updates
+  useEffect(() => {
+    if (!groupId) return;
 
     const supabase = createClient();
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const debouncedFetch = () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => fetchKills(), 5000);
-    };
-
-    const channelName = groupId ? `mvp-kills-${groupId}` : `mvp-kills-solo`;
-    const filter = groupId ? { event: "*" as const, schema: "public", table: "mvp_kills", filter: `group_id=eq.${groupId}` } : { event: "*" as const, schema: "public", table: "mvp_kills" };
     const channel = supabase
-      .channel(channelName)
-      .on("postgres_changes", filter, debouncedFetch)
+      .channel(`mvp-kills-${groupId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "mvp_kills",
+          filter: `group_id=eq.${groupId}`,
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            // New kill — refetch to get enriched data (character names, kill count)
+            // But with a short debounce to batch rapid inserts
+            fetchKills();
+          } else if (payload.eventType === "UPDATE") {
+            const updated = payload.new;
+            setActiveKills((prev) =>
+              prev.map((k) =>
+                k.kill_id === updated.id
+                  ? {
+                      ...k,
+                      killed_at: updated.killed_at ?? k.killed_at,
+                      tomb_x: updated.tomb_x ?? k.tomb_x,
+                      tomb_y: updated.tomb_y ?? k.tomb_y,
+                      killer_character_id: updated.killer_character_id ?? k.killer_character_id,
+                      killer_name_raw: updated.killer_name_raw ?? k.killer_name_raw,
+                      source: updated.source ?? k.source,
+                    }
+                  : k
+              )
+            );
+          } else if (payload.eventType === "DELETE") {
+            const deleted = payload.old;
+            setActiveKills((prev) => prev.filter((k) => k.kill_id !== deleted.id));
+          }
+        }
+      )
       .subscribe();
 
     return () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [fetchKills, groupId]);
+  }, [groupId, fetchKills]);
 
   const registerKill = useCallback(async (data: {
     mvpId: number;
@@ -119,7 +151,6 @@ export function useMvpTimers(groupId: string | null, serverId: number | null): U
       );
     }
 
-    // Insert party members
     if (data.partyMemberIds.length > 0) {
       await supabase.from("mvp_kill_party").insert(
         data.partyMemberIds.map((cId) => ({ kill_id: kill.id, character_id: cId }))
