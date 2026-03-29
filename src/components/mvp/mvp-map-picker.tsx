@@ -1,8 +1,22 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect, useState } from "react";
+import simpleheat from "simpleheat";
 import type { MvpMapMeta } from "@/lib/types";
 import { formatTimeBRT } from "@/lib/date-brt";
+
+const HEATMAP_OPACITY_KEY = "heatmap-opacity";
+const DEFAULT_OPACITY = 0.4;
+
+function getStoredOpacity(): number {
+  if (typeof window === "undefined") return DEFAULT_OPACITY;
+  const stored = localStorage.getItem(HEATMAP_OPACITY_KEY);
+  if (stored != null) {
+    const val = parseFloat(stored);
+    if (!isNaN(val) && val >= 0 && val <= 1) return val;
+  }
+  return DEFAULT_OPACITY;
+}
 
 interface MvpSightingPoint {
   x: number;
@@ -23,6 +37,14 @@ interface MvpMapPickerProps {
 
 export function MvpMapPicker({ mapName, mapMeta, tombX, tombY, onCoordsChange, readOnly, heatmapPoints, sighting }: MvpMapPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const heatRef = useRef<ReturnType<typeof simpleheat> | null>(null);
+  const [opacity, setOpacity] = useState(DEFAULT_OPACITY);
+
+  // Load stored opacity on mount
+  useEffect(() => {
+    setOpacity(getStoredOpacity());
+  }, []);
 
   const handleMapClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (readOnly || !mapMeta || !containerRef.current) return;
@@ -36,12 +58,56 @@ export function MvpMapPicker({ mapName, mapMeta, tombX, tombY, onCoordsChange, r
       Math.max(0, Math.min(gameX, mapMeta.width - 1)),
       Math.max(0, Math.min(gameY, mapMeta.height - 1))
     );
-  }, [mapMeta, onCoordsChange]);
+  }, [mapMeta, onCoordsChange, readOnly]);
+
+  // Render heatmap on canvas
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container || !mapMeta || !heatmapPoints || heatmapPoints.length === 0) return;
+
+    const size = container.getBoundingClientRect().width;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = size * dpr;
+    canvas.height = size * dpr;
+    canvas.style.width = `${size}px`;
+    canvas.style.height = `${size}px`;
+    canvas.getContext("2d")?.scale(dpr, dpr);
+
+    const heat = simpleheat(canvas);
+    heatRef.current = heat;
+
+    heat.radius(15 * dpr, 20 * dpr);
+    heat.gradient({
+      0.2: "rgba(255, 255, 0, 0.3)",
+      0.5: "orange",
+      0.8: "red",
+      1.0: "darkred",
+    });
+
+    const points: [number, number, number][] = heatmapPoints.map((p) => [
+      (p.x / mapMeta.width) * size * dpr,
+      ((mapMeta.height - p.y) / mapMeta.height) * size * dpr,
+      1,
+    ]);
+
+    heat.data(points);
+    heat.max(Math.max(3, Math.ceil(points.length * 0.3)));
+    heat.draw(0.05);
+  }, [heatmapPoints, mapMeta]);
+
+  const handleOpacityChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value);
+    setOpacity(val);
+    localStorage.setItem(HEATMAP_OPACITY_KEY, String(val));
+  }, []);
 
   const dotStyle = tombX != null && tombY != null && mapMeta ? {
     left: `${(tombX / mapMeta.width) * 100}%`,
     top: `${((mapMeta.height - tombY) / mapMeta.height) * 100}%`,
   } : null;
+
+  const hasHeatmap = heatmapPoints && heatmapPoints.length > 0;
 
   return (
     <div
@@ -56,19 +122,14 @@ export function MvpMapPicker({ mapName, mapMeta, tombX, tombY, onCoordsChange, r
         className="w-full h-full object-cover"
         draggable={false}
       />
-      {/* Heatmap: historical kill locations */}
-      {heatmapPoints && mapMeta && heatmapPoints.map((p, i) => (
-        <div
-          key={i}
-          className="absolute w-2.5 h-2.5 rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-          style={{
-            left: `${(p.x / mapMeta.width) * 100}%`,
-            top: `${((mapMeta.height - p.y) / mapMeta.height) * 100}%`,
-            backgroundColor: "var(--status-error)",
-            opacity: 0.25,
-          }}
+      {/* Heatmap canvas overlay */}
+      {hasHeatmap && (
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 pointer-events-none"
+          style={{ opacity }}
         />
-      ))}
+      )}
       {/* MVP sighting: live position (green pulsing dot) */}
       {sighting && mapMeta && (
         <div
@@ -79,6 +140,7 @@ export function MvpMapPicker({ mapName, mapMeta, tombX, tombY, onCoordsChange, r
             backgroundColor: "var(--status-available)",
             border: "2px solid var(--status-available-text)",
             boxShadow: "0 0 12px color-mix(in srgb, var(--status-available) 60%, transparent)",
+            zIndex: 10,
           }}
           title={`MVP visto aqui — ${formatTimeBRT(sighting.spotted_at)}`}
         />
@@ -92,8 +154,24 @@ export function MvpMapPicker({ mapName, mapMeta, tombX, tombY, onCoordsChange, r
             backgroundColor: "var(--primary)",
             borderColor: "var(--primary-secondary)",
             boxShadow: "0 0 8px color-mix(in srgb, var(--primary) 50%, transparent)",
+            zIndex: 10,
           }}
         />
+      )}
+      {/* Opacity slider — inside map, bottom-right */}
+      {hasHeatmap && (
+        <div className="absolute bottom-1 right-1 flex items-center gap-1 rounded-md px-1.5 py-0.5 opacity-40 hover:opacity-100 transition-opacity" style={{ zIndex: 20, backgroundColor: "color-mix(in srgb, var(--bg) 70%, transparent)" }}>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={opacity}
+            onChange={handleOpacityChange}
+            onClick={(e) => e.stopPropagation()}
+            className="w-14 h-1 accent-primary cursor-pointer"
+          />
+        </div>
       )}
       {!readOnly && (
         <>
