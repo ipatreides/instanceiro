@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Friendship } from "@/lib/types";
 
@@ -119,9 +119,9 @@ export function useFriendships(): UseFriendshipsReturn {
     };
   }, [fetchAll]);
 
-  const friends = friendships.filter((f) => f.status === "accepted");
-  const pendingReceived = friendships.filter((f) => f.status === "pending" && f.addressee_id === userId);
-  const pendingSent = friendships.filter((f) => f.status === "pending" && f.requester_id === userId);
+  const friends = useMemo(() => friendships.filter((f) => f.status === "accepted"), [friendships]);
+  const pendingReceived = useMemo(() => friendships.filter((f) => f.status === "pending" && f.addressee_id === userId), [friendships, userId]);
+  const pendingSent = useMemo(() => friendships.filter((f) => f.status === "pending" && f.requester_id === userId), [friendships, userId]);
 
   const sendRequest = useCallback(async (username: string): Promise<{ error?: string }> => {
     const supabase = createClient();
