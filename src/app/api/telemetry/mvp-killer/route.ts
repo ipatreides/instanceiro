@@ -10,10 +10,27 @@ export async function POST(request: NextRequest) {
   const { ctx } = result
   const supabase = createAdminClient()
 
-  const { map, tomb_x, tomb_y, killer_name } = await request.json()
+  const { map, tomb_x, tomb_y, killer_name, kill_hour, kill_minute } = await request.json()
 
   if (!killer_name) {
     return NextResponse.json({ error: 'Missing killer_name' }, { status: 400 })
+  }
+
+  // Build killed_at from tomb time if available (hours:minutes in BRT server time)
+  let killedAt: string | null = null
+  if (kill_hour != null && kill_minute != null && kill_hour >= 0 && kill_minute >= 0) {
+    // The time from the tomb is in the game server's timezone (BRT = UTC-3)
+    const now = new Date()
+    // Get today's date in BRT
+    const brtDate = now.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    // Construct BRT time and convert to UTC
+    const brtIso = `${brtDate}T${String(kill_hour).padStart(2, '0')}:${String(kill_minute).padStart(2, '0')}:00-03:00`
+    const killDate = new Date(brtIso)
+    // If the kill time is in the future (crossed midnight), subtract a day
+    if (killDate.getTime() > now.getTime()) {
+      killDate.setDate(killDate.getDate() - 1)
+    }
+    killedAt = killDate.toISOString()
   }
 
   // Find kill by tomb coordinates + map in this group
@@ -42,8 +59,11 @@ export async function POST(request: NextRequest) {
   )
 
   if (kill) {
-    // Update existing kill with killer info
+    // Update existing kill with killer info + corrected time from tomb
     const updates: Record<string, any> = { killer_name_raw: killer_name }
+    if (killedAt) {
+      updates.killed_at = killedAt
+    }
     if (killerMatch) {
       updates.killer_character_id = killerMatch.character_id
     }
@@ -98,7 +118,7 @@ export async function POST(request: NextRequest) {
     .insert({
       group_id: ctx.groupId,
       mvp_id: mvpId,
-      killed_at: new Date().toISOString(),
+      killed_at: killedAt ?? new Date().toISOString(),
       tomb_x: tomb_x ?? null,
       tomb_y: tomb_y ?? null,
       killer_character_id: killerMatch?.character_id ?? null,
