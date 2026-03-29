@@ -16,19 +16,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  // Resolve character row UUID for registered_by
-  const { data: charRow } = await supabase
-    .from('characters')
-    .select('id')
-    .eq('user_id', ctx.userId)
-    .limit(1)
-    .single()
-
-  if (!charRow) {
-    return NextResponse.json({ error: 'Character not found' }, { status: 400 })
-  }
-
-  const registeredBy = charRow.id
+  const registeredBy = ctx.characterUuid
 
   // Get MVP IDs that spawn on this map
   const { data: mapMvps } = await supabase

@@ -108,14 +108,6 @@ export async function POST(request: NextRequest) {
   // This is the most reliable source: user clicked the tomb and we have killer name
   const mvpId = matchMvpIds.length === 1 ? matchMvpIds[0] : null
 
-  // Resolve character for registered_by
-  const { data: charRow } = await supabase
-    .from('characters')
-    .select('id')
-    .eq('user_id', ctx.userId)
-    .limit(1)
-    .single()
-
   const { data: newKill } = await supabase
     .from('mvp_kills')
     .insert({
@@ -126,7 +118,7 @@ export async function POST(request: NextRequest) {
       tomb_y: tomb_y ?? null,
       killer_character_id: killerMatch?.character_id ?? null,
       killer_name_raw: killer_name,
-      registered_by: charRow?.id ?? ctx.userId,
+      registered_by: ctx.characterUuid,
       source: 'telemetry',
       telemetry_session_id: ctx.sessionId,
     })

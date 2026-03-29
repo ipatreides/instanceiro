@@ -30,19 +30,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unknown MVP for this server' }, { status: 400 })
   }
 
-  // Resolve character row UUID for registered_by
-  const { data: charRow } = await supabase
-    .from('characters')
-    .select('id')
-    .eq('user_id', ctx.userId)
-    .limit(1)
-    .single()
-
-  if (!charRow) {
-    return NextResponse.json({ error: 'Character not found' }, { status: 400 })
-  }
-
-  const registeredBy = charRow.id
+  // Use the character that's in the MVP group
+  const registeredBy = ctx.characterUuid
 
   const killedAt = new Date(timestamp * 1000).toISOString()
 
