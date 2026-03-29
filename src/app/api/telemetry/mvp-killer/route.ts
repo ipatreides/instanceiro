@@ -33,13 +33,32 @@ export async function POST(request: NextRequest) {
     killedAt = killDate.toISOString()
   }
 
-  // Find kill by tomb coordinates + map in this group
+  // Resolve MVP by map to find the most recent kill
+  const resolvedMap = (map && map !== 'unknown') ? map : null
+  let matchMvpIds: number[] = []
+
+  if (resolvedMap) {
+    const { data: mapMvps } = await supabase
+      .from('mvps')
+      .select('id')
+      .eq('map_name', resolvedMap)
+      .eq('server_id', ctx.serverId)
+
+    matchMvpIds = mapMvps?.map(m => m.id) ?? []
+  }
+
+  // Find the most recent kill for this MVP in the group (within last 24h)
+  const killCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
   let query = supabase
     .from('mvp_kills')
     .select('id')
     .eq('group_id', ctx.groupId)
+    .gte('killed_at', killCutoff)
 
-  if (tomb_x != null && tomb_y != null) {
+  if (matchMvpIds.length > 0) {
+    query = query.in('mvp_id', matchMvpIds)
+  } else if (tomb_x != null && tomb_y != null) {
+    // Fallback: match by tomb coords if we can't resolve MVP
     query = query.eq('tomb_x', tomb_x).eq('tomb_y', tomb_y)
   }
 
@@ -87,23 +106,7 @@ export async function POST(request: NextRequest) {
 
   // No existing kill — create one from tomb click info
   // This is the most reliable source: user clicked the tomb and we have killer name
-  // killed_at=NOW() is approximate (MVP died sometime before now)
-
-  // Resolve MVP by map
-  const resolvedMap = (map && map !== 'unknown') ? map : null
-  let mvpId: number | null = null
-
-  if (resolvedMap) {
-    const { data: mvps } = await supabase
-      .from('mvps')
-      .select('id')
-      .eq('map_name', resolvedMap)
-      .eq('server_id', ctx.serverId)
-
-    if (mvps && mvps.length === 1) {
-      mvpId = mvps[0].id
-    }
-  }
+  const mvpId = matchMvpIds.length === 1 ? matchMvpIds[0] : null
 
   // Resolve character for registered_by
   const { data: charRow } = await supabase
