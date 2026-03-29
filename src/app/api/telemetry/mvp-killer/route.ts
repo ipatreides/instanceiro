@@ -133,6 +133,15 @@ export async function POST(request: NextRequest) {
     .select('id')
     .single()
 
+  // Clear sightings — MVP is dead
+  if (newKill && mvpId) {
+    await supabase
+      .from('mvp_sightings')
+      .delete()
+      .eq('mvp_id', mvpId)
+      .eq('group_id', ctx.groupId)
+  }
+
   return NextResponse.json({
     action: 'created',
     kill_id: newKill?.id,

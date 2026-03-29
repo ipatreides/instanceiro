@@ -94,6 +94,15 @@ export async function POST(request: NextRequest) {
     .select('id')
     .single()
 
+  // Clear sightings for this MVP — it's dead now
+  if (kill) {
+    await supabase
+      .from('mvp_sightings')
+      .delete()
+      .eq('mvp_id', mvp.id)
+      .eq('group_id', ctx.groupId)
+  }
+
   if (killErr || !kill) {
     return NextResponse.json({ error: 'Failed to insert kill' }, { status: 500 })
   }
