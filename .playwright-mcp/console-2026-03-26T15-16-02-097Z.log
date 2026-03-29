@@ -1,0 +1,61 @@
+[      56ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:11199:23
+    at _handleRequest (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:11553:24)
+    at _request (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:11540:24)
+    at http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15229:243
+    at SupabaseAuthClient._useSession (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15098:26)
+    at async SupabaseAuthClient._getUser (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15214:20)
+    at async http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15198:20 @ http://localhost:3000/_next/static/chunks/c7ccb_next_dist_406cf703._.js:3127
+[      57ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:11199:23
+    at _handleRequest (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:11553:24)
+    at _request (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:11540:24)
+    at http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15229:243
+    at SupabaseAuthClient._useSession (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15098:26)
+    at async SupabaseAuthClient._getUser (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15214:20)
+    at async http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15198:20 @ http://localhost:3000/_next/static/chunks/c7ccb_next_dist_406cf703._.js:3127
+[      57ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:11199:23
+    at _handleRequest (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:11553:24)
+    at _request (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:11540:24)
+    at http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15229:243
+    at SupabaseAuthClient._useSession (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15098:26)
+    at async SupabaseAuthClient._getUser (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15214:20)
+    at async http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15198:20 @ http://localhost:3000/_next/static/chunks/c7ccb_next_dist_406cf703._.js:3127
+[      57ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:11199:23
+    at _handleRequest (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:11553:24)
+    at _request (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:11540:24)
+    at http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15229:243
+    at SupabaseAuthClient._useSession (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15098:26)
+    at async SupabaseAuthClient._getUser (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15214:20)
+    at async http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15198:20 @ http://localhost:3000/_next/static/chunks/c7ccb_next_dist_406cf703._.js:3127
+[      57ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:11199:23
+    at _handleRequest (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:11553:24)
+    at _request (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:11540:24)
+    at http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15229:243
+    at SupabaseAuthClient._useSession (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15098:26)
+    at async SupabaseAuthClient._getUser (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15214:20)
+    at async http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15198:20 @ http://localhost:3000/_next/static/chunks/c7ccb_next_dist_406cf703._.js:3127
+[      57ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:11199:23
+    at _handleRequest (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:11553:24)
+    at _request (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:11540:24)
+    at http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15229:243
+    at SupabaseAuthClient._useSession (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15098:26)
+    at async SupabaseAuthClient._getUser (http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15214:20)
+    at async http://localhost:3000/_next/static/chunks/c7ccb_31888a30._.js:15198:20 @ http://localhost:3000/_next/static/chunks/c7ccb_next_dist_406cf703._.js:3127
+[    5449ms] [WARNING] @supabase/gotrue-js: Lock "lock:sb-swgnctajsbiyhqxstrnx-auth-token" was not released within 5000ms. This may indicate an orphaned lock from a component unmount (e.g., React Strict Mode). Forcefully acquiring the lock to recover. @ http://localhost:3000/_next/static/chunks/c7ccb_next_dist_406cf703._.js:2297
+[    5449ms] [WARNING] @supabase/gotrue-js: Lock "lock:sb-swgnctajsbiyhqxstrnx-auth-token" was not released within 5000ms. This may indicate an orphaned lock from a component unmount (e.g., React Strict Mode). Forcefully acquiring the lock to recover. @ http://localhost:3000/_next/static/chunks/c7ccb_next_dist_406cf703._.js:2297
+[    5449ms] [WARNING] @supabase/gotrue-js: Lock "lock:sb-swgnctajsbiyhqxstrnx-auth-token" was not released within 5000ms. This may indicate an orphaned lock from a component unmount (e.g., React Strict Mode). Forcefully acquiring the lock to recover. @ http://localhost:3000/_next/static/chunks/c7ccb_next_dist_406cf703._.js:2297
+[    5449ms] [WARNING] @supabase/gotrue-js: Lock "lock:sb-swgnctajsbiyhqxstrnx-auth-token" was not released within 5000ms. This may indicate an orphaned lock from a component unmount (e.g., React Strict Mode). Forcefully acquiring the lock to recover. @ http://localhost:3000/_next/static/chunks/c7ccb_next_dist_406cf703._.js:2297
+[    5449ms] [WARNING] @supabase/gotrue-js: Lock "lock:sb-swgnctajsbiyhqxstrnx-auth-token" was not released within 5000ms. This may indicate an orphaned lock from a component unmount (e.g., React Strict Mode). Forcefully acquiring the lock to recover. @ http://localhost:3000/_next/static/chunks/c7ccb_next_dist_406cf703._.js:2297
+[    5450ms] [WARNING] @supabase/gotrue-js: Lock "lock:sb-swgnctajsbiyhqxstrnx-auth-token" was not released within 5000ms. This may indicate an orphaned lock from a component unmount (e.g., React Strict Mode). Forcefully acquiring the lock to recover. @ http://localhost:3000/_next/static/chunks/c7ccb_next_dist_406cf703._.js:2297
+[    5450ms] [WARNING] @supabase/gotrue-js: Lock "lock:sb-swgnctajsbiyhqxstrnx-auth-token" was not released within 5000ms. This may indicate an orphaned lock from a component unmount (e.g., React Strict Mode). Forcefully acquiring the lock to recover. @ http://localhost:3000/_next/static/chunks/c7ccb_next_dist_406cf703._.js:2297
+[    5450ms] [WARNING] @supabase/gotrue-js: Lock "lock:sb-swgnctajsbiyhqxstrnx-auth-token" was not released within 5000ms. This may indicate an orphaned lock from a component unmount (e.g., React Strict Mode). Forcefully acquiring the lock to recover. @ http://localhost:3000/_next/static/chunks/c7ccb_next_dist_406cf703._.js:2297
+[    5451ms] Lock broken by another request with the 'steal' option.
+[    5454ms] [ERROR] Error fetching servers: {message: AbortError: Lock broken by another request with the 'steal' option., details: AbortError: Lock broken by another request with the 'steal' option., hint: Request was aborted (timeout or manual cancellation), code: } @ http://localhost:3000/_next/static/chunks/c7ccb_next_dist_406cf703._.js:3127
+[    5455ms] Lock broken by another request with the 'steal' option.
+[    5456ms] Lock broken by another request with the 'steal' option.
+[    5456ms] Lock broken by another request with the 'steal' option.

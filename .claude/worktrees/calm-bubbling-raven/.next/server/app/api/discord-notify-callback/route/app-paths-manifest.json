@@ -1,0 +1,3 @@
+{
+  "/api/discord-notify-callback/route": "app/api/discord-notify-callback/route.js"
+}

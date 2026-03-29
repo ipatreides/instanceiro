@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="#0a0a0f"/>
+  <!-- Shield -->
+  <path d="M256 96 L410 173 L410 314 Q410 429 256 470 Q102 429 102 314 L102 173 Z" stroke="#C87941" stroke-width="18" fill="#C8794112" stroke-linejoin="round"/>
+  <!-- Clock circle -->
+  <circle cx="256" cy="270" r="100" stroke="#E8A665" stroke-width="10" fill="none"/>
+  <!-- Hour hand -->
+  <line x1="256" y1="270" x2="256" y2="190" stroke="#C87941" stroke-width="16" stroke-linecap="round"/>
+  <!-- Minute hand -->
+  <line x1="256" y1="270" x2="320" y2="270" stroke="#C87941" stroke-width="13" stroke-linecap="round"/>
+  <!-- Center dot -->
+  <circle cx="256" cy="270" r="14" fill="#C87941"/>
+  <!-- Hour marks -->
+  <line x1="256" y1="172" x2="256" y2="185" stroke="#E8A665" stroke-width="8" stroke-linecap="round"/>
+  <line x1="354" y1="270" x2="341" y2="270" stroke="#E8A665" stroke-width="8" stroke-linecap="round"/>
+  <line x1="256" y1="368" x2="256" y2="355" stroke="#E8A665" stroke-width="8" stroke-linecap="round"/>
+  <line x1="158" y1="270" x2="171" y2="270" stroke="#E8A665" stroke-width="8" stroke-linecap="round"/>
+</svg>

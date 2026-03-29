@@ -1,0 +1,3 @@
+{
+  "/api/calendar/outlook/callback/route": "app/api/calendar/outlook/callback/route.js"
+}

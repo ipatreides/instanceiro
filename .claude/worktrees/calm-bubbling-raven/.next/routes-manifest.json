@@ -1,0 +1,239 @@
+{
+  "version": 3,
+  "pages404": true,
+  "appType": "app",
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "priority": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [],
+    "fallback": []
+  },
+  "dynamicRoutes": [
+    {
+      "page": "/invite/[code]",
+      "regex": "^/invite/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPcode": "nxtPcode"
+      },
+      "namedRegex": "^/invite/(?<nxtPcode>[^/]+?)(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_global-error",
+      "regex": "^/_global\\-error(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_global\\-error(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/api/calendar/google/callback",
+      "regex": "^/api/calendar/google/callback(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/calendar/google/callback(?:/)?$"
+    },
+    {
+      "page": "/api/calendar/google/connect",
+      "regex": "^/api/calendar/google/connect(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/calendar/google/connect(?:/)?$"
+    },
+    {
+      "page": "/api/calendar/outlook/callback",
+      "regex": "^/api/calendar/outlook/callback(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/calendar/outlook/callback(?:/)?$"
+    },
+    {
+      "page": "/api/calendar/outlook/connect",
+      "regex": "^/api/calendar/outlook/connect(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/calendar/outlook/connect(?:/)?$"
+    },
+    {
+      "page": "/api/calendar/sync",
+      "regex": "^/api/calendar/sync(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/calendar/sync(?:/)?$"
+    },
+    {
+      "page": "/api/discord-bot-callback",
+      "regex": "^/api/discord\\-bot\\-callback(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/discord\\-bot\\-callback(?:/)?$"
+    },
+    {
+      "page": "/api/discord-channels",
+      "regex": "^/api/discord\\-channels(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/discord\\-channels(?:/)?$"
+    },
+    {
+      "page": "/api/discord-notify-callback",
+      "regex": "^/api/discord\\-notify\\-callback(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/discord\\-notify\\-callback(?:/)?$"
+    },
+    {
+      "page": "/api/discord-notify-test",
+      "regex": "^/api/discord\\-notify\\-test(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/discord\\-notify\\-test(?:/)?$"
+    },
+    {
+      "page": "/api/mvp-alerts/process",
+      "regex": "^/api/mvp\\-alerts/process(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/mvp\\-alerts/process(?:/)?$"
+    },
+    {
+      "page": "/api/telemetry/config",
+      "regex": "^/api/telemetry/config(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/telemetry/config(?:/)?$"
+    },
+    {
+      "page": "/api/telemetry/heartbeat",
+      "regex": "^/api/telemetry/heartbeat(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/telemetry/heartbeat(?:/)?$"
+    },
+    {
+      "page": "/api/telemetry/mvp-kill",
+      "regex": "^/api/telemetry/mvp\\-kill(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/telemetry/mvp\\-kill(?:/)?$"
+    },
+    {
+      "page": "/api/telemetry/mvp-killer",
+      "regex": "^/api/telemetry/mvp\\-killer(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/telemetry/mvp\\-killer(?:/)?$"
+    },
+    {
+      "page": "/api/telemetry/mvp-tomb",
+      "regex": "^/api/telemetry/mvp\\-tomb(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/telemetry/mvp\\-tomb(?:/)?$"
+    },
+    {
+      "page": "/api/telemetry/pair",
+      "regex": "^/api/telemetry/pair(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/telemetry/pair(?:/)?$"
+    },
+    {
+      "page": "/api/telemetry/pair/exchange",
+      "regex": "^/api/telemetry/pair/exchange(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/telemetry/pair/exchange(?:/)?$"
+    },
+    {
+      "page": "/api/telemetry/pair/initiate",
+      "regex": "^/api/telemetry/pair/initiate(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/telemetry/pair/initiate(?:/)?$"
+    },
+    {
+      "page": "/auth/callback",
+      "regex": "^/auth/callback(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/auth/callback(?:/)?$"
+    },
+    {
+      "page": "/auth/callback-client",
+      "regex": "^/auth/callback\\-client(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/auth/callback\\-client(?:/)?$"
+    },
+    {
+      "page": "/dashboard",
+      "regex": "^/dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dashboard(?:/)?$"
+    },
+    {
+      "page": "/forgot-password",
+      "regex": "^/forgot\\-password(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/forgot\\-password(?:/)?$"
+    },
+    {
+      "page": "/icon.svg",
+      "regex": "^/icon\\.svg(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/icon\\.svg(?:/)?$"
+    },
+    {
+      "page": "/login",
+      "regex": "^/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/profile",
+      "regex": "^/profile(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/profile(?:/)?$"
+    },
+    {
+      "page": "/reset-password",
+      "regex": "^/reset\\-password(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/reset\\-password(?:/)?$"
+    },
+    {
+      "page": "/signup",
+      "regex": "^/signup(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/signup(?:/)?$"
+    },
+    {
+      "page": "/telemetry/pair",
+      "regex": "^/telemetry/pair(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/telemetry/pair(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "rsc",
+    "varyHeader": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "prefetchHeader": "next-router-prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSegmentHeader": "next-router-segment-prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments",
+    "clientParamParsing": false,
+    "dynamicRSCPrerender": false
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "app": {
+    "[project]/instance-tracker/.claude/worktrees/calm-bubbling-raven/src/app/_not-found/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2"
+    ],
+    "[project]/instance-tracker/.claude/worktrees/calm-bubbling-raven/src/app/dashboard/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2"
+    ],
+    "[project]/instance-tracker/.claude/worktrees/calm-bubbling-raven/src/app/login/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2"
+    ],
+    "[project]/instance-tracker/.claude/worktrees/calm-bubbling-raven/src/app/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2"
+    ],
+    "[project]/instance-tracker/.claude/worktrees/calm-bubbling-raven/src/app/telemetry/pair/page": [
+      "static/media/1b99372b3eaef0c8-s.p.758e15a8.woff2"
+    ]
+  },
+  "appUsingSizeAdjust": true,
+  "pages": {},
+  "pagesUsingSizeAdjust": false
+}

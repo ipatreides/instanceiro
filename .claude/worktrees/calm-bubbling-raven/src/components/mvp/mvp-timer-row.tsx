@@ -1,0 +1,132 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import type { Mvp, MvpActiveKill, MvpTimerStatus } from "@/lib/types";
+
+interface MvpTimerRowProps {
+  mvp: Mvp;
+  kill: MvpActiveKill | null;
+  onEdit?: (mvp: Mvp, kill: MvpActiveKill) => void;
+}
+
+function computeStatus(kill: MvpActiveKill, mvp: Mvp, now: number): { status: MvpTimerStatus; remainingMs: number } {
+  const killedAt = new Date(kill.killed_at).getTime();
+  const spawnStart = killedAt + mvp.respawn_ms;
+  const spawnEnd = spawnStart + mvp.delay_ms;
+  const tombExpiry = spawnStart + 10 * 60 * 1000;
+  const cardExpiry = spawnStart + 30 * 60 * 1000;
+
+  if (now < spawnStart) return { status: "cooldown", remainingMs: spawnStart - now };
+  if (now < spawnEnd) return { status: "spawn_window", remainingMs: 0 };
+  if (now < tombExpiry) return { status: "probably_alive", remainingMs: now - spawnEnd };
+  if (now < cardExpiry) return { status: "tomb_expired", remainingMs: now - spawnEnd };
+  return { status: "inactive", remainingMs: 0 };
+}
+
+function formatCountdown(ms: number): string {
+  const totalMin = Math.floor(Math.abs(ms) / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, "0")}`;
+  return `${m}min`;
+}
+
+const STATUS_COLORS: Record<MvpTimerStatus, string> = {
+  cooldown: "var(--status-cooldown)",
+  spawn_window: "var(--status-available)",
+  probably_alive: "var(--status-available)",
+  tomb_expired: "var(--status-available)",
+  inactive: "var(--border)",
+};
+
+const STATUS_TEXT_COLORS: Record<MvpTimerStatus, string> = {
+  cooldown: "var(--status-cooldown-text)",
+  spawn_window: "var(--status-available-text)",
+  probably_alive: "var(--status-available-text)",
+  tomb_expired: "var(--text-secondary)",
+  inactive: "var(--text-secondary)",
+};
+
+export function MvpTimerRow({ mvp, kill, onEdit }: MvpTimerRowProps) {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!kill) return null;
+
+  const { status, remainingMs } = computeStatus(kill, mvp, now);
+  if (status === "inactive") return null;
+
+  const borderColor = STATUS_COLORS[status];
+  const textColor = STATUS_TEXT_COLORS[status];
+  const showTomb = kill.tomb_x != null && kill.tomb_y != null && status !== "tomb_expired";
+  const isCountUp = status === "probably_alive" || status === "tomb_expired";
+
+  let countdownColor = textColor;
+  if (status === "cooldown") {
+    if (remainingMs < 5 * 60 * 1000) countdownColor = "var(--status-available-text)";
+    else if (remainingMs < 30 * 60 * 1000) countdownColor = "var(--status-soon-text)";
+  }
+
+  const statusLabel = status === "cooldown" ? "" : status === "spawn_window" ? "Pode nascer" : "Provavelmente vivo";
+  const displayName = `${mvp.name} (${mvp.map_name})`;
+
+  return (
+    <div
+      className="group flex items-center gap-3 px-3 py-2 rounded-lg bg-surface border border-border"
+      style={{ borderLeftWidth: 3, borderLeftColor: borderColor }}
+    >
+      <div className="flex flex-col flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-text-primary font-medium truncate">{displayName}</span>
+          {kill.kill_count > 1 && (
+            <span className="text-[10px] text-text-secondary">×{kill.kill_count}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {showTomb && (
+            <span className="text-[10px] text-text-secondary">{kill.tomb_x},{kill.tomb_y}</span>
+          )}
+          {statusLabel && (
+            <span className="text-[10px]" style={{ color: textColor }}>{statusLabel}</span>
+          )}
+          {kill.registered_by_name && (
+            <span className="text-[10px] text-text-secondary">
+              por {kill.edited_by_name ? `${kill.edited_by_name} (editado)` : kill.registered_by_name}
+              {kill.source === 'telemetry' && (
+                <span
+                  className="text-text-secondary ml-1"
+                  title={`Registrado via telemetria${kill.registered_by_name ? ` por ${kill.registered_by_name}` : ''}`}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="inline">
+                    <path d="M12 20V10M8 14l4-4 4 4M4 4h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </span>
+              )}
+            </span>
+          )}
+          {kill.pending_loots_count > 0 && (
+            <span className="text-xs bg-[color-mix(in_srgb,var(--primary)_15%,transparent)] text-primary rounded-sm px-1.5 py-0.5 ml-2">
+              {kill.pending_loots_count} drop{kill.pending_loots_count > 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+      </div>
+      <span className="text-sm font-bold tabular-nums min-w-[60px] text-right" style={{ color: countdownColor }}>
+        {isCountUp ? `+${formatCountdown(remainingMs)}` : formatCountdown(remainingMs)}
+      </span>
+      {onEdit && kill && (
+        <button
+          onClick={() => onEdit(mvp, kill)}
+          className="text-[10px] text-text-secondary hover:text-primary cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+          title="Editar"
+        >
+          ✎
+        </button>
+      )}
+    </div>
+  );
+}

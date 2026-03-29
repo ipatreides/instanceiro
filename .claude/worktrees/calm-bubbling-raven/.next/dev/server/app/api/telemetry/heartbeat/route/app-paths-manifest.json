@@ -1,0 +1,3 @@
+{
+  "/api/telemetry/heartbeat/route": "app/api/telemetry/heartbeat/route.js"
+}

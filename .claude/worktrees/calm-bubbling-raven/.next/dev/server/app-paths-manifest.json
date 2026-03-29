@@ -1,0 +1,17 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/calendar/sync/route": "app/api/calendar/sync/route.js",
+  "/api/telemetry/config/route": "app/api/telemetry/config/route.js",
+  "/api/telemetry/heartbeat/route": "app/api/telemetry/heartbeat/route.js",
+  "/api/telemetry/mvp-kill/route": "app/api/telemetry/mvp-kill/route.js",
+  "/api/telemetry/mvp-killer/route": "app/api/telemetry/mvp-killer/route.js",
+  "/api/telemetry/mvp-tomb/route": "app/api/telemetry/mvp-tomb/route.js",
+  "/api/telemetry/pair/exchange/route": "app/api/telemetry/pair/exchange/route.js",
+  "/api/telemetry/pair/initiate/route": "app/api/telemetry/pair/initiate/route.js",
+  "/api/telemetry/pair/route": "app/api/telemetry/pair/route.js",
+  "/auth/callback/route": "app/auth/callback/route.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/login/page": "app/login/page.js",
+  "/page": "app/page.js",
+  "/telemetry/pair/page": "app/telemetry/pair/page.js"
+}

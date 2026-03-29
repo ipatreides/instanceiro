@@ -1,0 +1,147 @@
+@import "tailwindcss";
+
+/* ── Dark theme (default) ── */
+:root,
+[data-theme="dark"] {
+  --bg: #0a0a0f;
+  --surface: #141420;
+  --border: #1e1e2e;
+  --primary: #C87941;
+  --primary-secondary: #E8A665;
+  --primary-hover: #b56a35;
+  --text-primary: #e8e8f0;
+  --text-secondary: #7a7a8e;
+  --status-available: #4a9a5a;
+  --status-available-text: #6abf7a;
+  --status-soon: #d4a843;
+  --status-soon-text: #f0c060;
+  --status-cooldown: #C87941;
+  --status-cooldown-text: #E8A665;
+  --status-error: #c44040;
+  --status-error-text: #f07070;
+  --icon-fill-opacity: 0.15;
+  --card-hover-bg: #181830;
+  --card-hover-border: #3a3a4a;
+  --disabled-bg: #3a3a4a;
+  --disabled-text: #5a5a6e;
+  --focus-ring: #E8A665;
+  --card-shadow: none;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --slot-dps-fisico: #e07040;
+  --slot-dps-magico: #7b68ee;
+  --slot-artista: #e8a665;
+  --slot-classe: #4a9a8a;
+}
+
+/* ── Light theme ── */
+[data-theme="light"] {
+  --bg: #f8f7f5;
+  --surface: #ffffff;
+  --border: #e5e2dc;
+  --primary: #a0612e;
+  --primary-secondary: #c4863e;
+  --primary-hover: #8a5020;
+  --text-primary: #1a1a1a;
+  --text-secondary: #706b65;
+  --status-available: #2e8a3e;
+  --status-available-text: #1e6a2e;
+  --status-soon: #b8922e;
+  --status-soon-text: #8a6e1a;
+  --status-cooldown: #a0612e;
+  --status-cooldown-text: #8a5020;
+  --status-error: #b83030;
+  --status-error-text: #8a2020;
+  --icon-fill-opacity: 0.10;
+  --card-hover-bg: transparent;
+  --card-hover-border: #d5d2cc;
+  --disabled-bg: #e5e2dc;
+  --disabled-text: #b5b0a8;
+  --focus-ring: #c4863e;
+  --card-shadow: 0 1px 3px #0000000a;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --slot-dps-fisico: #c45a30;
+  --slot-dps-magico: #5b48ce;
+  --slot-artista: #c4863e;
+  --slot-classe: #3a7a6a;
+}
+
+@theme inline {
+  --font-sans: var(--font-outfit);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-secondary: var(--primary-secondary);
+  --color-primary-hover: var(--primary-hover);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-status-available: var(--status-available);
+  --color-status-available-text: var(--status-available-text);
+  --color-status-soon: var(--status-soon);
+  --color-status-soon-text: var(--status-soon-text);
+  --color-status-cooldown: var(--status-cooldown);
+  --color-status-cooldown-text: var(--status-cooldown-text);
+  --color-status-error: var(--status-error);
+  --color-status-error-text: var(--status-error-text);
+  --color-card-hover-bg: var(--card-hover-bg);
+  --color-card-hover-border: var(--card-hover-border);
+  --color-disabled-bg: var(--disabled-bg);
+  --color-disabled-text: var(--disabled-text);
+  --color-focus-ring: var(--focus-ring);
+  --shadow-card: var(--card-shadow);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --color-slot-dps-fisico: var(--slot-dps-fisico);
+  --color-slot-dps-magico: var(--slot-dps-magico);
+  --color-slot-artista: var(--slot-artista);
+  --color-slot-classe: var(--slot-classe);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+}
+
+/* Hide all scrollbars globally — overflow containers should be draggable */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+
+/* Thin styled scrollbar (opt-in, overrides global hide) */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  display: block;
+  height: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Status-aware card left borders with hover brightening */
+.card-status-available { border-left-color: var(--status-available); }
+.card-status-available:hover { border-left-color: var(--status-available-text); }
+.card-status-cooldown { border-left-color: var(--status-cooldown); }
+.card-status-cooldown:hover { border-left-color: var(--status-cooldown-text); }
+.card-status-soon { border-left-color: var(--status-soon); }
+.card-status-soon:hover { border-left-color: var(--status-soon-text); }
+.card-status-error { border-left-color: var(--status-error); }
+.card-status-error:hover { border-left-color: var(--status-error-text); }

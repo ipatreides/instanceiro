@@ -1,0 +1,16 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/telemetry/layout,_N_T_/telemetry/pair/layout,_N_T_/telemetry/pair/page,_N_T_/telemetry/pair"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/telemetry/pair/__PAGE__",
+    "/telemetry/pair",
+    "/telemetry",
+    "/_index",
+    "/_head"
+  ]
+}

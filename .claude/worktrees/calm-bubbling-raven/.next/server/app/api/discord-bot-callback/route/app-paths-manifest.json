@@ -1,0 +1,3 @@
+{
+  "/api/discord-bot-callback/route": "app/api/discord-bot-callback/route.js"
+}

@@ -19,21 +19,17 @@ export async function POST(request: NextRequest) {
   // Build killed_at from tomb time if available (hours:minutes in BRT server time)
   let killedAt: string | null = null
   if (kill_hour != null && kill_minute != null && kill_hour >= 0 && kill_minute >= 0) {
-    // The time from the tomb is in the game server's timezone (BRT = UTC-3)
     const now = new Date()
-    // Get today's date in BRT
     const brtDate = now.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-    // Construct BRT time and convert to UTC
     const brtIso = `${brtDate}T${String(kill_hour).padStart(2, '0')}:${String(kill_minute).padStart(2, '0')}:00-03:00`
     const killDate = new Date(brtIso)
-    // If the kill time is in the future (crossed midnight), subtract a day
     if (killDate.getTime() > now.getTime()) {
       killDate.setDate(killDate.getDate() - 1)
     }
     killedAt = killDate.toISOString()
   }
 
-  // Resolve MVP by map to find the most recent kill
+  // Resolve MVP by map
   const resolvedMap = (map && map !== 'unknown') ? map : null
   let matchMvpIds: number[] = []
 
@@ -47,31 +43,7 @@ export async function POST(request: NextRequest) {
     matchMvpIds = mapMvps?.map(m => m.id) ?? []
   }
 
-  // Find the most recent kill for this MVP in the group (within last 24h)
-  const killCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-  let query = supabase
-    .from('mvp_kills')
-    .select('id, killer_name_raw, killed_at')
-    .eq('group_id', ctx.groupId)
-    .gte('killed_at', killCutoff)
-
-  if (matchMvpIds.length > 0) {
-    query = query.in('mvp_id', matchMvpIds)
-  } else if (tomb_x != null && tomb_y != null) {
-    query = query.eq('tomb_x', tomb_x).eq('tomb_y', tomb_y)
-  }
-
-  const { data: kill } = await query
-    .order('killed_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  // Dedup: if the most recent kill already has this killer, skip
-  if (kill && kill.killer_name_raw === killer_name) {
-    return NextResponse.json({ action: 'dedup', kill_id: kill.id })
-  }
-
-  // Try to resolve killer_name to a character_id in the group
+  // Resolve killer to character_id
   const { data: members } = await supabase
     .from('mvp_group_members')
     .select('character_id, characters!inner(name)')
@@ -81,66 +53,27 @@ export async function POST(request: NextRequest) {
     (m: any) => m.characters?.name === killer_name
   )
 
-  if (kill) {
-    // Update existing kill with killer info + corrected time from tomb
-    const updates: Record<string, any> = { killer_name_raw: killer_name }
-    if (killedAt) {
-      updates.killed_at = killedAt
-    }
-    if (killerMatch) {
-      updates.killer_character_id = killerMatch.character_id
-    }
-    // Also update tomb coords if provided and not already set
-    if (tomb_x != null && tomb_y != null) {
-      updates.tomb_x = tomb_x
-      updates.tomb_y = tomb_y
-    }
+  // Use atomic RPC for kill registration — handles dedup + sighting cleanup
+  const { data: rpcResult, error: rpcErr } = await supabase.rpc('telemetry_register_kill', {
+    p_group_id: ctx.groupId,
+    p_mvp_ids: matchMvpIds.length > 0 ? matchMvpIds : [0],
+    p_killed_at: killedAt ?? new Date().toISOString(),
+    p_tomb_x: tomb_x ?? null,
+    p_tomb_y: tomb_y ?? null,
+    p_registered_by: ctx.characterUuid,
+    p_source: 'telemetry',
+    p_session_id: ctx.sessionId,
+    p_killer_name: killer_name,
+    p_killer_char_id: killerMatch?.character_id ?? null,
+  })
 
-    await supabase
-      .from('mvp_kills')
-      .update(updates)
-      .eq('id', kill.id)
-
-    return NextResponse.json({
-      action: 'updated',
-      kill_id: kill.id,
-      killer_resolved: !!killerMatch,
-    })
-  }
-
-  // No existing kill — create one from tomb click info
-  // This is the most reliable source: user clicked the tomb and we have killer name
-  const mvpId = matchMvpIds.length === 1 ? matchMvpIds[0] : null
-
-  const { data: newKill } = await supabase
-    .from('mvp_kills')
-    .insert({
-      group_id: ctx.groupId,
-      mvp_id: mvpId,
-      killed_at: killedAt ?? new Date().toISOString(),
-      tomb_x: tomb_x ?? null,
-      tomb_y: tomb_y ?? null,
-      killer_character_id: killerMatch?.character_id ?? null,
-      killer_name_raw: killer_name,
-      registered_by: ctx.characterUuid,
-      source: 'telemetry',
-      telemetry_session_id: ctx.sessionId,
-    })
-    .select('id')
-    .single()
-
-  // Clear sightings — MVP is dead
-  if (newKill && mvpId) {
-    await supabase
-      .from('mvp_sightings')
-      .delete()
-      .eq('mvp_id', mvpId)
-      .eq('group_id', ctx.groupId)
+  if (rpcErr) {
+    return NextResponse.json({ error: 'Failed to register kill' }, { status: 500 })
   }
 
   return NextResponse.json({
-    action: 'created',
-    kill_id: newKill?.id,
+    action: rpcResult?.action ?? 'created',
+    kill_id: rpcResult?.kill_id,
     killer_resolved: !!killerMatch,
-  }, { status: 201 })
+  }, { status: rpcResult?.action === 'created' ? 201 : 200 })
 }
