@@ -11,7 +11,7 @@ import { MvpKillModal } from "./mvp-kill-modal";
 import { MvpMapPicker } from "./mvp-map-picker";
 import { MvpGroupHub } from "./mvp-group-hub";
 import { MvpGroupStats } from "./mvp-group-stats";
-import { TelemetrySettings } from "./telemetry-settings";
+import { TelemetryTab } from "./telemetry-tab";
 import { useMvpSightings } from "@/hooks/use-mvp-sightings";
 import { useMvpBroadcasts } from "@/hooks/use-mvp-broadcasts";
 import { formatTimeBRT, formatDateBRT } from "@/lib/date-brt";
@@ -62,7 +62,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
   const [modalInitialTime, setModalInitialTime] = useState<string | null>(null);
   const [modalKill, setModalKill] = useState<MvpActiveKill | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [hubTab, setHubTab] = useState<"grupo" | "stats">("grupo");
+  const [hubTab, setHubTab] = useState<"grupo" | "stats" | "telemetria">("grupo");
   const [now, setNow] = useState(Date.now());
   const [memberNames, setMemberNames] = useState<Map<string, string>>(new Map());
   const [memberUsernames, setMemberUsernames] = useState<Map<string, string>>(new Map());
@@ -353,6 +353,16 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                 >
                   Stats
                 </button>
+                <button
+                  onClick={() => setHubTab("telemetria")}
+                  className={`px-3 py-1 text-xs font-medium rounded-md cursor-pointer transition-colors ${
+                    hubTab === "telemetria"
+                      ? "text-text-primary border-b-2 border-primary"
+                      : "text-text-secondary hover:text-text-primary"
+                  }`}
+                >
+                  Telemetria
+                </button>
               </div>
             )}
             {(!group || hubTab === "grupo") ? (
@@ -369,14 +379,11 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                 onInviteCharacter={inviteCharacter}
                 onLeaveGroup={leaveGroup}
               />
-            ) : (
+            ) : hubTab === "stats" ? (
               <MvpGroupStats groupId={group.id} />
-            )}
-            {userId && (
-              <div className="mt-4 pt-4 border-t border-border">
-                <TelemetrySettings userId={userId} />
-              </div>
-            )}
+            ) : hubTab === "telemetria" && userId ? (
+              <TelemetryTab userId={userId} />
+            ) : null}
           </div>
         ) : (
           <>
