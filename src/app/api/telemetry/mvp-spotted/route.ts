@@ -18,12 +18,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  // Resolve monster_id → ALL mvp_ids + map_name
-  const { data: mvpRows } = await supabase
+  // Resolve monster_id → mvp_ids (prefer map-specific match)
+  const resolvedMap = (map && map !== 'unknown') ? map : null
+  let mvpQuery = supabase
     .from('mvps')
     .select('id, map_name')
     .eq('monster_id', monster_id)
     .eq('server_id', ctx.serverId)
+
+  if (resolvedMap) {
+    mvpQuery = mvpQuery.eq('map_name', resolvedMap)
+  }
+
+  let { data: mvpRows } = await mvpQuery
+
+  // Fallback without map filter
+  if ((!mvpRows || mvpRows.length === 0) && resolvedMap) {
+    const { data: allRows } = await supabase
+      .from('mvps')
+      .select('id, map_name')
+      .eq('monster_id', monster_id)
+      .eq('server_id', ctx.serverId)
+    mvpRows = allRows
+  }
 
   if (!mvpRows || mvpRows.length === 0) {
     return NextResponse.json({ error: 'Unknown MVP' }, { status: 400 })
@@ -31,7 +48,7 @@ export async function POST(request: NextRequest) {
 
   const mvpIds = mvpRows.map(m => m.id)
   const mvpId = mvpRows[0].id
-  const resolvedMap = (map && map !== 'unknown') ? map : (mvpRows[0].map_name ?? 'unknown')
+  const finalMap = resolvedMap ?? (mvpRows[0].map_name ?? 'unknown')
 
   // Ignore sighting if MVP was killed recently (within 5 minutes)
   const killCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString()
@@ -61,7 +78,7 @@ export async function POST(request: NextRequest) {
     // Update position instead of inserting
     await supabase
       .from('mvp_sightings')
-      .update({ map_name: resolvedMap, x, y, spotted_at: new Date().toISOString() })
+      .update({ map_name: finalMap, x, y, spotted_at: new Date().toISOString() })
       .eq('id', recent[0].id)
 
     return NextResponse.json({ action: 'updated', sighting_id: recent[0].id })
@@ -73,7 +90,7 @@ export async function POST(request: NextRequest) {
     .insert({
       mvp_id: mvpId,
       group_id: ctx.groupId,
-      map_name: resolvedMap,
+      map_name: finalMap,
       x,
       y,
       telemetry_session_id: ctx.sessionId,

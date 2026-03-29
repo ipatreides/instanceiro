@@ -17,18 +17,35 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  // Resolve monster_id → ALL mvp_ids
-  const { data: mvpRows } = await supabase
+  // Resolve monster_id → mvp_ids (prefer map-specific match, fallback to all)
+  let query = supabase
     .from('mvps')
     .select('id')
     .eq('monster_id', monster_id)
     .eq('server_id', ctx.serverId)
 
-  if (!mvpRows || mvpRows.length === 0) {
+  if (map && map !== 'unknown') {
+    query = query.eq('map_name', map)
+  }
+
+  const { data: mvpRows } = await query
+
+  // Fallback: if map filter returned nothing, try without map
+  let finalRows = mvpRows
+  if ((!finalRows || finalRows.length === 0) && map && map !== 'unknown') {
+    const { data: allRows } = await supabase
+      .from('mvps')
+      .select('id')
+      .eq('monster_id', monster_id)
+      .eq('server_id', ctx.serverId)
+    finalRows = allRows
+  }
+
+  if (!finalRows || finalRows.length === 0) {
     return NextResponse.json({ error: 'Unknown MVP for this server' }, { status: 400 })
   }
 
-  const mvpIds = mvpRows.map(m => m.id)
+  const mvpIds = finalRows.map(m => m.id)
   const killedAt = new Date(timestamp * 1000).toISOString()
 
   // Atomic kill registration — handles dedup, overwrite, and sighting cleanup in one transaction
