@@ -2,17 +2,19 @@
 
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import type { Mvp, MvpActiveKill } from "@/lib/types";
+import type { MvpSighting } from "@/hooks/use-mvp-sightings";
 
 interface MvpTimerListProps {
   mvps: Mvp[];
   activeKills: MvpActiveKill[];
+  sightings: MvpSighting[];
   search: string;
   loading: boolean;
   selectedMvpId: number | null;
   onSelectMvp: (mvp: Mvp) => void;
 }
 
-export function MvpTimerList({ mvps, activeKills, search, loading, selectedMvpId, onSelectMvp }: MvpTimerListProps) {
+export function MvpTimerList({ mvps, activeKills, sightings, search, loading, selectedMvpId, onSelectMvp }: MvpTimerListProps) {
   const [inactiveCollapsed, setInactiveCollapsed] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollUp, setCanScrollUp] = useState(false);
@@ -147,7 +149,10 @@ export function MvpTimerList({ mvps, activeKills, search, loading, selectedMvpId
         {active.length > 0 && (
           <div className="flex flex-col gap-1 mb-2">
             <p className="text-[10px] text-text-secondary font-semibold px-1">ATIVOS ({active.length})</p>
-            {active.map(({ mvp, kill }) => (
+            {active.map(({ mvp, kill }) => {
+              const hasSighting = sightings.some(s => s.mvp_id === mvp.id);
+              const timerColor = hasSighting ? "var(--status-available)" : getTimerColor(kill, mvp, now);
+              return (
               <button
                 key={mvp.id}
                 onClick={() => onSelectMvp(mvp)}
@@ -156,7 +161,7 @@ export function MvpTimerList({ mvps, activeKills, search, loading, selectedMvpId
                     ? "bg-card-hover-bg outline outline-1 outline-primary"
                     : "bg-surface hover:bg-card-hover-bg"
                 }`}
-                style={{ borderLeft: `3px solid ${getTimerColor(kill, mvp, now)}` }}
+                style={{ borderLeft: `3px solid ${timerColor}` }}
               >
                 <div className="flex-1 min-w-0">
                   <div className="text-[11px] font-medium text-text-primary truncate">{mvp.name}</div>
@@ -167,11 +172,18 @@ export function MvpTimerList({ mvps, activeKills, search, loading, selectedMvpId
                     )}
                   </div>
                 </div>
-                <span className="text-[11px] font-bold tabular-nums" style={{ color: getTimerColor(kill, mvp, now) }}>
-                  {formatTimer(kill, mvp, now)}
-                </span>
+                {hasSighting ? (
+                  <span className="text-[11px] font-bold animate-pulse" style={{ color: "var(--status-available-text)" }}>
+                    Vivo
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-bold tabular-nums" style={{ color: timerColor }}>
+                    {formatTimer(kill, mvp, now)}
+                  </span>
+                )}
               </button>
-            ))}
+              );
+            })}
           </div>
         )}
 

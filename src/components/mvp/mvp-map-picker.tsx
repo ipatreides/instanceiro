@@ -83,8 +83,8 @@ export function MvpMapPicker({ mapName, mapMeta, tombX, tombY, onCoordsChange, r
           title={`MVP visto aqui — ${formatTimeBRT(sighting.spotted_at)}`}
         />
       )}
-      {/* Current tomb position */}
-      {dotStyle && (
+      {/* Current tomb position — hidden when MVP is alive (sighting active) */}
+      {dotStyle && !sighting && (
         <div
           className="absolute w-3 h-3 rounded-full border-2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
           style={{

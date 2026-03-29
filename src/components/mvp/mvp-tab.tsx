@@ -289,6 +289,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
         <MvpTimerList
           mvps={mvps}
           activeKills={activeKills}
+          sightings={sightings}
           search={search}
           loading={loading}
           selectedMvpId={selectedMvp?.id ?? null}
