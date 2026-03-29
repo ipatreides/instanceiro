@@ -67,29 +67,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ action: 'updated', kill_id: kill.id })
   }
 
-  // No matching kill found — create new kill from tomb data
-  // Use already-resolved mapMvps (filtered by map and server above)
-  // If exactly one MVP on this map, create the kill
-  const mvpId = mapMvps!.length === 1 ? mapMvps![0].id : null
-
-  const { data: newKill } = await supabase
-    .from('mvp_kills')
-    .insert({
-      group_id: ctx.groupId,
-      mvp_id: mvpId,
-      killed_at: new Date().toISOString(),
-      tomb_x,
-      tomb_y,
-      registered_by: registeredBy,
-      source: 'telemetry',
-      telemetry_session_id: ctx.sessionId,
-    })
-    .select('id')
-    .single()
-
-  return NextResponse.json({
-    action: 'created',
-    kill_id: newKill?.id,
-    needs_mvp_resolution: mapMvps!.length > 1,
-  }, { status: 201 })
+  // No matching kill found — ignore. The tomb confirms the MVP is dead
+  // but we don't know WHEN it died. The real kill time comes from either:
+  // - the mvp-kill event (ActorDied) if we were on the map when it died
+  // - the tomb click (NPC_TALK) which contains the encoded kill time
+  // Creating a kill with killed_at=NOW() would be incorrect.
+  return NextResponse.json({ action: 'ignored', reason: 'no recent kill to attach coords to' })
 }
