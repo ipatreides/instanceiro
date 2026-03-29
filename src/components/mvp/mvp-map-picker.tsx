@@ -127,7 +127,7 @@ export function MvpMapPicker({ mapName, mapMeta, tombX, tombY, onCoordsChange, r
         <canvas
           ref={canvasRef}
           className="absolute inset-0 pointer-events-none"
-          style={{ opacity }}
+          style={{ opacity, zIndex: 1 }}
         />
       )}
       {/* MVP sighting: live position (green pulsing dot) */}
