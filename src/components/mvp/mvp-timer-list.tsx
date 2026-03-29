@@ -4,6 +4,11 @@ import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import type { Mvp, MvpActiveKill } from "@/lib/types";
 import type { MvpSighting } from "@/hooks/use-mvp-sightings";
 
+const GROUP_DISPLAY_NAMES: Record<string, string> = {
+  bio_lab_3: "Bio Lab 3",
+  bio_lab_5: "Bio Lab 5",
+};
+
 interface MvpTimerListProps {
   mvps: Mvp[];
   activeKills: MvpActiveKill[];
@@ -49,21 +54,40 @@ export function MvpTimerList({ mvps, activeKills, sightings, search, loading, se
     return killMap.get(mvp.id);
   }, [killMap, groupKillMap]);
 
+  // Collapse cooldown_group MVPs into a single representative per group
+  const { collapsedMvps, groupRepresentativeId } = useMemo(() => {
+    const seen = new Set<string>();
+    const representativeIds = new Map<string, number>();
+    const result: Mvp[] = [];
+
+    for (const mvp of mvps) {
+      if (mvp.cooldown_group) {
+        if (seen.has(mvp.cooldown_group)) continue;
+        seen.add(mvp.cooldown_group);
+        representativeIds.set(mvp.cooldown_group, mvp.id);
+      }
+      result.push(mvp);
+    }
+
+    return { collapsedMvps: result, groupRepresentativeId: representativeIds };
+  }, [mvps]);
+
   const q = search.toLowerCase().trim();
 
   const filtered = useMemo(() => {
-    return mvps.filter((m) => {
+    return collapsedMvps.filter((m) => {
       if (!q) return true;
-      return m.name.toLowerCase().includes(q) || m.map_name.toLowerCase().includes(q);
+      const displayName = m.cooldown_group ? GROUP_DISPLAY_NAMES[m.cooldown_group] ?? m.name : m.name;
+      return displayName.toLowerCase().includes(q) || m.name.toLowerCase().includes(q) || m.map_name.toLowerCase().includes(q);
     });
-  }, [mvps, q]);
+  }, [collapsedMvps, q]);
 
   // Split: actives always visible (from all mvps), inactives filtered by search
   const now = Date.now();
   const active: { mvp: Mvp; kill: MvpActiveKill | null }[] = [];
   const activeIds = new Set<number>();
 
-  for (const mvp of mvps) {
+  for (const mvp of collapsedMvps) {
     const kill = getEffectiveKill(mvp);
     if (kill) {
       const spawnStart = new Date(kill.killed_at).getTime() + mvp.respawn_ms;
@@ -183,12 +207,11 @@ export function MvpTimerList({ mvps, activeKills, sightings, search, loading, se
                 style={{ borderLeft: `3px solid ${timerColor}` }}
               >
                 <div className="flex-1 min-w-0">
-                  <div className="text-[11px] font-medium text-text-primary truncate">{mvp.name}</div>
+                  <div className="text-[11px] font-medium text-text-primary truncate">
+                    {mvp.cooldown_group ? GROUP_DISPLAY_NAMES[mvp.cooldown_group] ?? mvp.name : mvp.name}
+                  </div>
                   <div className="text-[9px] text-text-secondary">
                     {mvp.map_name}
-                    {mvp.cooldown_group && (
-                      <span title="Cooldown compartilhado com outros MVPs do grupo"> ⟷</span>
-                    )}
                   </div>
                 </div>
                 {hasSighting ? (
@@ -228,12 +251,11 @@ export function MvpTimerList({ mvps, activeKills, sightings, search, loading, se
                 style={{ borderLeft: "3px solid var(--border)" }}
               >
                 <div className="flex-1 min-w-0">
-                  <div className="text-[11px] text-text-secondary">{mvp.name}</div>
+                  <div className="text-[11px] text-text-secondary">
+                    {mvp.cooldown_group ? GROUP_DISPLAY_NAMES[mvp.cooldown_group] ?? mvp.name : mvp.name}
+                  </div>
                   <div className="text-[9px] text-text-secondary opacity-60">
                     {mvp.map_name}
-                    {mvp.cooldown_group && (
-                      <span title="Cooldown compartilhado com outros MVPs do grupo"> ⟷</span>
-                    )}
                   </div>
                 </div>
                 {killCount > 0 && (
