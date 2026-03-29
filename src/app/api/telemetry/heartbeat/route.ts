@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient()
 
   const body = await request.json()
-  const { current_map, config_version } = body
+  const { current_map, config_version, client_version } = body
 
   // Update session with current map and heartbeat
   await supabase
@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
     .update({
       current_map: current_map ?? null,
       last_heartbeat: new Date().toISOString(),
+      ...(client_version ? { client_version } : {}),
     })
     .eq('id', ctx.sessionId)
 

@@ -40,13 +40,26 @@ export async function resolveTelemetryContext(
   // Validate token
   const { data: tokenRow, error: tokenErr } = await supabase
     .from('telemetry_tokens')
-    .select('id, user_id')
+    .select('id, user_id, last_used_at')
     .eq('token_hash', tokenHash)
     .is('revoked_at', null)
     .single()
 
   if (tokenErr || !tokenRow) {
     return { error: 'Invalid or revoked token', status: 401 }
+  }
+
+  // Auto-revoke tokens inactive for more than 1 hour
+  if (tokenRow.last_used_at) {
+    const lastUsed = new Date(tokenRow.last_used_at).getTime()
+    const oneHourAgo = Date.now() - 60 * 60 * 1000
+    if (lastUsed < oneHourAgo) {
+      await supabase
+        .from('telemetry_tokens')
+        .update({ revoked_at: new Date().toISOString() })
+        .eq('id', tokenRow.id)
+      return { error: 'Token expired due to inactivity', status: 401 }
+    }
   }
 
   // Update last_used_at (fire and forget)
