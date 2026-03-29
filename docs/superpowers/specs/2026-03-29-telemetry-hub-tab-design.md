@@ -16,11 +16,12 @@ Aparece quando o usuário tem pelo menos 1 token ativo.
 
 - Busca `/api/telemetry/version` para `latest_version` e `download_url`
 - Compara com a versão reportada na sessão ativa do heartbeat
-- Atualizado: "Claudinho v1.1.0 ✓" (texto verde)
-- Desatualizado: "Versão desatualizada (v1.0.0)" + botão "Baixar v1.1.0" (link direto pro exe)
-- Sem sessão ativa mas com token: "Claudinho offline"
+- Online + atualizado: "Claudinho v1.1.0 ✓" (texto verde)
+- Online + desatualizado: "Versão desatualizada (v1.0.0)" + botão "Baixar v1.1.0" (link direto pro exe)
+- Offline com versão conhecida: "Claudinho offline — última versão: v1.0.0" (pega `client_version` da sessão mais recente do token)
+- Offline sem versão: "Claudinho offline"
 
-Necessário: adicionar campo `client_version` ao heartbeat. O sniffer já envia `config_version` — adicionar `client_version` (string, ex: "1.1.0") no body do heartbeat e salvar na sessão.
+Necessário: adicionar campo `client_version` ao heartbeat e à tabela `telemetry_sessions`. O sniffer já envia `config_version` — adicionar `client_version` (string, ex: "1.1.0") no body do heartbeat e salvar na sessão. O valor persiste mesmo quando o sniffer fica offline — a última sessão registrada mantém a versão.
 
 ### 2. Sessões Ativas
 
@@ -30,11 +31,11 @@ Lista dos tokens do usuário com status:
 - **Offline**: nome do token, "Último uso: [data]"
 - Botão "Revogar" com confirmação (displaced pattern do design system)
 
-Auto-revoke: no endpoint de heartbeat, antes de processar, verificar se o token teve `last_used_at` > 1 hora atrás. Se sim, marcar `revoked_at = NOW()` e retornar 401. O sniffer vai parar de enviar.
+Auto-revoke em duas camadas:
 
-Alternativa mais simples: cleanup na query do frontend — tokens com `last_used_at` > 1 hora e sem sessão ativa não aparecem na lista. Revogação automática via um cron job simples ou no próprio heartbeat.
+**Camada 1 — Frontend (visual):** A query que lista tokens filtra: sessões com `last_heartbeat > 1 hora` são mostradas como "Offline". Tokens com `last_used_at > 1 hora` e sem sessão ativa recente são visualmente inativos. Isso garante que o frontend nunca mostra lixo, mesmo que o sniffer crashe e nunca mais mande heartbeat.
 
-Decisão: cleanup no heartbeat. Quando o sniffer envia heartbeat, se o token não foi usado por mais de 1 hora desde o último heartbeat, revogar. Na prática: se o sniffer ficou 1 hora sem mandar heartbeat e tenta reconectar, recebe 401 e precisa parear de novo.
+**Camada 2 — Heartbeat (revogação real):** Quando o sniffer tenta reconectar após ficar >1 hora sem heartbeat, o endpoint verifica `last_used_at`. Se passou de 1 hora, revoga o token (`revoked_at = NOW()`) e retorna 401. O sniffer precisa parear de novo. Isso limpa tokens abandonados que tentam voltar.
 
 ### 3. Dúvidas Frequentes (Accordion, sempre visível)
 
