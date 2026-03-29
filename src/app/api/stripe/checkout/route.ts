@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { stripe, PRICES } from "@/lib/stripe";
+import { getStripe, PRICES } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   let customerId = profile?.stripe_customer_id;
 
   if (!customerId) {
-    const customer = await stripe.customers.create({
+    const customer = await getStripe().customers.create({
       email: user.email,
       metadata: { supabase_user_id: user.id },
     });
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
 
   const isFirstSubscription = (count ?? 0) === 0;
 
-  const session = await stripe.checkout.sessions.create({
+  const session = await getStripe().checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
     currency: "brl",
