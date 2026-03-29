@@ -27,14 +27,10 @@ export async function POST(request: NextRequest) {
       killDate.setDate(killDate.getDate() - 1)
     }
     killedAt = killDate.toISOString()
-
-    // Reject stale tomb data — if the kill happened more than 10 minutes ago,
-    // this is an old tomb that shouldn't create new kill records
-    const ageMs = now.getTime() - killDate.getTime()
-    if (ageMs > 10 * 60 * 1000) {
-      return NextResponse.json({ action: 'ignored', reason: 'stale tomb (kill > 10 min ago)' })
-    }
   }
+
+  // Stale tomb: can update existing kills with killer info, but should not create new ones
+  const isStale = killedAt != null && (Date.now() - new Date(killedAt).getTime()) > 10 * 60 * 1000
 
   // Resolve MVP by map
   const resolvedMap = (map && map !== 'unknown') ? map : null
@@ -72,6 +68,7 @@ export async function POST(request: NextRequest) {
     p_session_id: ctx.sessionId,
     p_killer_name: killer_name,
     p_killer_char_id: killerMatch?.character_id ?? null,
+    p_update_only: isStale,
   })
 
   if (rpcErr) {
