@@ -27,6 +27,13 @@ export async function POST(request: NextRequest) {
       killDate.setDate(killDate.getDate() - 1)
     }
     killedAt = killDate.toISOString()
+
+    // Reject stale tomb data — if the kill happened more than 10 minutes ago,
+    // this is an old tomb that shouldn't create new kill records
+    const ageMs = now.getTime() - killDate.getTime()
+    if (ageMs > 10 * 60 * 1000) {
+      return NextResponse.json({ action: 'ignored', reason: 'stale tomb (kill > 10 min ago)' })
+    }
   }
 
   // Resolve MVP by map
