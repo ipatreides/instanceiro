@@ -29,9 +29,6 @@ export async function POST(request: NextRequest) {
     killedAt = killDate.toISOString()
   }
 
-  // Stale tomb: can update existing kills with killer info, but should not create new ones
-  const isStale = killedAt != null && (Date.now() - new Date(killedAt).getTime()) > 10 * 60 * 1000
-
   // Resolve MVP by map
   const resolvedMap = (map && map !== 'unknown') ? map : null
   let matchMvpIds: number[] = []
@@ -68,7 +65,6 @@ export async function POST(request: NextRequest) {
     p_session_id: ctx.sessionId,
     p_killer_name: killer_name,
     p_killer_char_id: killerMatch?.character_id ?? null,
-    p_update_only: isStale,
   })
 
   if (rpcErr) {
