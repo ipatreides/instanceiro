@@ -13,6 +13,7 @@ import { MvpGroupHub } from "./mvp-group-hub";
 import { MvpGroupStats } from "./mvp-group-stats";
 import { TelemetrySettings } from "./telemetry-settings";
 import { useMvpSightings } from "@/hooks/use-mvp-sightings";
+import { formatTimeBRT, formatDateBRT } from "@/lib/date-brt";
 
 interface KillHistoryEntry {
   id: string;
@@ -395,7 +396,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                   <div className="flex gap-3">
                     <div>
                       <span className="text-[9px] text-text-secondary font-semibold">HORA</span>
-                      <div className="text-xs text-text-primary">{new Date(selectedKill.killed_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div>
+                      <div className="text-xs text-text-primary">{formatTimeBRT(selectedKill.killed_at)}</div>
                     </div>
                     {selectedMvp.has_tomb && selectedKill.tomb_x != null && (
                       <>
@@ -439,10 +440,10 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                   {killHistory.map((h) => (
                     <div key={h.id} className="flex items-center gap-2 px-2 py-1 rounded text-[10px] bg-surface">
                       <span className="text-text-secondary tabular-nums">
-                        {new Date(h.killed_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                        {formatDateBRT(h.killed_at)}
                       </span>
                       <span className="text-text-secondary tabular-nums">
-                        {new Date(h.killed_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                        {formatTimeBRT(h.killed_at)}
                       </span>
                       {h.killer_name ? (
                         <span className="text-primary-secondary">{h.killer_name}</span>

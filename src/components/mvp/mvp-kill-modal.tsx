@@ -39,8 +39,10 @@ interface MvpKillModalProps {
   onClose: () => void;
 }
 
+import { formatTimeBRT, parseBRTTimeToUTC } from "@/lib/date-brt";
+
 function formatTimeInput(date: Date): string {
-  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+  return formatTimeBRT(date);
 }
 
 function formatRespawn(ms: number): string {
@@ -148,11 +150,7 @@ export function MvpKillModal({
   const handleSubmit = async () => {
     if (!timeStr) return;
     const [hours, minutes] = timeStr.split(":").map(Number);
-    const killedAt = new Date();
-    killedAt.setHours(hours, minutes, 0, 0);
-    if (killedAt.getTime() > Date.now()) {
-      killedAt.setDate(killedAt.getDate() - 1);
-    }
+    const killedAt = parseBRTTimeToUTC(hours, minutes);
 
     setSubmitting(true);
     try {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { TelemetryToken } from '@/lib/types'
+import { formatDateTimeBRT } from '@/lib/date-brt'
 
 interface TelemetrySettingsProps {
   userId: string
@@ -40,9 +41,7 @@ export function TelemetrySettings({ userId }: TelemetrySettingsProps) {
   }
 
   function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString('pt-BR', {
-      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-    })
+    return formatDateTimeBRT(iso)
   }
 
   return (

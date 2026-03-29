@@ -2,6 +2,7 @@
 
 import { useRef, useCallback } from "react";
 import type { MvpMapMeta } from "@/lib/types";
+import { formatTimeBRT } from "@/lib/date-brt";
 
 interface MvpSightingPoint {
   x: number;
@@ -79,7 +80,7 @@ export function MvpMapPicker({ mapName, mapMeta, tombX, tombY, onCoordsChange, r
             border: "2px solid var(--status-available-text)",
             boxShadow: "0 0 12px color-mix(in srgb, var(--status-available) 60%, transparent)",
           }}
-          title={`MVP visto aqui — ${new Date(sighting.spotted_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`}
+          title={`MVP visto aqui — ${formatTimeBRT(sighting.spotted_at)}`}
         />
       )}
       {/* Current tomb position */}
