@@ -51,14 +51,13 @@ export async function POST(request: NextRequest) {
   const killCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
   let query = supabase
     .from('mvp_kills')
-    .select('id')
+    .select('id, killer_name_raw, killed_at')
     .eq('group_id', ctx.groupId)
     .gte('killed_at', killCutoff)
 
   if (matchMvpIds.length > 0) {
     query = query.in('mvp_id', matchMvpIds)
   } else if (tomb_x != null && tomb_y != null) {
-    // Fallback: match by tomb coords if we can't resolve MVP
     query = query.eq('tomb_x', tomb_x).eq('tomb_y', tomb_y)
   }
 
@@ -66,6 +65,11 @@ export async function POST(request: NextRequest) {
     .order('killed_at', { ascending: false })
     .limit(1)
     .maybeSingle()
+
+  // Dedup: if the most recent kill already has this killer, skip
+  if (kill && kill.killer_name_raw === killer_name) {
+    return NextResponse.json({ action: 'dedup', kill_id: kill.id })
+  }
 
   // Try to resolve killer_name to a character_id in the group
   const { data: members } = await supabase
