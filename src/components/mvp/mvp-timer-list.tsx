@@ -96,8 +96,8 @@ export function MvpTimerList({ mvps, activeKills, sightings, search, loading, se
 
   // Sort active: MVPs with sightings (alive) first, then by nearest spawn
   active.sort((a, b) => {
-    const aAlive = sightings.some(s => s.mvp_id === a.mvp.id);
-    const bAlive = sightings.some(s => s.mvp_id === b.mvp.id);
+    const aAlive = sightings.some(s => s.mvp_id === a.mvp.id && (!a.kill || new Date(s.spotted_at).getTime() > new Date(a.kill.killed_at).getTime()));
+    const bAlive = sightings.some(s => s.mvp_id === b.mvp.id && (!b.kill || new Date(s.spotted_at).getTime() > new Date(b.kill.killed_at).getTime()));
     if (aAlive && !bAlive) return -1;
     if (!aAlive && bAlive) return 1;
     const aSpawn = a.kill ? new Date(a.kill.killed_at).getTime() + a.mvp.respawn_ms : 0;
@@ -165,7 +165,11 @@ export function MvpTimerList({ mvps, activeKills, sightings, search, loading, se
           <div className="flex flex-col gap-1 mb-2">
             <p className="text-[10px] text-text-secondary font-semibold px-1">ATIVOS ({active.length})</p>
             {active.map(({ mvp, kill }) => {
-              const hasSighting = sightings.some(s => s.mvp_id === mvp.id);
+              // Sighting is only valid if it's newer than the kill (MVP was seen alive AFTER dying)
+              const hasSighting = sightings.some(s =>
+                s.mvp_id === mvp.id &&
+                (!kill || new Date(s.spotted_at).getTime() > new Date(kill.killed_at).getTime())
+              );
               const timerColor = hasSighting ? "var(--status-available)" : kill ? getTimerColor(kill, mvp, now) : "var(--status-available)";
               return (
               <button
