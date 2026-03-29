@@ -15,8 +15,14 @@ import { TelemetrySettings } from "./telemetry-settings";
 import { useMvpSightings } from "@/hooks/use-mvp-sightings";
 import { formatTimeBRT, formatDateBRT } from "@/lib/date-brt";
 
+const GROUP_DISPLAY_NAMES: Record<string, string> = {
+  bio_lab_3: "Bio Lab 3",
+  bio_lab_5: "Bio Lab 5",
+};
+
 interface KillHistoryEntry {
   id: string;
+  mvp_id: number;
   killed_at: string;
   killer_name: string | null;
   registered_by_name: string;
@@ -132,7 +138,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
   }, [selectedMvp, activeKills, mvps]);
 
   // Kill history — fetch ALL group kills once, filter per MVP locally
-  const [allKillHistory, setAllKillHistory] = useState<(KillHistoryEntry & { mvp_id: number })[]>([]);
+  const [allKillHistory, setAllKillHistory] = useState<KillHistoryEntry[]>([]);
   useEffect(() => {
     const supabase = createClient();
     const query = supabase
@@ -161,10 +167,30 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [group?.id]);
 
-  // Filter history for selected MVP
-  const killHistory = selectedMvp
-    ? allKillHistory.filter((h) => h.mvp_id === selectedMvp.id).slice(0, 20)
-    : [];
+  // Build MVP name lookup map
+  const mvpNameMap = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const m of mvps) map.set(m.id, m.name);
+    return map;
+  }, [mvps]);
+
+  // Filter history for selected MVP (or all group MVPs if grouped)
+  const killHistory = useMemo(() => {
+    if (!selectedMvp) return [];
+    if (selectedMvp.cooldown_group) {
+      const groupIds = new Set(
+        mvps.filter((m) => m.cooldown_group === selectedMvp.cooldown_group).map((m) => m.id)
+      );
+      return allKillHistory.filter((h) => groupIds.has(h.mvp_id)).slice(0, 20);
+    }
+    return allKillHistory.filter((h) => h.mvp_id === selectedMvp.id).slice(0, 20);
+  }, [selectedMvp, allKillHistory, mvps]);
+
+  // Resolve the specific MVP name that was killed (for grouped MVPs)
+  const killedMvpName = useMemo(() => {
+    if (!selectedMvp?.cooldown_group || !selectedKill) return null;
+    return mvpNameMap.get(selectedKill.mvp_id) ?? null;
+  }, [selectedMvp, selectedKill, mvpNameMap]);
 
   const handleSelectMvp = useCallback((mvp: Mvp) => {
     setSelectedMvp(mvp);
@@ -354,7 +380,11 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
             {/* Header */}
             <div className="flex justify-between items-start mb-3">
               <div>
-                <h3 className="text-base font-semibold text-text-primary">{selectedMvp.name}</h3>
+                <h3 className="text-base font-semibold text-text-primary">
+                  {selectedMvp.cooldown_group
+                    ? (GROUP_DISPLAY_NAMES[selectedMvp.cooldown_group] ?? selectedMvp.name)
+                    : selectedMvp.name}
+                </h3>
                 <p className="text-[11px] text-text-secondary">
                   {selectedMvp.map_name} · Respawn: {formatRespawn(selectedMvp.respawn_ms)}
                   {selectedKill && selectedKill.kill_count > 0 && ` · ×${selectedKill.kill_count} kills`}
@@ -362,6 +392,11 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                     <span className="ml-1" title="Cooldown compartilhado com outros MVPs do grupo">⟷</span>
                   )}
                 </p>
+                {killedMvpName && (
+                  <p className="text-[11px] text-text-secondary mt-0.5">
+                    Último: <span className="text-primary-secondary">{killedMvpName}</span>
+                  </p>
+                )}
               </div>
               {selectedKill && detailStatus && (
                 <div className="text-right">
@@ -446,6 +481,9 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                       <span className="text-text-secondary tabular-nums">
                         {formatTimeBRT(h.killed_at)}
                       </span>
+                      {selectedMvp.cooldown_group && (
+                        <span className="text-text-primary font-medium">{mvpNameMap.get(h.mvp_id) ?? "?"}</span>
+                      )}
                       {h.killer_name ? (
                         <span className="text-primary-secondary">{h.killer_name}</span>
                       ) : (
