@@ -31,15 +31,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ action: 'ignored', reason: 'no MVP on this map' })
   }
 
-  // Find recent kill on this map without tomb coords (within 2 minutes)
-  const cutoff = new Date(Date.now() - 2 * 60 * 1000).toISOString()
+  // Get MVP respawn time for dedup window (respawn - 1 min, floor 60s)
+  const { data: mvpInfo } = await supabase
+    .from('mvps')
+    .select('respawn_ms')
+    .eq('id', mapMvpIds[0])
+    .single()
 
+  const respawnMs = mvpInfo?.respawn_ms ?? 3540000
+  const windowMs = Math.max((respawnMs - 60000), 60000)
+  const cutoff = new Date(Date.now() - windowMs).toISOString()
+
+  // Find most recent kill for this MVP within respawn window
   const { data: kill } = await supabase
     .from('mvp_kills')
     .select('id, mvp_id')
     .eq('group_id', ctx.groupId)
     .in('mvp_id', mapMvpIds)
-    .is('tomb_x', null)
     .gte('killed_at', cutoff)
     .order('killed_at', { ascending: false })
     .limit(1)
@@ -55,10 +63,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ action: 'updated', kill_id: kill.id })
   }
 
-  // No matching kill found — ignore. The tomb confirms the MVP is dead
-  // but we don't know WHEN it died. The real kill time comes from either:
-  // - the mvp-kill event (ActorDied) if we were on the map when it died
-  // - the tomb click (NPC_TALK) which contains the encoded kill time
-  // Creating a kill with killed_at=NOW() would be incorrect.
-  return NextResponse.json({ action: 'ignored', reason: 'no recent kill to attach coords to' })
+  // No matching kill found within respawn window — ignore.
+  // The tomb confirms the MVP is dead but we don't know WHEN it died.
+  // The real kill time comes from the tomb click (NPC_TALK).
+  return NextResponse.json({ action: 'ignored', reason: 'no kill within respawn window' })
 }
