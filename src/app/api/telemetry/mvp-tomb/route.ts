@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     const { data: createResult, error: createErr } = await supabase.rpc('telemetry_register_kill', {
       p_group_id: ctx.groupId,
       p_mvp_ids: mapMvpIds,
-      p_killed_at: new Date().toISOString(),
+      p_killed_at: null,
       p_tomb_x: tomb_x,
       p_tomb_y: tomb_y,
       p_registered_by: ctx.characterUuid,

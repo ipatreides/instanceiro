@@ -60,21 +60,24 @@ export function MvpTimerRow({ mvp, kill, onEdit, onConfirm, onCorrect, canValida
 
   if (!kill) return null;
 
-  const { status, remainingMs } = computeStatus(kill, mvp, now);
-  if (status === "inactive") return null;
+  const unknownTime = !kill.killed_at;
+  const { status, remainingMs } = unknownTime
+    ? { status: "cooldown" as MvpTimerStatus, remainingMs: 0 }
+    : computeStatus(kill, mvp, now);
+  if (!unknownTime && status === "inactive") return null;
 
-  const borderColor = STATUS_COLORS[status];
-  const textColor = STATUS_TEXT_COLORS[status];
-  const showTomb = kill.tomb_x != null && kill.tomb_y != null && status !== "tomb_expired";
-  const isCountUp = status === "probably_alive" || status === "tomb_expired";
+  const borderColor = unknownTime ? "var(--status-soon)" : STATUS_COLORS[status];
+  const textColor = unknownTime ? "var(--status-soon-text)" : STATUS_TEXT_COLORS[status];
+  const showTomb = kill.tomb_x != null && kill.tomb_y != null && (unknownTime || status !== "tomb_expired");
+  const isCountUp = !unknownTime && (status === "probably_alive" || status === "tomb_expired");
 
   let countdownColor = textColor;
-  if (status === "cooldown") {
+  if (!unknownTime && status === "cooldown") {
     if (remainingMs < 5 * 60 * 1000) countdownColor = "var(--status-available-text)";
     else if (remainingMs < 30 * 60 * 1000) countdownColor = "var(--status-soon-text)";
   }
 
-  const statusLabel = status === "cooldown" ? "" : status === "spawn_window" ? "Pode nascer" : "Provavelmente vivo";
+  const statusLabel = unknownTime ? "Hora desconhecida" : status === "cooldown" ? "" : status === "spawn_window" ? "Pode nascer" : "Provavelmente vivo";
   const displayName = `${mvp.name} (${mvp.map_name})`;
 
   return (
@@ -132,7 +135,7 @@ export function MvpTimerRow({ mvp, kill, onEdit, onConfirm, onCorrect, canValida
         </div>
       </div>
       <span className="text-sm font-bold tabular-nums min-w-[60px] text-right" style={{ color: countdownColor }}>
-        {isCountUp ? `+${formatCountdown(remainingMs)}` : formatCountdown(remainingMs)}
+        {unknownTime ? "?" : isCountUp ? `+${formatCountdown(remainingMs)}` : formatCountdown(remainingMs)}
       </span>
       {canValidate && kill.source === 'telemetry' && kill.validation_status === 'pending' && (
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

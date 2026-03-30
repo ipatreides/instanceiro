@@ -243,7 +243,7 @@ export interface MvpGroupMember {
 export interface MvpActiveKill {
   kill_id: string;
   mvp_id: number;
-  killed_at: string;
+  killed_at: string | null;
   tomb_x: number | null;
   tomb_y: number | null;
   killer_character_id: string | null;
