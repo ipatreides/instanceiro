@@ -20,8 +20,7 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient()
 
   const body = await request.json()
-  console.log('[HEARTBEAT DEBUG]', JSON.stringify({ tokenId: ctx.tokenId, body }))
-  const { config_version, client_version, clients, current_map } = body
+  const { config_version, client_version, clients, current_map } = body as { config_version?: number; client_version?: string; clients?: HeartbeatClient[]; current_map?: string } = body
 
   // Support both old format (current_map) and new format (clients array)
   const clientList: HeartbeatClient[] = clients ?? (current_map ? [{
