@@ -327,8 +327,8 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
     setShowKillModal(true);
   }, []);
 
-  const detailStatus = selectedMvp && selectedKill ? (() => {
-    if (!selectedKill.killed_at) return { status: 'unknown' as const, remaining: 0, spawnStart: 0, spawnEnd: 0, isAlive: false };
+  const detailStatus: { remaining: number; isAlive: boolean; countUp: number; mechanicMode: boolean; unknownTime: boolean } | null = selectedMvp && selectedKill ? (() => {
+    if (!selectedKill.killed_at) return { remaining: 0, isAlive: false, countUp: 0, mechanicMode: false, unknownTime: true };
     const killedAt = new Date(selectedKill.killed_at).getTime();
     const spawnStart = killedAt + selectedMvp.respawn_ms;
     const spawnEnd = spawnStart + selectedMvp.delay_ms;
@@ -336,7 +336,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
     const isAlive = now >= spawnStart;
     const countUp = isAlive ? now - spawnEnd : 0;
     const mechanicMode = isAlive && selectedMvp.cooldown_group === 'bio_lab_5';
-    return { remaining, isAlive, countUp, mechanicMode };
+    return { remaining, isAlive, countUp, mechanicMode, unknownTime: false };
   })() : null;
 
   return (
@@ -473,12 +473,21 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
               </div>
               {selectedKill && detailStatus && (
                 <div className="text-right">
-                  <div className="text-xl font-bold tabular-nums" style={{ color: detailStatus.mechanicMode ? "var(--status-soon-text)" : detailStatus.isAlive ? "var(--status-available-text)" : "var(--status-cooldown-text)" }}>
-                    {detailStatus.mechanicMode ? "Mecânica" : detailStatus.isAlive ? `+${formatCountdown(detailStatus.countUp)}` : formatCountdown(detailStatus.remaining)}
-                  </div>
-                  <div className="text-[10px]" style={{ color: detailStatus.mechanicMode ? "var(--status-soon-text)" : detailStatus.isAlive ? "var(--status-available-text)" : "var(--status-cooldown-text)" }}>
-                    {detailStatus.mechanicMode ? "Mecânica disponível" : detailStatus.isAlive ? "Provavelmente vivo" : "Cooldown"}
-                  </div>
+                  {detailStatus.unknownTime ? (
+                    <>
+                      <div className="text-xl font-bold tabular-nums" style={{ color: "var(--status-soon-text)" }}>?</div>
+                      <div className="text-[10px]" style={{ color: "var(--status-soon-text)" }}>Hora desconhecida</div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-xl font-bold tabular-nums" style={{ color: detailStatus.mechanicMode ? "var(--status-soon-text)" : detailStatus.isAlive ? "var(--status-available-text)" : "var(--status-cooldown-text)" }}>
+                        {detailStatus.mechanicMode ? "Mecânica" : detailStatus.isAlive ? `+${formatCountdown(detailStatus.countUp)}` : formatCountdown(detailStatus.remaining)}
+                      </div>
+                      <div className="text-[10px]" style={{ color: detailStatus.mechanicMode ? "var(--status-soon-text)" : detailStatus.isAlive ? "var(--status-available-text)" : "var(--status-cooldown-text)" }}>
+                        {detailStatus.mechanicMode ? "Mecânica disponível" : detailStatus.isAlive ? "Provavelmente vivo" : "Cooldown"}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>
