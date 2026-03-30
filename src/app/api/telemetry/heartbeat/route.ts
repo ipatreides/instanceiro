@@ -12,6 +12,7 @@ interface HeartbeatClient {
 }
 
 export async function POST(request: NextRequest) {
+  try {
   const result = await resolveTelemetryContext(request)
   if ('error' in result) {
     return NextResponse.json({ error: result.error }, { status: result.status })
@@ -118,4 +119,7 @@ export async function POST(request: NextRequest) {
     status: 'ok',
     config_version: configRow?.config_version ?? 1,
   })
+  } catch (e: any) {
+    return NextResponse.json({ error: 'heartbeat_error', message: e?.message ?? 'unknown' }, { status: 500 })
+  }
 }
