@@ -117,6 +117,16 @@ export async function POST(request: NextRequest) {
     config_stale: configStale,
   })
   } catch (e: any) {
+    try {
+      logTelemetryEvent(createAdminClient(), {
+        endpoint: 'heartbeat',
+        tokenId: null,
+        characterId: null,
+        payloadSummary: { error: e?.message ?? 'unknown' },
+        result: 'error',
+        reason: e?.message ?? 'unknown',
+      })
+    } catch { /* ignore logging failures */ }
     return NextResponse.json({ error: 'heartbeat_error', message: e?.message ?? 'unknown' }, { status: 500 })
   }
 }

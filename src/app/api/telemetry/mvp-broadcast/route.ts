@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveTelemetryContext } from '@/lib/telemetry'
+import { logTelemetryEvent } from '@/lib/telemetry/log-event'
 
 const BIO5_CODES: Record<string, { type: string; mvp?: string }> = {
   YGjm: { type: 'pre_spawn' },
@@ -53,17 +54,41 @@ export async function POST(request: NextRequest) {
   const { code, map } = body
 
   if (!code || !map) {
+    logTelemetryEvent(supabase, {
+      endpoint: 'mvp-broadcast',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { code, map },
+      result: 'error',
+      reason: 'missing_fields',
+    })
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
   const event = BIO5_CODES[code]
   if (!event) {
+    logTelemetryEvent(supabase, {
+      endpoint: 'mvp-broadcast',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { code, map },
+      result: 'ignored',
+      reason: 'unknown_code',
+    })
     return NextResponse.json({ action: 'ignored', reason: 'unknown_code' })
   }
 
   const normalizedMap = String(map).replace(/\.gat$/, '')
   const cooldownGroup = MAP_TO_COOLDOWN_GROUP[normalizedMap]
   if (!cooldownGroup) {
+    logTelemetryEvent(supabase, {
+      endpoint: 'mvp-broadcast',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { code, map: normalizedMap },
+      result: 'ignored',
+      reason: 'unknown_map',
+    })
     return NextResponse.json({ action: 'ignored', reason: 'unknown_map' })
   }
 
@@ -82,8 +107,25 @@ export async function POST(request: NextRequest) {
     )
 
   if (error) {
+    logTelemetryEvent(supabase, {
+      endpoint: 'mvp-broadcast',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { code, map: normalizedMap, cooldown_group: cooldownGroup },
+      result: 'error',
+      reason: error.message,
+    })
     return NextResponse.json({ error: 'Failed to store broadcast event' }, { status: 500 })
   }
+
+  logTelemetryEvent(supabase, {
+    endpoint: 'mvp-broadcast',
+    tokenId: ctx.tokenId,
+    characterId: ctx.characterUuid,
+    payloadSummary: { code, map: normalizedMap, event_type: event.type, cooldown_group: cooldownGroup },
+    result: 'created',
+    reason: event.type,
+  })
 
   return NextResponse.json({ action: 'stored', event_type: event.type }, { status: 200 })
 }

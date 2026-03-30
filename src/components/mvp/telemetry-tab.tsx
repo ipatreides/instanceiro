@@ -5,6 +5,15 @@ import { createClient } from "@/lib/supabase/client";
 import type { TelemetryToken } from "@/lib/types";
 import { formatDateTimeBRT } from "@/lib/date-brt";
 
+interface TelemetryEventLog {
+  id: string;
+  endpoint: string;
+  result: 'created' | 'updated' | 'ignored' | 'error';
+  reason: string | null;
+  timestamp: string;
+  token_id: string | null;
+}
+
 interface TelemetryTabProps {
   userId: string;
 }
@@ -32,6 +41,33 @@ const ONLINE_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes
 
 function isOnline(lastHeartbeat: string): boolean {
   return Date.now() - new Date(lastHeartbeat).getTime() < ONLINE_THRESHOLD_MS;
+}
+
+function heartbeatHealth(lastHeartbeat: string): 'available' | 'soon' | 'error' {
+  const diff = Date.now() - new Date(lastHeartbeat).getTime()
+  if (diff < 2 * 60 * 1000) return 'available'
+  if (diff < 5 * 60 * 1000) return 'soon'
+  return 'error'
+}
+
+function formatRelativeTime(timestamp: string): string {
+  const diff = Date.now() - new Date(timestamp).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'agora'
+  if (mins < 60) return `${mins}min`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h`
+  return `${Math.floor(hours / 24)}d`
+}
+
+const ENDPOINT_ABBREV: Record<string, string> = {
+  'mvp-kill': 'kill',
+  'mvp-killer': 'killer',
+  'mvp-tomb': 'tomb',
+  'mvp-spotted': 'spotted',
+  'mvp-event': 'event',
+  'heartbeat': 'hb',
+  'mvp-broadcast': 'bcast',
 }
 
 // --- Sub-components ---
@@ -198,15 +234,19 @@ function SessionsList({
                 </div>
               </div>
 
-              {tokenSessions.length > 0 ? tokenSessions.map((s) => (
+              {tokenSessions.length > 0 ? tokenSessions.map((s) => {
+                const health = heartbeatHealth(s.last_heartbeat)
+                const dotColor = health === 'available' ? 'bg-status-available' : health === 'soon' ? 'bg-status-soon' : 'bg-status-error'
+                return (
                 <div key={s.id} className="flex items-center gap-2 pl-4">
-                  <span className={`w-1.5 h-1.5 rounded-full ${isOnline(s.last_heartbeat) ? "bg-status-available" : "bg-text-secondary"}`} />
+                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotColor}`} title={`Último heartbeat: ${formatRelativeTime(s.last_heartbeat)} atrás`} />
                   <span className="text-xs text-text-secondary">
                     {s.character_name ?? `Char #${s.character_id}`}
                     {s.in_instance ? ` · ${s.instance_name || 'Instância'}` : s.current_map ? ` · ${s.current_map}` : ''}
                   </span>
                 </div>
-              )) : (
+                )
+              }) : (
                 <span className="text-xs text-text-secondary pl-4">Último uso: {formatDateTimeBRT(token.last_used_at)}</span>
               )}
             </div>
@@ -338,6 +378,63 @@ function SetupGuide({
   );
 }
 
+function EventLog({ events, loading, filterErrors, onToggleFilter }: {
+  events: TelemetryEventLog[]
+  loading: boolean
+  filterErrors: boolean
+  onToggleFilter: () => void
+}) {
+  const displayed = filterErrors ? events.filter(e => e.result === 'error' || e.result === 'ignored') : events
+
+  return (
+    <div className="bg-surface border border-border rounded-xl p-4 space-y-2">
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
+          Log de Eventos
+        </h4>
+        <button
+          onClick={onToggleFilter}
+          className={`text-[10px] px-2 py-0.5 rounded-sm border cursor-pointer transition-colors ${
+            filterErrors
+              ? 'border-status-error text-status-error-text bg-[color-mix(in_srgb,var(--status-error)_15%,transparent)]'
+              : 'border-border text-text-secondary hover:text-text-primary'
+          }`}
+        >
+          Só erros/ignored
+        </button>
+      </div>
+      {/* TODO: telemetry_event_log requires service role. Currently fetched via client
+          which returns empty due to RLS. Needs an RPC or API route filtered by group token_ids. */}
+      {loading ? (
+        <p className="text-xs text-text-secondary italic">Carregando...</p>
+      ) : displayed.length === 0 ? (
+        <p className="text-xs text-text-secondary italic">
+          {filterErrors ? 'Nenhum erro registrado.' : 'Nenhum evento registrado.'}
+        </p>
+      ) : (
+        <div className="flex flex-col gap-0.5 max-h-[200px] overflow-y-auto scrollbar-thin">
+          {displayed.map((e) => {
+            const resultColor =
+              e.result === 'created' ? 'text-status-available-text' :
+              e.result === 'updated' ? 'text-primary' :
+              e.result === 'ignored' ? 'text-status-soon-text' :
+              'text-status-error-text'
+            const endpoint = ENDPOINT_ABBREV[e.endpoint] ?? e.endpoint
+            return (
+              <div key={e.id} className="flex items-center gap-2 text-[10px] px-2 py-1 rounded bg-bg">
+                <span className="text-text-secondary tabular-nums w-8 flex-shrink-0">{formatRelativeTime(e.timestamp)}</span>
+                <span className="text-text-primary font-medium w-12 flex-shrink-0">{endpoint}</span>
+                <span className={`font-semibold w-14 flex-shrink-0 ${resultColor}`}>{e.result}</span>
+                {e.reason && <span className="text-text-secondary truncate">{e.reason}</span>}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // --- Main Component ---
 
 export function TelemetryTab({ userId }: TelemetryTabProps) {
@@ -346,6 +443,9 @@ export function TelemetryTab({ userId }: TelemetryTabProps) {
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
   const [versionOffline, setVersionOffline] = useState(false);
   const [revoking, setRevoking] = useState<string | null>(null);
+  const [eventLog, setEventLog] = useState<TelemetryEventLog[]>([]);
+  const [eventLogLoading, setEventLogLoading] = useState(false);
+  const [filterErrors, setFilterErrors] = useState(false);
 
   const fetchTokens = useCallback(async () => {
     const supabase = createClient();
@@ -380,11 +480,26 @@ export function TelemetryTab({ userId }: TelemetryTabProps) {
     }
   }, []);
 
+  const fetchEventLog = useCallback(async () => {
+    setEventLogLoading(true);
+    const supabase = createClient();
+    // TODO: telemetry_event_log has no RLS — this will return empty until an RPC or API route
+    // is added that filters by the user's token_ids (requires service role access).
+    const { data } = await supabase
+      .from('telemetry_event_log')
+      .select('id, endpoint, result, reason, timestamp, token_id')
+      .order('timestamp', { ascending: false })
+      .limit(50);
+    setEventLog(data ?? []);
+    setEventLogLoading(false);
+  }, []);
+
   useEffect(() => {
     fetchTokens();
     fetchSessions();
     fetchVersion();
-  }, [fetchTokens, fetchSessions, fetchVersion]);
+    fetchEventLog();
+  }, [fetchTokens, fetchSessions, fetchVersion, fetchEventLog]);
 
   // Poll sessions every 30s
   useEffect(() => {
@@ -424,6 +539,13 @@ export function TelemetryTab({ userId }: TelemetryTabProps) {
         onRevokeRequest={setRevoking}
         onRevokeConfirm={handleRevokeConfirm}
         onRevokeCancel={() => setRevoking(null)}
+      />
+
+      <EventLog
+        events={eventLog}
+        loading={eventLogLoading}
+        filterErrors={filterErrors}
+        onToggleFilter={() => setFilterErrors(f => !f)}
       />
 
       <FaqAccordion />

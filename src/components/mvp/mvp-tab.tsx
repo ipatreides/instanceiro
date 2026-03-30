@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import type { Account, Character, Mvp, MvpActiveKill } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { useMvpData } from "@/hooks/use-mvp-data";
@@ -64,6 +64,8 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [hubTab, setHubTab] = useState<"grupo" | "stats" | "telemetria">("grupo");
   const [now, setNow] = useState(Date.now());
+  const [correctionNotice, setCorrectionNotice] = useState<string | null>(null);
+  const prevKillsRef = useRef<MvpActiveKill[]>([]);
   const [memberNames, setMemberNames] = useState<Map<string, string>>(new Map());
   const [memberUsernames, setMemberUsernames] = useState<Map<string, string>>(new Map());
   const [witnesses, setWitnesses] = useState<Record<string, string[]>>({}) // kill_id → user_id[]
@@ -84,6 +86,21 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
   const broadcasts = useMvpBroadcasts(group?.id ?? null);
 
   const loading = mvpLoading || groupLoading || killsLoading;
+
+  // Detect kills corrected via realtime
+  useEffect(() => {
+    for (const kill of activeKills) {
+      const prev = prevKillsRef.current.find(k => k.kill_id === kill.kill_id)
+      if (prev && prev.validation_status !== 'corrected' && kill.validation_status === 'corrected') {
+        const mvp = mvps.find(m => m.id === kill.mvp_id)
+        if (mvp) {
+          setCorrectionNotice(`Kill de ${mvp.name} foi corrigido`)
+          setTimeout(() => setCorrectionNotice(null), 8000)
+        }
+      }
+    }
+    prevKillsRef.current = activeKills
+  }, [activeKills, mvps])
 
   // Resolve member names (own chars from props + friends via RPC)
   useEffect(() => {
@@ -367,6 +384,12 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
 
       {/* RIGHT PANEL — Detail or Hub (2/3) */}
       <div className="flex-1 flex flex-col overflow-y-auto p-4 min-w-0">
+        {correctionNotice && (
+          <div className="px-3 py-2 bg-[color-mix(in_srgb,var(--status-available)_15%,transparent)] text-status-available-text text-sm rounded-md mb-2 flex items-center justify-between">
+            <span>{correctionNotice}</span>
+            <button onClick={() => setCorrectionNotice(null)} className="text-text-secondary hover:text-text-primary ml-2 cursor-pointer">×</button>
+          </div>
+        )}
         {!selectedMvp ? (
           <div className="flex-1 flex flex-col min-h-0">
             {/* Hub tabs */}
