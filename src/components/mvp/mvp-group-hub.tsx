@@ -232,12 +232,19 @@ export function MvpGroupHub({
               return (
                 <span key={m.character_id} className="group/member inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] bg-bg border border-border text-text-secondary">
                   {memberNames.get(m.character_id) ?? "?"}
-                  {telemetrySessions.some(s => s.userId === m.user_id) && (
-                    <span
-                      className="inline-block w-2 h-2 rounded-full bg-status-available-text animate-pulse ml-1"
-                      title={`Telemetria ativa — ${telemetrySessions.find(s => s.userId === m.user_id)?.currentMap ?? '?'}`}
-                    />
-                  )}
+                  {telemetrySessions.some(s => s.userId === m.user_id) && (() => {
+                    const userSession = telemetrySessions.find(s => s.userId === m.user_id);
+                    const charLabel = userSession?.characterName ?? '?';
+                    const locationLabel = userSession?.inInstance
+                      ? '(instância)'
+                      : (userSession?.currentMap ?? '?');
+                    return (
+                      <span
+                        className="inline-block w-2 h-2 rounded-full bg-status-available-text animate-pulse ml-1"
+                        title={`Telemetria ativa — ${charLabel} — ${locationLabel}`}
+                      />
+                    );
+                  })()}
                   {m.role === "owner" && <span className="text-primary-secondary ml-1">★</span>}
                   {canRemove && (
                     <button

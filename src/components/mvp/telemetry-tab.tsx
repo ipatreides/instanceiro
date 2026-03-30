@@ -16,6 +16,10 @@ interface TelemetrySession {
   client_version: string | null;
   last_heartbeat: string;
   started_at: string;
+  character_id: number;
+  character_name: string | null;
+  in_instance: boolean;
+  instance_name: string | null;
 }
 
 interface VersionInfo {
@@ -152,68 +156,59 @@ function SessionsList({
       </h4>
       <div className="space-y-2">
         {tokens.map((token) => {
-          const tokenSession = sessions.find((s) => s.token_id === token.id);
-          const online = tokenSession ? isOnline(tokenSession.last_heartbeat) : false;
+          const tokenSessions = sessions.filter((s) => s.token_id === token.id);
+          const anyOnline = tokenSessions.some((s) => isOnline(s.last_heartbeat));
 
           return (
-            <div
-              key={token.id}
-              className="flex items-center justify-between bg-bg border border-border rounded-md px-3 py-2 gap-2"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <span
-                  className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                    online ? "bg-status-available animate-pulse" : "bg-text-secondary"
-                  }`}
-                />
-                <div className="min-w-0">
-                  <div className="text-sm text-text-primary truncate">
-                    {token.name ?? "Sniffer"}
-                  </div>
-                  <div className="text-xs text-text-secondary">
-                    {online && tokenSession?.current_map ? (
-                      <span>
-                        {tokenSession.current_map} ·{" "}
-                        {tokenSession.client_version
-                          ? `v${tokenSession.client_version}`
-                          : "versão desconhecida"}
-                      </span>
-                    ) : tokenSession ? (
-                      <span>
-                        Último uso: {formatDateTimeBRT(tokenSession.last_heartbeat)}
-                      </span>
-                    ) : (
-                      <span>Último uso: {formatDateTimeBRT(token.last_used_at)}</span>
-                    )}
-                  </div>
+            <div key={token.id} className="bg-bg border border-border rounded-md px-3 py-2 space-y-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                      anyOnline ? "bg-status-available animate-pulse" : "bg-text-secondary"
+                    }`}
+                  />
+                  <span className="text-sm text-text-primary">{token.name ?? "Sniffer"}</span>
+                </div>
+
+                <div className="flex-shrink-0">
+                  {revoking !== token.id ? (
+                    <button
+                      onClick={() => onRevokeRequest(token.id)}
+                      className="text-xs text-status-error-text hover:opacity-80 cursor-pointer transition-opacity"
+                    >
+                      Revogar
+                    </button>
+                  ) : (
+                    <div className="flex gap-2 items-center">
+                      <button
+                        onClick={() => onRevokeConfirm(token.id)}
+                        className="text-xs text-white bg-status-error rounded-md px-2 py-1 hover:opacity-80 cursor-pointer transition-opacity"
+                      >
+                        Confirmar revogação
+                      </button>
+                      <button
+                        onClick={onRevokeCancel}
+                        className="text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="flex-shrink-0">
-                {revoking !== token.id ? (
-                  <button
-                    onClick={() => onRevokeRequest(token.id)}
-                    className="text-xs text-status-error-text hover:opacity-80 cursor-pointer transition-opacity"
-                  >
-                    Revogar
-                  </button>
-                ) : (
-                  <div className="flex gap-2 items-center">
-                    <button
-                      onClick={() => onRevokeConfirm(token.id)}
-                      className="text-xs text-white bg-status-error rounded-md px-2 py-1 hover:opacity-80 cursor-pointer transition-opacity"
-                    >
-                      Confirmar revogação
-                    </button>
-                    <button
-                      onClick={onRevokeCancel}
-                      className="text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                )}
-              </div>
+              {tokenSessions.length > 0 ? tokenSessions.map((s) => (
+                <div key={s.id} className="flex items-center gap-2 pl-4">
+                  <span className={`w-1.5 h-1.5 rounded-full ${isOnline(s.last_heartbeat) ? "bg-status-available" : "bg-text-secondary"}`} />
+                  <span className="text-xs text-text-secondary">
+                    {s.character_name ?? `Char #${s.character_id}`}
+                    {s.in_instance ? ` · ${s.instance_name || 'Instância'}` : s.current_map ? ` · ${s.current_map}` : ''}
+                  </span>
+                </div>
+              )) : (
+                <span className="text-xs text-text-secondary pl-4">Último uso: {formatDateTimeBRT(token.last_used_at)}</span>
+              )}
             </div>
           );
         })}
@@ -367,7 +362,7 @@ export function TelemetryTab({ userId }: TelemetryTabProps) {
     const supabase = createClient();
     const { data } = await supabase
       .from("telemetry_sessions")
-      .select("id, token_id, current_map, client_version, last_heartbeat, started_at")
+      .select("id, token_id, current_map, client_version, last_heartbeat, started_at, character_id, character_name, in_instance, instance_name")
       .eq("user_id", userId)
       .order("last_heartbeat", { ascending: false });
     setSessions(data ?? []);

@@ -8,8 +8,10 @@ const ONLINE_THRESHOLD_MS = 2 * 60 * 1000 // 2 minutes
 export interface ActiveTelemetryMember {
   userId: string
   characterId: number
+  characterName: string | null
   currentMap: string | null
   lastHeartbeat: string
+  inInstance: boolean
 }
 
 export function useTelemetrySessions(groupId: string | null) {
@@ -25,7 +27,7 @@ export function useTelemetrySessions(groupId: string | null) {
 
       const { data } = await supabase
         .from('telemetry_sessions')
-        .select('user_id, character_id, current_map, last_heartbeat')
+        .select('user_id, character_id, character_name, current_map, last_heartbeat, in_instance')
         .eq('group_id', groupId)
         .gte('last_heartbeat', cutoff)
 
@@ -33,8 +35,10 @@ export function useTelemetrySessions(groupId: string | null) {
         data?.map((s) => ({
           userId: s.user_id,
           characterId: s.character_id,
+          characterName: s.character_name,
           currentMap: s.current_map,
           lastHeartbeat: s.last_heartbeat,
+          inInstance: s.in_instance ?? false,
         })) ?? []
       )
     }
