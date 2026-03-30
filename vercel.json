@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/mvp-kills/expire",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
