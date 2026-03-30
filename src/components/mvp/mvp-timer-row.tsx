@@ -7,6 +7,9 @@ interface MvpTimerRowProps {
   mvp: Mvp;
   kill: MvpActiveKill | null;
   onEdit?: (mvp: Mvp, kill: MvpActiveKill) => void;
+  onConfirm?: (killId: string) => void;
+  onCorrect?: (mvp: Mvp, kill: MvpActiveKill) => void;
+  canValidate?: boolean;
 }
 
 function computeStatus(kill: MvpActiveKill, mvp: Mvp, now: number): { status: MvpTimerStatus; remainingMs: number } {
@@ -47,7 +50,7 @@ const STATUS_TEXT_COLORS: Record<MvpTimerStatus, string> = {
   inactive: "var(--text-secondary)",
 };
 
-export function MvpTimerRow({ mvp, kill, onEdit }: MvpTimerRowProps) {
+export function MvpTimerRow({ mvp, kill, onEdit, onConfirm, onCorrect, canValidate }: MvpTimerRowProps) {
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -113,11 +116,42 @@ export function MvpTimerRow({ mvp, kill, onEdit }: MvpTimerRowProps) {
               {kill.pending_loots_count} drop{kill.pending_loots_count > 1 ? 's' : ''}
             </span>
           )}
+          {kill.source === 'telemetry' && kill.validation_status === 'pending' && (
+            <span className="text-xs bg-[color-mix(in_srgb,var(--status-soon)_15%,transparent)] text-status-soon-text rounded-sm px-1.5 py-0.5 ml-1">
+              Pendente
+            </span>
+          )}
+          {kill.validation_status === 'corrected' && (
+            <span
+              className="text-xs bg-[color-mix(in_srgb,var(--status-available)_15%,transparent)] text-status-available-text rounded-sm px-1.5 py-0.5 ml-1"
+              title={kill.validated_by_name ? `Corrigido por ${kill.validated_by_name}` : 'Corrigido'}
+            >
+              Corrigido
+            </span>
+          )}
         </div>
       </div>
       <span className="text-sm font-bold tabular-nums min-w-[60px] text-right" style={{ color: countdownColor }}>
         {isCountUp ? `+${formatCountdown(remainingMs)}` : formatCountdown(remainingMs)}
       </span>
+      {canValidate && kill.source === 'telemetry' && kill.validation_status === 'pending' && (
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={() => onConfirm?.(kill.kill_id)}
+            className="text-[10px] text-status-available-text hover:underline cursor-pointer"
+            title="Confirmar kill"
+          >
+            ✓
+          </button>
+          <button
+            onClick={() => onCorrect?.(mvp, kill)}
+            className="text-[10px] text-status-soon-text hover:underline cursor-pointer"
+            title="Corrigir dados"
+          >
+            ✎
+          </button>
+        </div>
+      )}
       {onEdit && kill && (
         <button
           onClick={() => onEdit(mvp, kill)}

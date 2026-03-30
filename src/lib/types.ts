@@ -256,6 +256,10 @@ export interface MvpActiveKill {
   source: 'manual' | 'telemetry';
   killer_name_raw: string | null;
   pending_loots_count: number;
+  validation_status: 'pending' | 'confirmed' | 'corrected' | 'expired_unvalidated';
+  validated_by: string | null;
+  validated_at: string | null;
+  validated_by_name: string | null;
 }
 
 export type MvpTimerStatus = 'cooldown' | 'spawn_window' | 'probably_alive' | 'tomb_expired' | 'inactive';

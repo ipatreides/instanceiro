@@ -29,6 +29,14 @@ interface UseMvpTimersReturn {
   deleteKill: (killId: string) => Promise<void>;
   acceptLootSuggestions: (killId: string) => Promise<void>;
   rejectLootSuggestion: (lootId: string) => Promise<void>;
+  confirmKill: (killId: string, characterId: string) => Promise<void>;
+  correctKill: (killId: string, data: {
+    killedAt: string;
+    tombX: number | null;
+    tombY: number | null;
+    killerCharacterId: string | null;
+    editedBy: string;
+  }) => Promise<void>;
 }
 
 export function useMvpTimers(groupId: string | null, serverId: number | null): UseMvpTimersReturn {
@@ -97,6 +105,9 @@ export function useMvpTimers(groupId: string | null, serverId: number | null): U
                       killer_character_id: updated.killer_character_id ?? k.killer_character_id,
                       killer_name_raw: updated.killer_name_raw ?? k.killer_name_raw,
                       source: updated.source ?? k.source,
+                      validation_status: updated.validation_status ?? k.validation_status,
+                      validated_by: updated.validated_by ?? k.validated_by,
+                      validated_at: updated.validated_at ?? k.validated_at,
                     }
                   : k
               )
@@ -205,5 +216,37 @@ export function useMvpTimers(groupId: string | null, serverId: number | null): U
     await fetchKills();
   }, [fetchKills]);
 
-  return { activeKills, loading, refetch: fetchKills, registerKill, editKill, deleteKill, acceptLootSuggestions, rejectLootSuggestion };
+  const confirmKill = useCallback(async (killId: string, characterId: string) => {
+    const supabase = createClient();
+    await supabase.from("mvp_kills").update({
+      validation_status: 'confirmed',
+      validated_by: characterId,
+      validated_at: new Date().toISOString(),
+    }).eq("id", killId);
+    await fetchKills();
+  }, [fetchKills]);
+
+  const correctKill = useCallback(async (killId: string, data: {
+    killedAt: string;
+    tombX: number | null;
+    tombY: number | null;
+    killerCharacterId: string | null;
+    editedBy: string;
+  }) => {
+    const supabase = createClient();
+    await supabase.from("mvp_kills").update({
+      killed_at: data.killedAt,
+      tomb_x: data.tombX,
+      tomb_y: data.tombY,
+      killer_character_id: data.killerCharacterId,
+      edited_by: data.editedBy,
+      validation_status: 'corrected',
+      validated_by: data.editedBy,
+      validated_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq("id", killId);
+    await fetchKills();
+  }, [fetchKills]);
+
+  return { activeKills, loading, refetch: fetchKills, registerKill, editKill, deleteKill, acceptLootSuggestions, rejectLootSuggestion, confirmKill, correctKill };
 }

@@ -66,6 +66,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
   const [now, setNow] = useState(Date.now());
   const [memberNames, setMemberNames] = useState<Map<string, string>>(new Map());
   const [memberUsernames, setMemberUsernames] = useState<Map<string, string>>(new Map());
+  const [witnesses, setWitnesses] = useState<Record<string, string[]>>({}) // kill_id → user_id[]
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
@@ -78,7 +79,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
 
   const { mvps, mapMeta, drops, loading: mvpLoading } = useMvpData(serverId);
   const { group, members, loading: groupLoading, createGroup, updateGroup, inviteCharacter, leaveGroup } = useMvpGroups(selectedCharId);
-  const { activeKills, loading: killsLoading, registerKill, editKill, deleteKill, acceptLootSuggestions, rejectLootSuggestion } = useMvpTimers(group?.id ?? null, serverId);
+  const { activeKills, loading: killsLoading, registerKill, editKill, deleteKill, acceptLootSuggestions, rejectLootSuggestion, confirmKill, correctKill } = useMvpTimers(group?.id ?? null, serverId);
   const sightings = useMvpSightings(group?.id ?? null);
   const broadcasts = useMvpBroadcasts(group?.id ?? null);
 
@@ -108,6 +109,32 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
       });
     }
   }, [members, characters]);
+
+  // Fetch witnesses for pending telemetry kills
+  useEffect(() => {
+    const pendingKillIds = activeKills
+      .filter(k => k.source === 'telemetry' && k.validation_status === 'pending')
+      .map(k => k.kill_id)
+
+    if (pendingKillIds.length === 0) {
+      setWitnesses({})
+      return
+    }
+
+    const supabase = createClient()
+    supabase
+      .from('mvp_kill_witnesses')
+      .select('kill_id, user_id')
+      .in('kill_id', pendingKillIds)
+      .then(({ data }) => {
+        const map: Record<string, string[]> = {}
+        for (const w of data ?? []) {
+          if (!map[w.kill_id]) map[w.kill_id] = []
+          map[w.kill_id].push(w.user_id)
+        }
+        setWitnesses(map)
+      })
+  }, [activeKills])
 
   // Parties for modal (empty array — parties are now managed in hub)
   const partiesForModal: { id: string; name: string; memberIds: string[] }[] = [];
@@ -270,6 +297,18 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
     await deleteKill(selectedKill.kill_id);
     setShowKillModal(false);
   }, [selectedKill, deleteKill]);
+
+  const handleRowConfirmKill = useCallback(async (killId: string) => {
+    if (!selectedCharId) return;
+    await confirmKill(killId, selectedCharId);
+  }, [selectedCharId, confirmKill]);
+
+  const handleRowCorrectKill = useCallback((mvp: Mvp, kill: MvpActiveKill) => {
+    setSelectedMvp(mvp);
+    setModalKill(kill);
+    setModalInitialTime(null);
+    setShowKillModal(true);
+  }, []);
 
   const detailStatus = selectedMvp && selectedKill ? (() => {
     const killedAt = new Date(selectedKill.killed_at).getTime();
