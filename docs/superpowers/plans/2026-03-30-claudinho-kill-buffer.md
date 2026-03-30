@@ -6,6 +6,11 @@
 
 **Architecture:** New `MvpKillBuffer` singleton buffers MVP kill data for 5 seconds after death detection. During the window, tomb coords and killer name are merged into the buffer. When the window closes, a single consolidated event is sent to the new `mvp-event` endpoint. Data arriving after the window falls back to the existing individual endpoints (`mvp-killer`, `mvp-tomb`).
 
+**IMPORTANT — What is NOT buffered:**
+- **`mvp-spotted` (sightings) are NEVER buffered.** Sightings need zero latency — when the sniffer detects a MVP alive, the group needs to see it immediately. Sightings continue as direct POSTs to `/api/telemetry/mvp-spotted` with no delay.
+- The kill buffer only applies to **kill events** (death + drops + tomb + killer), because that data arrives in multiple packets over several seconds and benefits from consolidation.
+- When the consolidated kill event is sent, the backend's `telemetry_register_kill` RPC automatically deletes any active `mvp_sightings` for that MVP (already implemented in the RPC). This ensures the sighting disappears from the UI once the kill is confirmed.
+
 **Tech Stack:** C++20, MSVC, libcurl, nlohmann/json, std::thread, std::mutex
 
 **Target repo:** `D:\rag\RO-PacketSniffer-CPP` (NOT the instance-tracker repo)
