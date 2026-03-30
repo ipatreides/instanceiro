@@ -19,6 +19,7 @@ import { formatTimeBRT, formatDateBRT } from "@/lib/date-brt";
 const GROUP_DISPLAY_NAMES: Record<string, string> = {
   bio_lab_3: "Bio Lab 3",
   bio_lab_5: "Bio Lab 5",
+  beelzebub: "Beelzebub",
 };
 
 interface KillHistoryEntry {
