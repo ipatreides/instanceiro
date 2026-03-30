@@ -8,6 +8,7 @@ import type { MvpBroadcast } from "@/hooks/use-mvp-broadcasts";
 const GROUP_DISPLAY_NAMES: Record<string, string> = {
   bio_lab_3: "Bio Lab 3",
   bio_lab_5: "Bio Lab 5",
+  beelzebub: "Beelzebub",
 };
 
 interface MvpTimerListProps {
