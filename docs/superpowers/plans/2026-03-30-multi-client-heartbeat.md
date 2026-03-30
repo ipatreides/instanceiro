@@ -382,10 +382,8 @@ export async function POST(request: NextRequest) {
   }
 
   // Clean stale sessions for this token (clients that disconnected)
-  // Get character_ids from current heartbeat
   const activeCharIds = clientList.map(c => c.character_id)
   if (activeCharIds.length > 0) {
-    // Delete sessions for this token that aren't in the current client list
     const { data: allSessions } = await supabase
       .from('telemetry_sessions')
       .select('id, character_id')
@@ -401,6 +399,17 @@ export async function POST(request: NextRequest) {
         .delete()
         .in('id', staleIds)
     }
+  }
+
+  // Clean legacy sessions with character_id=0 when real clients are reported
+  // (v1.0.0 clients created sessions with character_id=0 as placeholder)
+  const hasRealClients = clientList.some(c => c.character_id !== 0)
+  if (hasRealClients) {
+    await supabase
+      .from('telemetry_sessions')
+      .delete()
+      .eq('token_id', ctx.tokenId)
+      .eq('character_id', 0)
   }
 
   // Get config version
