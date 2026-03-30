@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveTelemetryContext } from '@/lib/telemetry'
+import { resolveMvpIds } from '@/lib/telemetry/resolve-mvp'
+import { validateTimestamp } from '@/lib/telemetry/validate-payload'
+import { logTelemetryEvent } from '@/lib/telemetry/log-event'
 
 export async function POST(request: NextRequest) {
   const result = await resolveTelemetryContext(request)
@@ -17,36 +20,36 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  // Resolve monster_id → mvp_ids (prefer map-specific match, fallback to all)
-  let query = supabase
-    .from('mvps')
-    .select('id')
-    .eq('monster_id', monster_id)
-    .eq('server_id', ctx.serverId)
-
-  if (map && map !== 'unknown') {
-    query = query.eq('map_name', map)
+  // Bug 3 fix: validate timestamp before processing
+  const tsResult = validateTimestamp(timestamp)
+  if (!tsResult.valid) {
+    logTelemetryEvent(supabase, {
+      endpoint: 'mvp-kill',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { monster_id, map, timestamp },
+      result: 'ignored',
+      reason: tsResult.reason,
+    })
+    return NextResponse.json({ action: 'ignored', reason: tsResult.reason })
   }
 
-  let { data: mvpRows } = await query
-
-  // If map was provided but no MVP found, this is likely an instance — ignore
-  // Only fallback to no-map query when map is genuinely unknown
-  if ((!mvpRows || mvpRows.length === 0) && (!map || map === 'unknown')) {
-    const { data: allRows } = await supabase
-      .from('mvps')
-      .select('id')
-      .eq('monster_id', monster_id)
-      .eq('server_id', ctx.serverId)
-    mvpRows = allRows
+  // Resolve monster_id → mvp_ids via shared lib
+  const mvpResult = await resolveMvpIds(supabase, ctx.serverId, monster_id, map)
+  if (mvpResult.ignored) {
+    logTelemetryEvent(supabase, {
+      endpoint: 'mvp-kill',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { monster_id, map, timestamp },
+      result: 'ignored',
+      reason: mvpResult.reason,
+    })
+    return NextResponse.json({ action: 'ignored', reason: mvpResult.reason })
   }
 
-  if (!mvpRows || mvpRows.length === 0) {
-    return NextResponse.json({ action: 'ignored', reason: 'map mismatch (likely instance)' })
-  }
-
-  const mvpIds = mvpRows.map(m => m.id)
-  const killedAt = new Date(timestamp * 1000).toISOString()
+  const mvpIds = mvpResult.mvpIds
+  const killedAt = tsResult.date.toISOString()
 
   // Atomic kill registration — handles dedup, overwrite, and sighting cleanup in one transaction
   const { data: rpcResult, error: rpcErr } = await supabase.rpc('telemetry_register_kill', {
@@ -61,6 +64,14 @@ export async function POST(request: NextRequest) {
   })
 
   if (rpcErr) {
+    logTelemetryEvent(supabase, {
+      endpoint: 'mvp-kill',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { monster_id, map, timestamp },
+      result: 'error',
+      reason: rpcErr.message,
+    })
     return NextResponse.json({ error: 'Failed to register kill' }, { status: 500 })
   }
 
@@ -118,6 +129,15 @@ export async function POST(request: NextRequest) {
       await supabase.from('mvp_kill_party').insert(partyRows)
     }
   }
+
+  logTelemetryEvent(supabase, {
+    endpoint: 'mvp-kill',
+    tokenId: ctx.tokenId,
+    characterId: ctx.characterUuid,
+    payloadSummary: { monster_id, map, timestamp },
+    result: action === 'created' ? 'created' : 'updated',
+    killId: killId ?? null,
+  })
 
   const status = action === 'created' ? 201 : 200
   return NextResponse.json({ action, kill_id: killId }, { status })

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveTelemetryContext } from '@/lib/telemetry'
+import { resolveMvpIds } from '@/lib/telemetry/resolve-mvp'
+import { logTelemetryEvent } from '@/lib/telemetry/log-event'
 
 export async function POST(request: NextRequest) {
   const result = await resolveTelemetryContext(request)
@@ -18,29 +20,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  // Resolve monster_id → mvp_ids (prefer map-specific match)
-  const resolvedMap = (map && map !== 'unknown') ? map : null
-  let mvpQuery = supabase
-    .from('mvps')
-    .select('id, map_name')
-    .eq('monster_id', monster_id)
-    .eq('server_id', ctx.serverId)
+  // Resolve monster_id → mvp_ids via shared lib
+  const mvpResult = await resolveMvpIds(supabase, ctx.serverId, monster_id, map)
 
-  if (resolvedMap) {
-    mvpQuery = mvpQuery.eq('map_name', resolvedMap)
+  if (mvpResult.ignored) {
+    logTelemetryEvent(supabase, {
+      endpoint: 'mvp-spotted',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { monster_id, map, x, y },
+      result: 'ignored',
+      reason: mvpResult.reason,
+    })
+    return NextResponse.json({ action: 'ignored', reason: mvpResult.reason })
   }
 
-  let { data: mvpRows } = await mvpQuery
-
-  // No fallback for sightings — if the map doesn't match, the MVP is in an instance
-  // or other non-tracked content. Creating a sighting would be incorrect.
-  if (!mvpRows || mvpRows.length === 0) {
-    return NextResponse.json({ action: 'ignored', reason: 'map mismatch (likely instance)' })
-  }
-
-  const mvpIds = mvpRows.map(m => m.id)
-  const mvpId = mvpRows[0].id
-  const finalMap = resolvedMap ?? (mvpRows[0].map_name ?? 'unknown')
+  const mvpIds = mvpResult.mvpIds
+  const mvpId = mvpIds[0]
+  const resolvedMap = (map && map !== 'unknown') ? map : 'unknown'
 
   // Ignore sighting if MVP was killed recently (within 5 minutes)
   const killCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString()
@@ -53,6 +50,14 @@ export async function POST(request: NextRequest) {
     .limit(1)
 
   if (recentKill && recentKill.length > 0) {
+    logTelemetryEvent(supabase, {
+      endpoint: 'mvp-spotted',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { monster_id, map, x, y },
+      result: 'ignored',
+      reason: 'MVP killed recently',
+    })
     return NextResponse.json({ action: 'ignored', reason: 'MVP killed recently' })
   }
 
@@ -70,9 +75,16 @@ export async function POST(request: NextRequest) {
     // Update position instead of inserting
     await supabase
       .from('mvp_sightings')
-      .update({ map_name: finalMap, x, y, spotted_at: new Date().toISOString() })
+      .update({ map_name: resolvedMap, x, y, spotted_at: new Date().toISOString() })
       .eq('id', recent[0].id)
 
+    logTelemetryEvent(supabase, {
+      endpoint: 'mvp-spotted',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { monster_id, map, x, y },
+      result: 'updated',
+    })
     return NextResponse.json({ action: 'updated', sighting_id: recent[0].id })
   }
 
@@ -82,7 +94,7 @@ export async function POST(request: NextRequest) {
     .insert({
       mvp_id: mvpId,
       group_id: ctx.groupId,
-      map_name: finalMap,
+      map_name: resolvedMap,
       x,
       y,
       telemetry_session_id: null,
@@ -90,5 +102,12 @@ export async function POST(request: NextRequest) {
     .select('id')
     .single()
 
+  logTelemetryEvent(supabase, {
+    endpoint: 'mvp-spotted',
+    tokenId: ctx.tokenId,
+    characterId: ctx.characterUuid,
+    payloadSummary: { monster_id, map, x, y },
+    result: 'created',
+  })
   return NextResponse.json({ action: 'created', sighting_id: sighting?.id }, { status: 201 })
 }

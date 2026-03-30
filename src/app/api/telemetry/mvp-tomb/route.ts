@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveTelemetryContext } from '@/lib/telemetry'
+import { logTelemetryEvent } from '@/lib/telemetry/log-event'
 
 export async function POST(request: NextRequest) {
   const result = await resolveTelemetryContext(request)
@@ -16,8 +17,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  const registeredBy = ctx.characterUuid
-
   // Get MVP IDs that spawn on this map
   const { data: mapMvps } = await supabase
     .from('mvps')
@@ -28,43 +27,66 @@ export async function POST(request: NextRequest) {
   const mapMvpIds = mapMvps?.map((m) => m.id) ?? []
 
   if (mapMvpIds.length === 0) {
+    logTelemetryEvent(supabase, {
+      endpoint: 'mvp-tomb',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { map, tomb_x, tomb_y },
+      result: 'ignored',
+      reason: 'no MVP on this map',
+    })
     return NextResponse.json({ action: 'ignored', reason: 'no MVP on this map' })
   }
 
-  // Get MVP respawn time for dedup window (respawn - 1 min, floor 60s)
-  const { data: mvpInfo } = await supabase
-    .from('mvps')
-    .select('respawn_ms')
-    .eq('id', mapMvpIds[0])
-    .single()
+  // Bug 4 fix: use telemetry_register_kill with p_update_only: true instead of raw UPDATE.
+  // This uses the advisory lock preventing race conditions, and the RPC handles dedup internally.
+  const { data: rpcResult, error: rpcErr } = await supabase.rpc('telemetry_register_kill', {
+    p_group_id: ctx.groupId,
+    p_mvp_ids: mapMvpIds,
+    p_killed_at: new Date().toISOString(),
+    p_tomb_x: tomb_x,
+    p_tomb_y: tomb_y,
+    p_registered_by: ctx.characterUuid,
+    p_source: 'telemetry',
+    p_session_id: null,
+    p_update_only: true,
+  })
 
-  const respawnMs = mvpInfo?.respawn_ms ?? 3540000
-  const windowMs = Math.max((respawnMs - 60000), 60000)
-  const cutoff = new Date(Date.now() - windowMs).toISOString()
-
-  // Find most recent kill for this MVP within respawn window
-  const { data: kill } = await supabase
-    .from('mvp_kills')
-    .select('id, mvp_id')
-    .eq('group_id', ctx.groupId)
-    .in('mvp_id', mapMvpIds)
-    .gte('killed_at', cutoff)
-    .order('killed_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (kill) {
-    // Update existing kill with tomb coords
-    await supabase
-      .from('mvp_kills')
-      .update({ tomb_x, tomb_y })
-      .eq('id', kill.id)
-
-    return NextResponse.json({ action: 'updated', kill_id: kill.id })
+  if (rpcErr) {
+    logTelemetryEvent(supabase, {
+      endpoint: 'mvp-tomb',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { map, tomb_x, tomb_y },
+      result: 'error',
+      reason: rpcErr.message,
+    })
+    return NextResponse.json({ error: 'Failed to update tomb' }, { status: 500 })
   }
 
-  // No matching kill found within respawn window — ignore.
-  // The tomb confirms the MVP is dead but we don't know WHEN it died.
-  // The real kill time comes from the tomb click (NPC_TALK).
-  return NextResponse.json({ action: 'ignored', reason: 'no kill within respawn window' })
+  const action = rpcResult?.action ?? 'ignored'
+  const killId = rpcResult?.kill_id
+
+  if (action === 'ignored') {
+    logTelemetryEvent(supabase, {
+      endpoint: 'mvp-tomb',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { map, tomb_x, tomb_y },
+      result: 'ignored',
+      reason: 'no kill within respawn window',
+    })
+    return NextResponse.json({ action: 'ignored', reason: 'no kill within respawn window' })
+  }
+
+  logTelemetryEvent(supabase, {
+    endpoint: 'mvp-tomb',
+    tokenId: ctx.tokenId,
+    characterId: ctx.characterUuid,
+    payloadSummary: { map, tomb_x, tomb_y },
+    result: 'updated',
+    killId: killId ?? null,
+  })
+
+  return NextResponse.json({ action: 'updated', kill_id: killId })
 }
