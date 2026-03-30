@@ -78,9 +78,29 @@ function VersionStatus({
               href={versionInfo.download_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-primary hover:underline"
+              className="inline-block mt-1 text-xs font-medium text-white bg-primary rounded-md px-3 py-1.5 hover:bg-primary-hover transition-colors"
             >
-              Baixar v{latestVersion} →
+              Baixar v{latestVersion}
+            </a>
+          )}
+        </div>
+      )}
+      {online && !clientVersion && (
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-status-available animate-pulse inline-block" />
+            <span className="text-sm text-status-error-text font-medium">
+              Online · versão desatualizada
+            </span>
+          </div>
+          {versionInfo?.download_url && (
+            <a
+              href={versionInfo.download_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block mt-1 text-xs font-medium text-white bg-primary rounded-md px-3 py-1.5 hover:bg-primary-hover transition-colors"
+            >
+              Baixar v{latestVersion}
             </a>
           )}
         </div>
