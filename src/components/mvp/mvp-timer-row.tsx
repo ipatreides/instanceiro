@@ -13,7 +13,7 @@ interface MvpTimerRowProps {
 }
 
 function computeStatus(kill: MvpActiveKill, mvp: Mvp, now: number): { status: MvpTimerStatus; remainingMs: number } {
-  const killedAt = new Date(kill.killed_at).getTime();
+  const killedAt = new Date(kill.killed_at!).getTime();
   const spawnStart = killedAt + mvp.respawn_ms;
   const spawnEnd = spawnStart + mvp.delay_ms;
   const tombExpiry = spawnStart + 10 * 60 * 1000;

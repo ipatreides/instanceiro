@@ -274,7 +274,7 @@ export default function DashboardPage() {
 
         const mvpKills: Record<string, { killed_at: string }> = {};
         for (const k of kills ?? []) {
-          mvpKills[String(k.mvp_id)] = { killed_at: k.killed_at };
+          if (k.killed_at) mvpKills[String(k.mvp_id)] = { killed_at: k.killed_at };
         }
 
         exportToLocalStorage(instances, mvpKills, accs.server_id ?? "freya");

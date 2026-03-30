@@ -76,7 +76,7 @@ export function MvpKillModal({
   const isEdit = !!existingKill;
 
   const [timeStr, setTimeStr] = useState(() => {
-    if (existingKill) return formatTimeInput(new Date(existingKill.killed_at));
+    if (existingKill?.killed_at) return formatTimeInput(new Date(existingKill.killed_at));
     if (initialTime === "now") return formatTimeInput(new Date());
     return "";
   });

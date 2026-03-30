@@ -172,7 +172,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
       let latestKill: MvpActiveKill | null = null;
       for (const kill of activeKills) {
         if (groupMvpIds.has(kill.mvp_id)) {
-          if (!latestKill || kill.killed_at > latestKill.killed_at) {
+          if (!latestKill || (kill.killed_at ?? "") > (latestKill.killed_at ?? "")) {
             latestKill = kill;
           }
         }
@@ -245,7 +245,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
 
   const handleKillNow = useCallback(() => {
     if (!selectedMvp) return;
-    if (selectedKill) {
+    if (selectedKill?.killed_at) {
       const spawnStart = new Date(selectedKill.killed_at).getTime() + selectedMvp.respawn_ms;
       if (now < spawnStart + 30 * 60 * 1000) {
         if (!window.confirm("Este MVP já tem timer ativo. Substituir?")) return;
@@ -258,7 +258,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
 
   const handleKillSetTime = useCallback(() => {
     if (!selectedMvp) return;
-    if (selectedKill) {
+    if (selectedKill?.killed_at) {
       const spawnStart = new Date(selectedKill.killed_at).getTime() + selectedMvp.respawn_ms;
       if (now < spawnStart + 30 * 60 * 1000) {
         if (!window.confirm("Este MVP já tem timer ativo. Substituir?")) return;
@@ -328,6 +328,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
   }, []);
 
   const detailStatus = selectedMvp && selectedKill ? (() => {
+    if (!selectedKill.killed_at) return { status: 'unknown' as const, remaining: 0, spawnStart: 0, spawnEnd: 0, isAlive: false };
     const killedAt = new Date(selectedKill.killed_at).getTime();
     const spawnStart = killedAt + selectedMvp.respawn_ms;
     const spawnEnd = spawnStart + selectedMvp.delay_ms;
@@ -504,7 +505,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                   <div className="flex gap-3">
                     <div>
                       <span className="text-[9px] text-text-secondary font-semibold">HORA</span>
-                      <div className="text-xs text-text-primary">{formatTimeBRT(selectedKill.killed_at)}</div>
+                      <div className="text-xs text-text-primary">{selectedKill.killed_at ? formatTimeBRT(selectedKill.killed_at) : "Desconhecida"}</div>
                     </div>
                     {selectedMvp.has_tomb && selectedKill.tomb_x != null && (
                       <>
@@ -548,10 +549,10 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                   {killHistory.map((h) => (
                     <div key={h.id} className="flex items-center gap-2 px-2 py-1 rounded text-[10px] bg-surface">
                       <span className="text-text-secondary tabular-nums">
-                        {formatDateBRT(h.killed_at)}
+                        {h.killed_at ? formatDateBRT(h.killed_at) : "—"}
                       </span>
                       <span className="text-text-secondary tabular-nums">
-                        {formatTimeBRT(h.killed_at)}
+                        {h.killed_at ? formatTimeBRT(h.killed_at) : "Desconhecida"}
                       </span>
                       {selectedMvp.cooldown_group && (
                         <span className="text-text-primary font-medium">{mvpNameMap.get(h.mvp_id) ?? "?"}</span>

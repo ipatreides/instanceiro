@@ -41,7 +41,7 @@ export function MvpTimerList({ mvps, activeKills, sightings, broadcasts, search,
       const kill = killMap.get(mvp.id);
       if (!kill) continue;
       const existing = map.get(mvp.cooldown_group);
-      if (!existing || kill.killed_at > existing.killed_at) {
+      if (!existing || (kill.killed_at ?? '') > (existing.killed_at ?? '')) {
         map.set(mvp.cooldown_group, kill);
       }
     }
@@ -92,9 +92,10 @@ export function MvpTimerList({ mvps, activeKills, sightings, broadcasts, search,
   for (const mvp of collapsedMvps) {
     const kill = getEffectiveKill(mvp);
     if (kill) {
-      const spawnStart = new Date(kill.killed_at).getTime() + mvp.respawn_ms;
-      const cardExpiry = spawnStart + 30 * 60 * 1000;
-      if (now < cardExpiry) {
+      const killedAtMs = kill.killed_at ? new Date(kill.killed_at).getTime() : 0;
+      const spawnStart = killedAtMs + mvp.respawn_ms;
+      const cardExpiry = kill.killed_at ? spawnStart + 30 * 60 * 1000 : Infinity;
+      if (now < cardExpiry || !kill.killed_at) {
         active.push({ mvp, kill });
         activeIds.add(mvp.id);
       }
@@ -141,12 +142,12 @@ export function MvpTimerList({ mvps, activeKills, sightings, broadcasts, search,
     const bBroadcast = b.mvp.cooldown_group ? broadcasts?.some(br => br.cooldown_group === b.mvp.cooldown_group && new Date(br.expires_at) > new Date()) ?? false : false;
     if (aBroadcast && !bBroadcast) return -1;
     if (!aBroadcast && bBroadcast) return 1;
-    const aAlive = sightings.some(s => s.mvp_id === a.mvp.id && (!a.kill || new Date(s.spotted_at).getTime() > new Date(a.kill.killed_at).getTime()));
-    const bAlive = sightings.some(s => s.mvp_id === b.mvp.id && (!b.kill || new Date(s.spotted_at).getTime() > new Date(b.kill.killed_at).getTime()));
+    const aAlive = sightings.some(s => s.mvp_id === a.mvp.id && (!a.kill || !a.kill.killed_at || new Date(s.spotted_at).getTime() > new Date(a.kill.killed_at).getTime()));
+    const bAlive = sightings.some(s => s.mvp_id === b.mvp.id && (!b.kill || !b.kill.killed_at || new Date(s.spotted_at).getTime() > new Date(b.kill.killed_at).getTime()));
     if (aAlive && !bAlive) return -1;
     if (!aAlive && bAlive) return 1;
-    const aSpawn = a.kill ? new Date(a.kill.killed_at).getTime() + a.mvp.respawn_ms : 0;
-    const bSpawn = b.kill ? new Date(b.kill.killed_at).getTime() + b.mvp.respawn_ms : 0;
+    const aSpawn = a.kill?.killed_at ? new Date(a.kill.killed_at).getTime() + a.mvp.respawn_ms : 0;
+    const bSpawn = b.kill?.killed_at ? new Date(b.kill.killed_at).getTime() + b.mvp.respawn_ms : 0;
     return aSpawn - bSpawn;
   });
 
@@ -217,7 +218,7 @@ export function MvpTimerList({ mvps, activeKills, sightings, broadcasts, search,
               // Sighting is only valid if it's newer than the kill (MVP was seen alive AFTER dying)
               const hasSighting = sightings.some(s =>
                 s.mvp_id === mvp.id &&
-                (!kill || new Date(s.spotted_at).getTime() > new Date(kill.killed_at).getTime())
+                (!kill || !kill.killed_at || new Date(s.spotted_at).getTime() > new Date(kill.killed_at).getTime())
               );
               const timerColor = hasBroadcast ? "var(--status-available)" : hasSighting ? "var(--status-available)" : kill ? getTimerColor(kill, mvp, now) : "var(--status-available)";
               return (
@@ -320,6 +321,7 @@ export function MvpTimerList({ mvps, activeKills, sightings, broadcasts, search,
 
 // Helper: get timer border/text color
 function getTimerColor(kill: MvpActiveKill, mvp: Mvp, now: number): string {
+  if (!kill.killed_at) return "var(--status-soon)";
   const spawnStart = new Date(kill.killed_at).getTime() + mvp.respawn_ms;
   const remaining = spawnStart - now;
   if (remaining <= 0) {
@@ -334,6 +336,7 @@ function getTimerColor(kill: MvpActiveKill, mvp: Mvp, now: number): string {
 
 // Helper: format timer display for list
 function formatTimer(kill: MvpActiveKill, mvp: Mvp, now: number): string {
+  if (!kill.killed_at) return "?";
   const spawnStart = new Date(kill.killed_at).getTime() + mvp.respawn_ms;
   const diff = spawnStart - now;
   if (diff <= 0 && mvp.cooldown_group === 'bio_lab_5') {

@@ -44,7 +44,7 @@ export function MvpGroupStats({ groupId }: MvpGroupStatsProps) {
 
   const filtered = useMemo(() => {
     const cutoff = Date.now() - PERIOD_MS[period];
-    return kills.filter((k) => new Date(k.killed_at).getTime() > cutoff);
+    return kills.filter((k) => k.killed_at && new Date(k.killed_at).getTime() > cutoff);
   }, [kills, period]);
 
   // Stats computations

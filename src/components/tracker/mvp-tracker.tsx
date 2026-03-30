@@ -116,6 +116,7 @@ export function MvpTracker({ mvps, kills, serverId, onRegisterKill }: MvpTracker
       const kill = kills[String(mvp.id)];
       if (!kill) return { mvp, status: "alive", spawnAt: null, spawnEndAt: null, killedAt: null };
 
+      if (!kill.killed_at) return { mvp, status: "cooldown" as MvpStatus, spawnAt: null, spawnEndAt: null, killedAt: null };
       const killedAt = new Date(kill.killed_at);
       const spawnAt = new Date(killedAt.getTime() + mvp.respawn_ms);
       const spawnEndAt = new Date(spawnAt.getTime() + mvp.delay_ms);
