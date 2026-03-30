@@ -35,20 +35,9 @@ export async function POST(request: NextRequest) {
 
   const now = new Date().toISOString()
 
-  // Debug: log to a temp table what we received
-  await supabase.from('telemetry_sessions').upsert({
-    token_id: ctx.tokenId,
-    user_id: ctx.userId,
-    character_id: -1,
-    account_id: 0,
-    group_id: ctx.groupId,
-    current_map: JSON.stringify({ clients_len: clientList.length, has_clients_field: !!clients, has_current_map: !!current_map, cv: client_version }).slice(0, 200),
-    last_heartbeat: now,
-  }, { onConflict: 'token_id,character_id' })
-
   // Upsert one session per client
   for (const client of clientList) {
-    const { error: upsertErr } = await supabase
+    await supabase
       .from('telemetry_sessions')
       .upsert(
         {
@@ -66,14 +55,6 @@ export async function POST(request: NextRequest) {
         },
         { onConflict: 'token_id,character_id' }
       )
-    // Log upsert errors to debug session
-    if (upsertErr) {
-      await supabase.from('telemetry_sessions').upsert({
-        token_id: ctx.tokenId, user_id: ctx.userId, character_id: -2, account_id: 0,
-        group_id: ctx.groupId, current_map: JSON.stringify({ err: upsertErr.message, code: upsertErr.code, char: client.character_id }).slice(0, 200),
-        last_heartbeat: now,
-      }, { onConflict: 'token_id,character_id' })
-    }
   }
 
   // Clean stale sessions for this token (clients that disconnected)
