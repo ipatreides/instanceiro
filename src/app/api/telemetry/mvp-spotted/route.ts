@@ -32,18 +32,10 @@ export async function POST(request: NextRequest) {
 
   let { data: mvpRows } = await mvpQuery
 
-  // Fallback without map filter
-  if ((!mvpRows || mvpRows.length === 0) && resolvedMap) {
-    const { data: allRows } = await supabase
-      .from('mvps')
-      .select('id, map_name')
-      .eq('monster_id', monster_id)
-      .eq('server_id', ctx.serverId)
-    mvpRows = allRows
-  }
-
+  // No fallback for sightings — if the map doesn't match, the MVP is in an instance
+  // or other non-tracked content. Creating a sighting would be incorrect.
   if (!mvpRows || mvpRows.length === 0) {
-    return NextResponse.json({ error: 'Unknown MVP' }, { status: 400 })
+    return NextResponse.json({ action: 'ignored', reason: 'map mismatch (likely instance)' })
   }
 
   const mvpIds = mvpRows.map(m => m.id)

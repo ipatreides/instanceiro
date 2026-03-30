@@ -30,22 +30,22 @@ export async function POST(request: NextRequest) {
 
   const { data: mvpRows } = await query
 
-  // Fallback: if map filter returned nothing, try without map
-  let finalRows = mvpRows
-  if ((!finalRows || finalRows.length === 0) && map && map !== 'unknown') {
+  // If map was provided but no MVP found, this is likely an instance — ignore
+  // Only fallback to no-map query when map is genuinely unknown
+  if ((!mvpRows || mvpRows.length === 0) && (!map || map === 'unknown')) {
     const { data: allRows } = await supabase
       .from('mvps')
       .select('id')
       .eq('monster_id', monster_id)
       .eq('server_id', ctx.serverId)
-    finalRows = allRows
+    mvpRows = allRows
   }
 
-  if (!finalRows || finalRows.length === 0) {
-    return NextResponse.json({ error: 'Unknown MVP for this server' }, { status: 400 })
+  if (!mvpRows || mvpRows.length === 0) {
+    return NextResponse.json({ action: 'ignored', reason: 'map mismatch (likely instance)' })
   }
 
-  const mvpIds = finalRows.map(m => m.id)
+  const mvpIds = mvpRows.map(m => m.id)
   const killedAt = new Date(timestamp * 1000).toISOString()
 
   // Atomic kill registration — handles dedup, overwrite, and sighting cleanup in one transaction
