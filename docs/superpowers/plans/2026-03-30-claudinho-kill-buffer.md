@@ -10,6 +10,7 @@
 - **`mvp-spotted` (sightings) are NEVER buffered.** Sightings need zero latency — when the sniffer detects a MVP alive, the group needs to see it immediately. Sightings continue as direct POSTs to `/api/telemetry/mvp-spotted` with no delay.
 - The kill buffer only applies to **kill events** (death + drops + tomb + killer), because that data arrives in multiple packets over several seconds and benefits from consolidation.
 - When the consolidated kill event is sent, the backend's `telemetry_register_kill` RPC automatically deletes any active `mvp_sightings` for that MVP (already implemented in the RPC). This ensures the sighting disappears from the UI once the kill is confirmed.
+- **Sighting suppression during buffer window:** While a kill buffer is active for a MVP, the sniffer must NOT send `mvp-spotted` for that same monster_id+map. This prevents the race condition where the MVP's corpse/actor is still visible on screen after death and the sniffer re-creates a sighting that was just deleted. The `MvpKillBuffer` exposes `has_active_buffer(monster_id, map)` for this check. The backend also has a 5-minute kill cooldown on sightings as a second safety net.
 
 **Tech Stack:** C++20, MSVC, libcurl, nlohmann/json, std::thread, std::mutex
 
@@ -98,6 +99,9 @@ public:
     bool offer_killer(const std::string& map, const std::string& killer_name,
                       int kill_hour, int kill_minute);
 
+    /// Check if there's an active buffer for this monster+map (used to suppress sightings).
+    bool has_active_buffer(uint32_t monster_id, const std::string& map) const;
+
     /// Shutdown: flush any pending buffer immediately.
     void shutdown();
 
@@ -112,7 +116,7 @@ private:
 
     static constexpr int BUFFER_WINDOW_MS = 5000;
 
-    std::mutex m_mtx;
+    mutable std::mutex m_mtx;
     // Key: "monster_id:map" → BufferedKill
     // Typically only one active at a time, but safe for multiple
     std::unordered_map<std::string, BufferedKill> m_buffers;
@@ -202,6 +206,12 @@ bool MvpKillBuffer::offer_killer(const std::string& map, const std::string& kill
         }
     }
     return false;
+}
+
+bool MvpKillBuffer::has_active_buffer(uint32_t monster_id, const std::string& map) const
+{
+    std::lock_guard<std::mutex> lock(m_mtx);
+    return m_buffers.count(make_key(monster_id, map)) > 0;
 }
 
 void MvpKillBuffer::schedule_flush(uint32_t monster_id, const std::string& map)
@@ -332,7 +342,24 @@ void TelemetryClient::send_mvp_event(const BufferedKill& kill)
 }
 ```
 
-- [ ] **Step 3: Add config_stale handling to heartbeat**
+- [ ] **Step 3: Suppress sightings during active kill buffer**
+
+In `TelemetryClient.cpp`, in the `on_mvp_spotted()` method, add a check at the top (after the `is_instance_map` check):
+
+```cpp
+#include "MvpKillBuffer.h"
+
+// ... inside on_mvp_spotted(), after is_instance_map check:
+if (MvpKillBuffer::instance().has_active_buffer(monster_id, clean_map)) {
+    std::cout << "[Telemetry] Suppressing spotted for " << monster_id
+              << " — kill buffer active" << std::endl;
+    return;
+}
+```
+
+This prevents re-creating a sighting for a MVP that just died and is still in the kill buffer window.
+
+- [ ] **Step 4: Add config_stale handling to heartbeat**
 
 In `TelemetryClient.cpp`, in the `heartbeat_loop()` function, after the existing `config_version` check (around line 195), add:
 
@@ -344,12 +371,12 @@ if (response.contains("config_stale") && response["config_stale"].get<bool>()) {
 }
 ```
 
-- [ ] **Step 4: Build to verify compilation**
+- [ ] **Step 5: Build to verify compilation**
 
 Run: `cmake --build build --config Debug`
 Expected: Build succeeds
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add src/public/telemetry/TelemetryClient.h src/private/telemetry/TelemetryClient.cpp
