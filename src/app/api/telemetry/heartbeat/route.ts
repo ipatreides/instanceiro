@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient()
 
   const body = await request.json()
+  console.log('[HEARTBEAT DEBUG]', JSON.stringify({ tokenId: ctx.tokenId, body }))
   const { config_version, client_version, clients, current_map } = body
 
   // Support both old format (current_map) and new format (clients array)
