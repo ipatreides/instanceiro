@@ -57,8 +57,9 @@ export async function POST(request: NextRequest) {
   }
 
   // Clean stale sessions for this token (clients that disconnected)
+  // Only clean if we have real clients — empty array means sniffer hasn't detected characters yet
   const activeCharIds = clientList.map(c => c.character_id)
-  if (activeCharIds.length > 0) {
+  if (activeCharIds.length > 0 && activeCharIds.some(id => id !== 0)) {
     const { data: allSessions } = await supabase
       .from('telemetry_sessions')
       .select('id, character_id')
