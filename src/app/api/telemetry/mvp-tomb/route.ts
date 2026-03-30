@@ -67,16 +67,28 @@ export async function POST(request: NextRequest) {
   const action = rpcResult?.action ?? 'ignored'
   const killId = rpcResult?.kill_id
 
+  // If no existing kill found, create one — the tomb proves the MVP is dead,
+  // even if we missed the death event. Use now() as approximate killed_at.
   if (action === 'ignored') {
-    logTelemetryEvent(supabase, {
-      endpoint: 'mvp-tomb',
-      tokenId: ctx.tokenId,
-      characterId: ctx.characterUuid,
-      payloadSummary: { map, tomb_x, tomb_y },
-      result: 'ignored',
-      reason: 'no kill within respawn window',
+    const { data: createResult, error: createErr } = await supabase.rpc('telemetry_register_kill', {
+      p_group_id: ctx.groupId,
+      p_mvp_ids: mapMvpIds,
+      p_killed_at: new Date().toISOString(),
+      p_tomb_x: tomb_x,
+      p_tomb_y: tomb_y,
+      p_registered_by: ctx.characterUuid,
+      p_source: 'telemetry',
+      p_session_id: null,
+      p_update_only: false,
     })
-    return NextResponse.json({ action: 'ignored', reason: 'no kill within respawn window' })
+
+    if (createErr) {
+      logTelemetryEvent(supabase, { endpoint: 'mvp-tomb', tokenId: ctx.tokenId, characterId: ctx.characterUuid, payloadSummary: { map, tomb_x, tomb_y }, result: 'error', reason: createErr.message })
+      return NextResponse.json({ error: 'Failed to create kill from tomb' }, { status: 500 })
+    }
+
+    logTelemetryEvent(supabase, { endpoint: 'mvp-tomb', tokenId: ctx.tokenId, characterId: ctx.characterUuid, payloadSummary: { map, tomb_x, tomb_y, created_from_tomb: true }, result: 'created', killId: createResult?.kill_id ?? null })
+    return NextResponse.json({ action: 'created', kill_id: createResult?.kill_id }, { status: 201 })
   }
 
   logTelemetryEvent(supabase, {
