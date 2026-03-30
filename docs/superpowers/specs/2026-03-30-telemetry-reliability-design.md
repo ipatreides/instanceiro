@@ -6,6 +6,44 @@
 
 ---
 
+## Análise de Dados (últimas 36h — 2026-03-29/30)
+
+Consulta direta ao banco revelou evidências concretas dos bugs. **108 kills de telemetria analisados:**
+
+### Duplicatas confirmadas
+
+**Turtle General (MVP 76, respawn 1h):** 3 kills com exatamente o mesmo `killed_at=02:15:00`, mesmos dados (tomb, killer), mas criados em momentos diferentes:
+- `5fe9143a` criado 02:15 (real)
+- `b5b4c3bc` criado 03:14 (+1h depois — tomb relido)
+- `01073f1f` criado 03:24 (+1h09 — outro tomb read)
+
+**Causa:** Tomb lido ~1h depois, `mvp-killer` reconstruiu o mesmo horário (02:15 BRT), mas caiu **fora** da dedup window de 59min → criou kill duplicado.
+
+**Tao Gunka (MVP 78, respawn 5h):** 3 kills com `killed_at=20:46:00`:
+- `3f5834a8` criado 20:46 (real)
+- `7e2b2cb2` criado 01:48 do dia seguinte (+5h02)
+- `96cbadb7` criado 01:52 do dia seguinte (+5h06)
+
+**Causa:** Tomb lido 5h depois, dedup window de ~4h59min ultrapassada → duplicatas.
+
+### Dados incompletos
+
+- **25% sem killer_name** — tomb click (mvp-killer) não chegou ou não fez merge com o kill
+- **18% sem killer_character_id** — killer de fora do grupo (não resolvível)
+- **84% com timestamps redondos (HH:MM:00)** — confirma que a maioria dos dados vem do tomb, não do sniffer. O Bug 1 (reconstrução de timestamp) é o problema central.
+
+### Timing suspeito
+
+- MVP 78: `killed_at=15:36` mas `created_at=20:41` (5h de diferença) — tomb stale
+- MVP 94: 109min de diferença entre killed_at e created_at
+- MVP 76: `killed_at=02:15` mas `created_at=03:24` (69min) — fora da dedup window de 59min
+
+### Insight principal
+
+O problema não é o sniffer mandando dados ruins — é o **tomb sendo lido horas depois** e o `mvp-killer` criando kills duplicados porque o tomb read cai fora da dedup window. A dedup window é baseada no respawn_ms do MVP, mas tombs podem persistir por tempo indeterminado no jogo.
+
+---
+
 ## Seção 0 — Bugs Identificados no Código Atual
 
 Análise dos route handlers e RPC revelou 6 problemas concretos que explicam os sintomas reportados:
@@ -90,7 +128,9 @@ Hoje cada endpoint (`mvp-kill`, `mvp-killer`, `mvp-tomb`, `mvp-spotted`) duplica
 }
 ```
 
-Os endpoints antigos (`mvp-killer`, `mvp-tomb`) continuam como fallback para dados que chegam depois (jogador clica tomb minutos após a morte), mas delegam para a mesma lógica interna.
+**Prioridade de timestamp:** Se ambos `timestamp` (unix epoch) e `kill_hour/kill_minute` (do tomb) estiverem presentes, usar `kill_hour:kill_minute` como base — é mais confiável por vir do servidor do jogo. O `timestamp` do sniffer serve como âncora de **data** (dia/mês/ano) para evitar o bug de virada de dia.
+
+**Endpoints antigos como fallback permanente:** Os endpoints `mvp-killer`, `mvp-tomb` continuam existindo indefinidamente para suportar sniffers antigos e dados que chegam depois (jogador clica tomb minutos após a morte). Ambos delegam para a mesma lógica interna. Sniffers novos usam `mvp-event`, antigos funcionam como antes (mas com bugfixes aplicados).
 
 ### 1.2 Sniffer (C++) — Kill Buffer + Envio Consolidado
 
@@ -154,7 +194,7 @@ Kills manuais (registrados pela UI) são automaticamente **"confirmados"**.
 | `user_id` | uuid | FK profiles |
 | `map_name` | text | Mapa onde estava no momento |
 
-Preenchida automaticamente no INSERT do kill — snapshot de quem estava no mapa via `telemetry_sessions`.
+Preenchida automaticamente no INSERT do kill — snapshot de quem estava no mapa via `telemetry_sessions`, com **janela de grace de 2 minutos** após o kill. Sessões que estavam no mapa até 2min depois do `killed_at` são incluídas como witnesses (cobre o caso de alguém que chegou ao mapa logo após o kill e viu o tomb).
 
 ### 2.3 Quem Pode Validar
 
@@ -174,7 +214,7 @@ Quando alguém corrige:
 Kill pendente que ultrapassou o respawn window → status muda automaticamente para `expired_unvalidated`:
 - Sai do timer normalmente
 - Fica registrado como não validado (útil para stats de confiabilidade futura)
-- Implementado via trigger de banco (não depende do cliente estar aberto): trigger periódico ou check na RPC `get_group_active_kills` que marca kills expirados
+- Implementado via scheduled function (cron job a cada 5min) que marca kills expirados. Não usar side-effects na RPC `get_group_active_kills` (é uma query de leitura)
 
 ### 2.6 Notificação de Correção
 
@@ -251,6 +291,40 @@ O sistema de validação depende de saber quem estava no mapa (via `telemetry_se
 - Indicador de saúde da sessão visível na UI (ver painel acima)
 - Heartbeat failures logados no event log
 - Considerar: se sessão tem heartbeat > 5min, não incluir como witness
+
+---
+
+## Seção 4 — Cleanup de Dados Existentes
+
+Migration de cleanup para corrigir dados sujos já no banco:
+
+### 4.1 Remover kills fantasma
+
+```sql
+DELETE FROM mvp_kills WHERE mvp_id = 0;
+```
+
+### 4.2 Deduplicar kills com mesmo killed_at
+
+Para kills com mesmo `(mvp_id, group_id, killed_at)`, manter apenas o mais antigo (`created_at` menor) e deletar os demais. Isso corrige os duplicados criados por tomb reads stale (ex: Turtle General com 3 kills em 02:15:00, Tao Gunka com 3 kills em 20:46:00).
+
+```sql
+DELETE FROM mvp_kills
+WHERE id IN (
+  SELECT id FROM (
+    SELECT id, ROW_NUMBER() OVER (
+      PARTITION BY mvp_id, group_id, killed_at
+      ORDER BY created_at ASC
+    ) AS rn
+    FROM mvp_kills
+  ) ranked
+  WHERE rn > 1
+);
+```
+
+### 4.3 Cascading cleanup
+
+Deletar registros órfãos em `mvp_kill_loots`, `mvp_kill_party`, `mvp_alert_queue` referenciando kills removidos (se FK sem CASCADE).
 
 ---
 
