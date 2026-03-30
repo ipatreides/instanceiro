@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     p_tomb_y: tomb_y ?? null,
     p_registered_by: ctx.characterUuid,
     p_source: 'telemetry',
-    p_session_id: ctx.sessionId,
+    p_session_id: null,
     p_killer_name: killer_name,
     p_killer_char_id: killerMatch?.character_id ?? null,
   })

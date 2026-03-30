@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       map_name: finalMap,
       x,
       y,
-      telemetry_session_id: ctx.sessionId,
+      telemetry_session_id: null,
     })
     .select('id')
     .single()

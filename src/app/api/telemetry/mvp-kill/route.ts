@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     query = query.eq('map_name', map)
   }
 
-  const { data: mvpRows } = await query
+  let { data: mvpRows } = await query
 
   // If map was provided but no MVP found, this is likely an instance — ignore
   // Only fallback to no-map query when map is genuinely unknown
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     p_tomb_y: y ?? null,
     p_registered_by: ctx.characterUuid,
     p_source: 'telemetry',
-    p_session_id: ctx.sessionId,
+    p_session_id: null,
   })
 
   if (rpcErr) {

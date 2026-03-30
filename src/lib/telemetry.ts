@@ -9,7 +9,6 @@ export interface TelemetryContext {
   accountId: string
   groupId: string
   serverId: number
-  sessionId: string
   tokenId: string
 }
 
@@ -89,27 +88,6 @@ export async function resolveTelemetryContext(
   const characterUuid = membership.character_id as string
   const serverId = (membership as any).mvp_groups.server_id as number
 
-  // Upsert session — use character UUID as the session key
-  const { data: session, error: sessionErr } = await supabase
-    .from('telemetry_sessions')
-    .upsert(
-      {
-        token_id: tokenRow.id,
-        user_id: tokenRow.user_id,
-        character_id: 0, // game-level ID not available in DB, use 0 as placeholder
-        account_id: 0,
-        group_id: groupId,
-        last_heartbeat: new Date().toISOString(),
-      },
-      { onConflict: 'token_id,character_id' }
-    )
-    .select('id, config_version')
-    .single()
-
-  if (sessionErr || !session) {
-    return { error: 'Failed to create session', status: 500 }
-  }
-
   return {
     ctx: {
       userId: tokenRow.user_id,
@@ -118,7 +96,6 @@ export async function resolveTelemetryContext(
       accountId,
       groupId,
       serverId,
-      sessionId: session.id,
       tokenId: tokenRow.id,
     },
   }
