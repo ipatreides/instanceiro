@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveTelemetryContext } from '@/lib/telemetry'
+import { logTelemetryEvent } from '@/lib/telemetry/log-event'
 
 interface HeartbeatClient {
   character_id: number
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient()
 
   const body = await request.json()
-  const { config_version, client_version, clients, current_map } = body as { config_version?: number; client_version?: string; clients?: HeartbeatClient[]; current_map?: string } = body
+  const { config_version, client_version, clients, current_map } = body as { config_version?: number; client_version?: string; clients?: HeartbeatClient[]; current_map?: string }
 
   // Support both old format (current_map) and new format (clients array)
   const clientList: HeartbeatClient[] = clients ?? (current_map ? [{
@@ -88,17 +89,32 @@ export async function POST(request: NextRequest) {
       .eq('character_id', 0)
   }
 
-  // Get config version
-  const { data: configRow } = await supabase
-    .from('telemetry_sessions')
-    .select('config_version')
-    .eq('token_id', ctx.tokenId)
-    .limit(1)
+  // Get current config version from server version table
+  const { data: configVersionRow } = await supabase
+    .from('telemetry_config_versions')
+    .select('version')
+    .eq('server_id', ctx.serverId)
     .maybeSingle()
+
+  const serverConfigVersion = configVersionRow?.version ?? 1
+  const clientConfigVersion = config_version ?? null
+  const configStale = clientConfigVersion !== null && clientConfigVersion < serverConfigVersion
+
+  if (configStale) {
+    logTelemetryEvent(supabase, {
+      endpoint: 'heartbeat',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { client_config_version: clientConfigVersion, server_config_version: serverConfigVersion },
+      result: 'ignored',
+      reason: 'config_stale',
+    })
+  }
 
   return NextResponse.json({
     status: 'ok',
-    config_version: configRow?.config_version ?? 1,
+    config_version: serverConfigVersion,
+    config_stale: configStale,
   })
   } catch (e: any) {
     return NextResponse.json({ error: 'heartbeat_error', message: e?.message ?? 'unknown' }, { status: 500 })

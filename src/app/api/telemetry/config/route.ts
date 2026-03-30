@@ -18,16 +18,15 @@ export async function GET(request: NextRequest) {
 
   const monsterIds = mvps?.map((m) => m.monster_id) ?? []
 
-  // Get current config_version from any session for this token
-  const { data: session } = await supabase
-    .from('telemetry_sessions')
-    .select('config_version')
-    .eq('token_id', ctx.tokenId)
-    .limit(1)
+  // Get current config_version from the server's version table
+  const { data: configVersion } = await supabase
+    .from('telemetry_config_versions')
+    .select('version')
+    .eq('server_id', ctx.serverId)
     .maybeSingle()
 
   return NextResponse.json({
-    config_version: session?.config_version ?? 1,
+    config_version: configVersion?.version ?? 1,
     server_id: ctx.serverId,
     group_id: ctx.groupId,
     events: {
