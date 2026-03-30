@@ -36,8 +36,18 @@ export async function POST(request: NextRequest) {
 
   const now = new Date().toISOString()
 
+  // If no clients reported, upsert a placeholder session so the token stays "online"
+  const effectiveClients = clientList.length > 0 ? clientList : [{
+    character_id: 0,
+    account_id: 0,
+    map: '',
+    name: '',
+    in_instance: false,
+    instance_name: '',
+  } as HeartbeatClient]
+
   // Upsert one session per client
-  for (const client of clientList) {
+  for (const client of effectiveClients) {
     await supabase
       .from('telemetry_sessions')
       .upsert(
