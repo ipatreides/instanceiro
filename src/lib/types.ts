@@ -168,7 +168,7 @@ export interface InstanceState {
   completionCount: number;
   lastCompletion: InstanceCompletion | null;
   cooldownExpiresAt: Date | null;
-  status: "available" | "cooldown" | "inactive";
+  status: "available" | "cooldown" | "inactive" | "in_progress";
 }
 
 export interface InstanceParty {
@@ -343,6 +343,7 @@ export interface TelemetrySession {
   account_id: number
   group_id: string
   current_map: string | null
+  current_instance_id: number | null
   config_version: number
   last_heartbeat: string
   started_at: string

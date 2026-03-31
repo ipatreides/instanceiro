@@ -60,12 +60,14 @@ const STATUS_BORDER: Record<InstanceState["status"], string> = {
   available: "card-status-available",
   cooldown: "card-status-cooldown",
   inactive: "border-l-disabled-bg",
+  in_progress: "card-status-in-progress",
 };
 
 const STATUS_DOT: Record<InstanceState["status"], string> = {
   available: "bg-status-available",
   cooldown: "bg-status-cooldown",
   inactive: "bg-disabled-bg",
+  in_progress: "bg-status-in-progress",
 };
 
 export function InstanceCard({ state, now, onClick }: InstanceCardProps) {
@@ -74,6 +76,7 @@ export function InstanceCard({ state, now, onClick }: InstanceCardProps) {
     status === "cooldown"
       ? formatTimeRemaining(cooldownExpiresAt, instance.available_day, now)
       : null;
+  const isInProgress = status === "in_progress";
 
   return (
     <button
@@ -91,6 +94,9 @@ export function InstanceCard({ state, now, onClick }: InstanceCardProps) {
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          {isInProgress && (
+            <span className="text-xs text-status-in-progress-text font-medium">Em andamento</span>
+          )}
           {timeLabel && (
             <span className="text-xs text-status-cooldown-text font-medium">{timeLabel}</span>
           )}

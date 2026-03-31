@@ -23,10 +23,11 @@ interface UseInstancesReturn {
   refetch: () => Promise<void>;
 }
 
-export function useInstances(characterId: string | null): UseInstancesReturn {
+export function useInstances(characterId: string | null, userId?: string | null): UseInstancesReturn {
   const [instances, setInstances] = useState<Instance[]>([]);
   const [characterInstances, setCharacterInstances] = useState<CharacterInstance[]>([]);
   const [completions, setCompletions] = useState<InstanceCompletion[]>([]);
+  const [activeInstanceIds, setActiveInstanceIds] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
 
   const fetchAll = useCallback(async () => {
@@ -34,6 +35,7 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
       setInstances([]);
       setCharacterInstances([]);
       setCompletions([]);
+      setActiveInstanceIds(new Set());
       return;
     }
 
@@ -43,7 +45,15 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
       ? Promise.resolve({ data: cachedInstances, error: null })
       : supabase.from("instances").select("id, name, level_required, party_min, cooldown_type, cooldown_hours, available_day, difficulty, reward, mutual_exclusion_group, level_max, wiki_url, start_map, liga_tier, liga_coins, is_solo, aliases").order("name", { ascending: true });
 
-    const [instancesRes, ciRes, completionsRes] = await Promise.all([
+    const telemetryPromise = userId
+      ? supabase
+          .from("telemetry_sessions")
+          .select("current_instance_id")
+          .eq("user_id", userId)
+          .not("current_instance_id", "is", null)
+      : Promise.resolve({ data: [] as { current_instance_id: number | null }[], error: null });
+
+    const [instancesRes, ciRes, completionsRes, telemetryRes] = await Promise.all([
       instancesPromise,
       supabase
         .from("character_instances")
@@ -51,9 +61,10 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
         .eq("character_id", characterId),
       supabase
         .from("instance_completions")
-        .select("id, character_id, instance_id, completed_at")
+        .select("id, character_id, instance_id, completed_at, source, telemetry_session_id")
         .eq("character_id", characterId)
         .order("completed_at", { ascending: false }),
+      telemetryPromise,
     ]);
 
     if (instancesRes.error) console.error("Error fetching instances:", instancesRes.error);
@@ -64,10 +75,17 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
       cachedInstances = instancesRes.data;
     }
 
+    const inProgressIds = new Set<number>(
+      (telemetryRes.data ?? [])
+        .map((s) => s.current_instance_id)
+        .filter((id): id is number => id !== null)
+    );
+
     setInstances(instancesRes.data ?? []);
     setCharacterInstances(ciRes.data ?? []);
     setCompletions(completionsRes.data ?? []);
-  }, [characterId]);
+    setActiveInstanceIds(inProgressIds);
+  }, [characterId, userId]);
 
   const refetch = useCallback(async () => {
     setLoading(true);
@@ -90,7 +108,7 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
     };
 
     const supabase = createClient();
-    const channel = supabase
+    const channelBuilder = supabase
       .channel(`instances-${characterId}`)
       .on("postgres_changes", {
         event: "*",
@@ -103,15 +121,33 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
         schema: "public",
         table: "character_instances",
         filter: `character_id=eq.${characterId}`,
-      }, debouncedFetch)
-      .subscribe();
+      }, debouncedFetch);
+
+    // Subscribe to telemetry_sessions changes so in_progress status updates in real time
+    if (userId) {
+      channelBuilder
+        .on("postgres_changes", {
+          event: "UPDATE",
+          schema: "public",
+          table: "telemetry_sessions",
+          filter: `user_id=eq.${userId}`,
+        }, debouncedFetch)
+        .on("postgres_changes", {
+          event: "INSERT",
+          schema: "public",
+          table: "instance_completions",
+          filter: `character_id=eq.${characterId}`,
+        }, debouncedFetch);
+    }
+
+    const channel = channelBuilder.subscribe();
 
     return () => {
       cancelled = true;
       if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [fetchAll]);
+  }, [fetchAll, userId]);
 
   const computeStates = useCallback(
     (now: Date): InstanceState[] => {
@@ -126,6 +162,18 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
         const isActive = ci.is_active;
         const completionCount = completions.filter((c) => c.instance_id === instance.id).length;
         const lastCompletion = completions.find((c) => c.instance_id === instance.id) ?? null;
+
+        // in_progress takes priority: a telemetry session has this instance as current
+        if (isActive && activeInstanceIds.has(instance.id)) {
+          return {
+            instance,
+            isActive: true,
+            completionCount,
+            lastCompletion,
+            cooldownExpiresAt: null,
+            status: "in_progress",
+          };
+        }
 
         if (!isActive) {
           return {
@@ -225,7 +273,7 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
         };
       });
     },
-    [instances, characterInstances, completions]
+    [instances, characterInstances, completions, activeInstanceIds]
   );
 
   const markDone = useCallback(
@@ -343,7 +391,7 @@ export function useInstances(characterId: string | null): UseInstancesReturn {
       // Optimistic update: add completions for own characters immediately
       if (characterId && ownCharIds.includes(characterId)) {
         setCompletions((prev) => [
-          { id: crypto.randomUUID(), character_id: characterId, instance_id: instanceId, completed_at: ts },
+          { id: crypto.randomUUID(), character_id: characterId, instance_id: instanceId, completed_at: ts, source: 'manual' as const, telemetry_session_id: null },
           ...prev,
         ]);
       }
