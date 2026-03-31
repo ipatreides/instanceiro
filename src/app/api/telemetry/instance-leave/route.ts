@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Clear session instance state
-  await supabase
+  const { error: clearErr } = await supabase
     .from('telemetry_sessions')
     .update({
       current_instance_id: null,
@@ -106,6 +106,17 @@ export async function POST(request: NextRequest) {
       instance_name: null,
     })
     .eq('id', session.id)
+
+  if (clearErr) {
+    logTelemetryEvent(supabase, {
+      endpoint: 'instance-leave',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { flag, instance_id: session.current_instance_id, session_id: session.id },
+      result: 'error',
+      reason: `completion_created_but_session_clear_failed: ${clearErr.message}`,
+    })
+  }
 
   logTelemetryEvent(supabase, {
     endpoint: 'instance-leave',

@@ -58,6 +58,25 @@ export async function POST(request: NextRequest) {
 
   const sessionCharId = bodyCharId ?? parseInt(ctx.characterId, 10) ?? 0
 
+  // Check if already in an instance (ENTER while in instance → clear previous without completion)
+  const { data: currentSession } = await supabase
+    .from('telemetry_sessions')
+    .select('current_instance_id')
+    .eq('token_id', ctx.tokenId)
+    .eq('character_id', sessionCharId)
+    .maybeSingle()
+
+  if (currentSession?.current_instance_id && currentSession.current_instance_id !== mapping.instance_id) {
+    logTelemetryEvent(supabase, {
+      endpoint: 'instance-enter',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { previous_instance_id: currentSession.current_instance_id, new_instance_id: mapping.instance_id },
+      result: 'ok',
+      reason: 'switched_instance',
+    })
+  }
+
   const { error: updateErr } = await supabase
     .from('telemetry_sessions')
     .update({
