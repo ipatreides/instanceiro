@@ -146,12 +146,20 @@ export interface CharacterInstance {
   created_at: string;
 }
 
+export interface InstanceNameMapping {
+  id: number
+  packet_name: string
+  instance_id: number
+}
+
 export interface InstanceCompletion {
   id: string;
   character_id: string;
   instance_id: number;
   completed_at: string;
   party_id?: string | null;
+  telemetry_session_id?: string | null;
+  source: 'manual' | 'telemetry';
 }
 
 export interface InstanceState {
