@@ -131,12 +131,6 @@ export function useInstances(characterId: string | null, userId?: string | null)
           schema: "public",
           table: "telemetry_sessions",
           filter: `user_id=eq.${userId}`,
-        }, debouncedFetch)
-        .on("postgres_changes", {
-          event: "INSERT",
-          schema: "public",
-          table: "instance_completions",
-          filter: `character_id=eq.${characterId}`,
         }, debouncedFetch);
     }
 
