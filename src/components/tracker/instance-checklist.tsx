@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect } from "react";
 import type { Instance, TrackerInstanceData, CooldownType } from "@/lib/types";
 import { calculateCooldownExpiry } from "@/lib/cooldown";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { NEW_INSTANCE_IDS } from "@/components/instances/instance-card";
 
 interface InstanceChecklistProps {
   instances: Instance[];
@@ -111,7 +112,14 @@ function InstanceCard({
       </button>
 
       <div className="flex-1 min-w-0">
-        <span className="text-xs font-medium text-text-primary truncate block">{instance.name}</span>
+        <span className="text-xs font-medium text-text-primary truncate flex items-center gap-1.5">
+          {instance.name}
+          {NEW_INSTANCE_IDS.has(instance.id) && (
+            <span className="text-[9px] font-semibold uppercase tracking-wider px-1 py-px rounded-[var(--radius-sm)] bg-[color-mix(in_srgb,var(--slot-classe)_15%,transparent)] text-slot-classe flex-shrink-0">
+              New
+            </span>
+          )}
+        </span>
         {isActive && status !== "available" && cooldownExpiresAt && (
           <span
             className={`text-[11px] font-medium ${

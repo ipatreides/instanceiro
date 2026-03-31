@@ -2,6 +2,9 @@
 
 import type { InstanceState } from "@/lib/types";
 
+/** Instance IDs added in EP 17.2 + Labirinto da Neblina (EP 14.2) — 2026-03-31 */
+export const NEW_INSTANCE_IDS = new Set([45, 46, 47, 48, 49]);
+
 interface InstanceCardProps {
   state: InstanceState;
   now: Date;
@@ -87,6 +90,11 @@ export function InstanceCard({ state, now, onClick }: InstanceCardProps) {
         <div className="flex items-center gap-2 min-w-0">
           <span className={`w-2 h-2 rounded-full flex-shrink-0 ${STATUS_DOT[status]}`} />
           <span className="text-sm font-medium text-text-primary truncate">{instance.name}</span>
+          {NEW_INSTANCE_IDS.has(instance.id) && (
+            <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-[var(--radius-sm)] bg-[color-mix(in_srgb,var(--slot-classe)_15%,transparent)] text-slot-classe flex-shrink-0">
+              New
+            </span>
+          )}
           {instance.mutual_exclusion_group && (
             <span className="text-xs text-primary flex-shrink-0" title={`Compartilha cooldown com outras instâncias do grupo "${instance.mutual_exclusion_group}"`}>
               ⟷
