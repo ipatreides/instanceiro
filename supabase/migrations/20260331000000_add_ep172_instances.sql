@@ -21,3 +21,16 @@ ON CONFLICT (id) DO UPDATE SET
   difficulty = EXCLUDED.difficulty,
   reward = EXCLUDED.reward,
   mutual_exclusion_group = EXCLUDED.mutual_exclusion_group;
+
+-- Backfill character_instances for existing characters that meet level requirements
+INSERT INTO character_instances (character_id, instance_id, is_active)
+SELECT c.id, i.id, false
+FROM characters c
+CROSS JOIN instances i
+WHERE i.id IN (45, 46, 47, 48, 49)
+  AND c.level >= i.level_required
+  AND (i.level_max IS NULL OR c.level <= i.level_max)
+  AND NOT EXISTS (
+    SELECT 1 FROM character_instances ci
+    WHERE ci.character_id = c.id AND ci.instance_id = i.id
+  );
