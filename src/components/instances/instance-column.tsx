@@ -20,7 +20,7 @@ const COOLDOWN_LABELS: Record<CooldownType, string> = {
   hourly: "Horário",
 };
 
-const STATUS_ORDER: InstanceState["status"][] = ["available", "cooldown", "inactive"];
+const STATUS_ORDER: InstanceState["status"][] = ["in_progress", "available", "cooldown", "inactive"];
 
 function sortStates(states: InstanceState[]): InstanceState[] {
   return [...states].sort((a, b) => {
@@ -40,12 +40,13 @@ export function InstanceColumn({ cooldownType, states, now, onCardClick, forceSh
   );
 
   const sorted = sortStates(states);
+  const inProgress = sorted.filter((s) => s.status === "in_progress");
   const available = sorted.filter((s) => s.status === "available");
   const cooldown = sorted.filter((s) => s.status === "cooldown");
   const inactive = sorted.filter((s) => s.status === "inactive");
   const [showInactive, setShowInactive] = useState(false);
 
-  const activeStates = [...available, ...cooldown];
+  const activeStates = [...inProgress, ...available, ...cooldown];
 
   return (
     <div className="flex flex-col gap-2">

@@ -146,12 +146,20 @@ export interface CharacterInstance {
   created_at: string;
 }
 
+export interface InstanceNameMapping {
+  id: number
+  packet_name: string
+  instance_id: number
+}
+
 export interface InstanceCompletion {
   id: string;
   character_id: string;
   instance_id: number;
   completed_at: string;
   party_id?: string | null;
+  telemetry_session_id?: string | null;
+  source: 'manual' | 'telemetry';
 }
 
 export interface InstanceState {
@@ -160,7 +168,7 @@ export interface InstanceState {
   completionCount: number;
   lastCompletion: InstanceCompletion | null;
   cooldownExpiresAt: Date | null;
-  status: "available" | "cooldown" | "inactive";
+  status: "available" | "cooldown" | "inactive" | "in_progress";
 }
 
 export interface InstanceParty {
@@ -335,6 +343,7 @@ export interface TelemetrySession {
   account_id: number
   group_id: string
   current_map: string | null
+  current_instance_id: number | null
   config_version: number
   last_heartbeat: string
   started_at: string

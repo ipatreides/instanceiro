@@ -6,7 +6,7 @@ interface LogEventParams {
   tokenId: string | null
   characterId: string | null
   payloadSummary: Record<string, unknown>
-  result: 'created' | 'updated' | 'ignored' | 'error'
+  result: 'created' | 'updated' | 'ignored' | 'error' | 'ok'
   reason?: string
   killId?: string | null
 }

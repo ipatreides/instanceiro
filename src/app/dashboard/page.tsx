@@ -105,7 +105,7 @@ export default function DashboardPage() {
     toggleActive,
     getHistory,
     completeParty,
-  } = useInstances(selectedCharId);
+  } = useInstances(selectedCharId, userId);
   const {
     schedules,
     createSchedule,
