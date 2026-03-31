@@ -22,6 +22,13 @@ ON CONFLICT (id) DO UPDATE SET
   reward = EXCLUDED.reward,
   mutual_exclusion_group = EXCLUDED.mutual_exclusion_group;
 
+-- Wiki links
+UPDATE instances SET wiki_url = 'https://browiki.org/wiki/Labirinto_da_Neblina' WHERE id = 45;
+UPDATE instances SET wiki_url = 'https://browiki.org/wiki/Ortus_Aqua' WHERE id = 46;
+UPDATE instances SET wiki_url = 'https://browiki.org/wiki/Jardim_Secreto' WHERE id = 47;
+UPDATE instances SET wiki_url = 'https://browiki.org/wiki/Fazenda_de_Pitayas' WHERE id = 48;
+UPDATE instances SET wiki_url = 'https://browiki.org/wiki/Duelo_com_Sweety' WHERE id = 49;
+
 -- Backfill character_instances for existing characters that meet level requirements
 INSERT INTO character_instances (character_id, instance_id, is_active)
 SELECT c.id, i.id, false
