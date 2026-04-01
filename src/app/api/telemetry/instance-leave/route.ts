@@ -53,12 +53,31 @@ export async function POST(request: NextRequest) {
   const sessionCharId = bodyCharId ?? parseInt(ctx.characterId, 10) ?? 0
 
   // Read current session to get instance_id
-  const { data: session } = await supabase
-    .from('telemetry_sessions')
-    .select('id, current_instance_id')
-    .eq('token_id', ctx.tokenId)
-    .eq('character_id', sessionCharId)
-    .maybeSingle()
+  // Try exact character_id match first, then fall back to any session with an active instance for this token
+  let session: { id: string; current_instance_id: number | null } | null = null
+
+  if (sessionCharId !== 0) {
+    const { data } = await supabase
+      .from('telemetry_sessions')
+      .select('id, current_instance_id')
+      .eq('token_id', ctx.tokenId)
+      .eq('character_id', sessionCharId)
+      .not('current_instance_id', 'is', null)
+      .maybeSingle()
+    session = data
+  }
+
+  // Fallback: find any session for this token that is currently in an instance
+  if (!session) {
+    const { data } = await supabase
+      .from('telemetry_sessions')
+      .select('id, current_instance_id')
+      .eq('token_id', ctx.tokenId)
+      .not('current_instance_id', 'is', null)
+      .limit(1)
+      .maybeSingle()
+    session = data
+  }
 
   if (!session?.current_instance_id) {
     logTelemetryEvent(supabase, {
