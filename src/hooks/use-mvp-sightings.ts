@@ -63,6 +63,9 @@ export function useMvpSightings(groupId: string | null) {
             setSightings((prev) =>
               prev.map((s) => (s.id === row.id ? row : s))
             )
+          } else if (payload.eventType === 'DELETE') {
+            const deleted = payload.old as { id: string }
+            setSightings((prev) => prev.filter((s) => s.id !== deleted.id))
           }
         }
       )
