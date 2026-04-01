@@ -71,7 +71,7 @@ export function MvpGroupHub({
       .select("id")
       .eq("group_id", group.id)
       .limit(1)
-      .single()
+      .maybeSingle()
       .then(({ data: party }) => {
         if (!party) return;
         supabase
