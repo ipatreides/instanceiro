@@ -58,38 +58,33 @@ export async function POST(request: NextRequest) {
 
   const sessionCharId = bodyCharId ?? parseInt(ctx.characterId, 10) ?? 0
 
-  // Find the session to update — try exact match, then fall back to any session for this token
-  let targetSession: { character_id: number; current_instance_id: number | null } | null = null
-
-  if (sessionCharId !== 0) {
-    const { data } = await supabase
-      .from('telemetry_sessions')
-      .select('character_id, current_instance_id')
-      .eq('token_id', ctx.tokenId)
-      .eq('character_id', sessionCharId)
-      .maybeSingle()
-    targetSession = data
-  }
-
-  if (!targetSession) {
-    const { data } = await supabase
-      .from('telemetry_sessions')
-      .select('character_id, current_instance_id')
-      .eq('token_id', ctx.tokenId)
-      .order('last_heartbeat', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    targetSession = data
-  }
-
-  const effectiveCharId = targetSession?.character_id ?? sessionCharId
-
-  if (targetSession?.current_instance_id && targetSession.current_instance_id !== mapping.instance_id) {
+  // Require character_id — sniffer must know who is entering
+  if (sessionCharId === 0) {
     logTelemetryEvent(supabase, {
       endpoint: 'instance-enter',
       tokenId: ctx.tokenId,
       characterId: ctx.characterUuid,
-      payloadSummary: { previous_instance_id: targetSession.current_instance_id, new_instance_id: mapping.instance_id },
+      payloadSummary: { instance_name },
+      result: 'ignored',
+      reason: 'missing_character_id',
+    })
+    return NextResponse.json({ action: 'ignored', reason: 'missing_character_id' })
+  }
+
+  // Check if already in an instance (ENTER while in instance → clear previous without completion)
+  const { data: currentSession } = await supabase
+    .from('telemetry_sessions')
+    .select('current_instance_id')
+    .eq('token_id', ctx.tokenId)
+    .eq('character_id', sessionCharId)
+    .maybeSingle()
+
+  if (currentSession?.current_instance_id && currentSession.current_instance_id !== mapping.instance_id) {
+    logTelemetryEvent(supabase, {
+      endpoint: 'instance-enter',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { previous_instance_id: currentSession.current_instance_id, new_instance_id: mapping.instance_id },
       result: 'ok',
       reason: 'switched_instance',
     })
@@ -103,14 +98,14 @@ export async function POST(request: NextRequest) {
       instance_name: instance_name,
     })
     .eq('token_id', ctx.tokenId)
-    .eq('character_id', effectiveCharId)
+    .eq('character_id', sessionCharId)
 
   if (updateErr) {
     logTelemetryEvent(supabase, {
       endpoint: 'instance-enter',
       tokenId: ctx.tokenId,
       characterId: ctx.characterUuid,
-      payloadSummary: { instance_name, session_char_id: effectiveCharId },
+      payloadSummary: { instance_name, session_char_id: sessionCharId },
       result: 'error',
       reason: updateErr.message,
     })
@@ -121,7 +116,7 @@ export async function POST(request: NextRequest) {
     endpoint: 'instance-enter',
     tokenId: ctx.tokenId,
     characterId: ctx.characterUuid,
-    payloadSummary: { instance_name, instance_id: mapping.instance_id, session_char_id: effectiveCharId },
+    payloadSummary: { instance_name, instance_id: mapping.instance_id, session_char_id: sessionCharId },
     result: 'ok',
   })
 

@@ -52,32 +52,26 @@ export async function POST(request: NextRequest) {
 
   const sessionCharId = bodyCharId ?? parseInt(ctx.characterId, 10) ?? 0
 
+  // Require character_id — sniffer must know who is leaving
+  if (sessionCharId === 0) {
+    logTelemetryEvent(supabase, {
+      endpoint: 'instance-leave',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { flag },
+      result: 'ignored',
+      reason: 'missing_character_id',
+    })
+    return NextResponse.json({ action: 'ignored', reason: 'missing_character_id' })
+  }
+
   // Read current session to get instance_id
-  // Try exact character_id match first, then fall back to any session with an active instance for this token
-  let session: { id: string; current_instance_id: number | null } | null = null
-
-  if (sessionCharId !== 0) {
-    const { data } = await supabase
-      .from('telemetry_sessions')
-      .select('id, current_instance_id')
-      .eq('token_id', ctx.tokenId)
-      .eq('character_id', sessionCharId)
-      .not('current_instance_id', 'is', null)
-      .maybeSingle()
-    session = data
-  }
-
-  // Fallback: find any session for this token that is currently in an instance
-  if (!session) {
-    const { data } = await supabase
-      .from('telemetry_sessions')
-      .select('id, current_instance_id')
-      .eq('token_id', ctx.tokenId)
-      .not('current_instance_id', 'is', null)
-      .limit(1)
-      .maybeSingle()
-    session = data
-  }
+  const { data: session } = await supabase
+    .from('telemetry_sessions')
+    .select('id, current_instance_id')
+    .eq('token_id', ctx.tokenId)
+    .eq('character_id', sessionCharId)
+    .maybeSingle()
 
   if (!session?.current_instance_id) {
     logTelemetryEvent(supabase, {
