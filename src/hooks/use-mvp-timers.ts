@@ -88,30 +88,9 @@ export function useMvpTimers(groupId: string | null, serverId: number | null): U
           filter: `group_id=eq.${groupId}`,
         },
         (payload) => {
-          if (payload.eventType === "INSERT") {
-            // New kill — refetch to get enriched data (character names, kill count)
-            // But with a short debounce to batch rapid inserts
+          if (payload.eventType === "INSERT" || payload.eventType === "UPDATE") {
+            // Refetch to get enriched data (character names from JOINs, kill count)
             fetchKills();
-          } else if (payload.eventType === "UPDATE") {
-            const updated = payload.new;
-            setActiveKills((prev) =>
-              prev.map((k) =>
-                k.kill_id === updated.id
-                  ? {
-                      ...k,
-                      killed_at: updated.killed_at ?? k.killed_at,
-                      tomb_x: updated.tomb_x ?? k.tomb_x,
-                      tomb_y: updated.tomb_y ?? k.tomb_y,
-                      killer_character_id: updated.killer_character_id ?? k.killer_character_id,
-                      killer_name_raw: updated.killer_name_raw ?? k.killer_name_raw,
-                      source: updated.source ?? k.source,
-                      validation_status: updated.validation_status ?? k.validation_status,
-                      validated_by: updated.validated_by ?? k.validated_by,
-                      validated_at: updated.validated_at ?? k.validated_at,
-                    }
-                  : k
-              )
-            );
           } else if (payload.eventType === "DELETE") {
             const deleted = payload.old;
             setActiveKills((prev) => prev.filter((k) => k.kill_id !== deleted.id));

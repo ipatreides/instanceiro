@@ -127,7 +127,7 @@ export function useInstances(characterId: string | null, userId?: string | null)
     if (userId) {
       channelBuilder
         .on("postgres_changes", {
-          event: "UPDATE",
+          event: "*",
           schema: "public",
           table: "telemetry_sessions",
           filter: `user_id=eq.${userId}`,
