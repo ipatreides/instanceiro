@@ -90,7 +90,8 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  const { error: updateErr } = await supabase
+  // Try to update existing session first
+  const { data: updated, error: updateErr } = await supabase
     .from('telemetry_sessions')
     .update({
       current_instance_id: mapping.instance_id,
@@ -99,6 +100,7 @@ export async function POST(request: NextRequest) {
     })
     .eq('token_id', ctx.tokenId)
     .eq('character_id', sessionCharId)
+    .select('id')
 
   if (updateErr) {
     logTelemetryEvent(supabase, {
@@ -110,6 +112,34 @@ export async function POST(request: NextRequest) {
       reason: updateErr.message,
     })
     return NextResponse.json({ error: 'Failed to update session' }, { status: 500 })
+  }
+
+  // Session didn't exist yet (heartbeat hasn't created it) — create it now
+  if (!updated || updated.length === 0) {
+    const { error: upsertErr } = await supabase
+      .from('telemetry_sessions')
+      .upsert({
+        token_id: ctx.tokenId,
+        user_id: ctx.userId,
+        character_id: sessionCharId,
+        group_id: ctx.groupId,
+        current_instance_id: mapping.instance_id,
+        in_instance: true,
+        instance_name: instance_name,
+        last_heartbeat: new Date().toISOString(),
+      }, { onConflict: 'token_id,character_id' })
+
+    if (upsertErr) {
+      logTelemetryEvent(supabase, {
+        endpoint: 'instance-enter',
+        tokenId: ctx.tokenId,
+        characterId: ctx.characterUuid,
+        payloadSummary: { instance_name, session_char_id: sessionCharId },
+        result: 'error',
+        reason: `session_create_failed: ${upsertErr.message}`,
+      })
+      return NextResponse.json({ error: 'Failed to create session' }, { status: 500 })
+    }
   }
 
   logTelemetryEvent(supabase, {
