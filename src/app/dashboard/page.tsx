@@ -105,7 +105,7 @@ export default function DashboardPage() {
     toggleActive,
     getHistory,
     completeParty,
-  } = useInstances(selectedCharId, userId);
+  } = useInstances(selectedCharId, userId, characters.find((c) => c.id === selectedCharId)?.level);
   const {
     schedules,
     createSchedule,

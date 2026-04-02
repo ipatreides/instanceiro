@@ -23,7 +23,7 @@ interface UseInstancesReturn {
   refetch: () => Promise<void>;
 }
 
-export function useInstances(characterId: string | null, userId?: string | null): UseInstancesReturn {
+export function useInstances(characterId: string | null, userId?: string | null, characterLevel?: number | null): UseInstancesReturn {
   const [instances, setInstances] = useState<Instance[]>([]);
   const [characterInstances, setCharacterInstances] = useState<CharacterInstance[]>([]);
   const [completions, setCompletions] = useState<InstanceCompletion[]>([]);
@@ -81,11 +81,38 @@ export function useInstances(characterId: string | null, userId?: string | null)
         .filter((id): id is number => id !== null)
     );
 
-    setInstances(instancesRes.data ?? []);
-    setCharacterInstances(ciRes.data ?? []);
+    // Auto-sync: create character_instances rows for new instances the character is eligible for
+    const allInstances = instancesRes.data ?? [];
+    const existingCi = ciRes.data ?? [];
+    if (characterLevel && allInstances.length > 0) {
+      const existingIds = new Set(existingCi.map((ci) => ci.instance_id));
+      const missing = allInstances.filter(
+        (inst) =>
+          !existingIds.has(inst.id) &&
+          inst.level_required <= characterLevel &&
+          (!inst.level_max || characterLevel <= inst.level_max)
+      );
+      if (missing.length > 0) {
+        const rows = missing.map((inst) => ({
+          character_id: characterId,
+          instance_id: inst.id,
+          is_active: true,
+        }));
+        const { data: inserted } = await supabase
+          .from("character_instances")
+          .upsert(rows, { onConflict: "character_id,instance_id", ignoreDuplicates: true })
+          .select("character_id, instance_id, is_active, created_at");
+        if (inserted && inserted.length > 0) {
+          existingCi.push(...inserted);
+        }
+      }
+    }
+
+    setInstances(allInstances);
+    setCharacterInstances(existingCi);
     setCompletions(completionsRes.data ?? []);
     setActiveInstanceIds(inProgressIds);
-  }, [characterId, userId]);
+  }, [characterId, userId, characterLevel]);
 
   const refetch = useCallback(async () => {
     setLoading(true);

@@ -147,6 +147,15 @@ export function useMvpTimers(groupId: string | null, serverId: number | null): U
       );
     }
 
+    // Clean sightings for this MVP in this group
+    if (data.groupId) {
+      await supabase
+        .from("mvp_sightings")
+        .delete()
+        .eq("mvp_id", data.mvpId)
+        .eq("group_id", data.groupId);
+    }
+
     await fetchKills();
   }, [fetchKills]);
 

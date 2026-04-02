@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       .from('mvp_group_members')
       .select('character_id, characters!inner(name)')
       .eq('group_id', ctx.groupId)
-    const match = members?.find((m: any) => m.characters?.name === killer_name)
+    const match = members?.find((m: any) => m.characters?.name?.toLowerCase() === killer_name?.toLowerCase())
     killerCharId = match?.character_id ?? null
   }
 
