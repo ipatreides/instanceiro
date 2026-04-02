@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveTelemetryContext } from '@/lib/telemetry'
+import { resolveMapAlias } from '@/lib/telemetry/resolve-mvp'
 import { reconstructKilledAt } from '@/lib/telemetry/validate-payload'
 import { logTelemetryEvent } from '@/lib/telemetry/log-event'
 
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
   const updateOnly = killedAtDate === null
 
   // Bug 2 fix: resolve MVP by map only. If no MVPs on map, return ignored instead of [0].
-  const resolvedMap = (map && map !== 'unknown') ? map : null
+  const resolvedMap = resolveMapAlias(map)
   let matchMvpIds: number[] = []
 
   if (resolvedMap) {
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
     .eq('group_id', ctx.groupId)
 
   const killerMatch = members?.find(
-    (m: any) => m.characters?.name === killer_name
+    (m: any) => m.characters?.name?.toLowerCase() === killer_name?.toLowerCase()
   )
 
   // Use atomic RPC for kill registration — handles dedup + sighting cleanup

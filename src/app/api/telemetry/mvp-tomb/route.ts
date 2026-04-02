@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveTelemetryContext } from '@/lib/telemetry'
+import { resolveMapAlias } from '@/lib/telemetry/resolve-mvp'
 import { logTelemetryEvent } from '@/lib/telemetry/log-event'
 
 export async function POST(request: NextRequest) {
@@ -11,7 +12,8 @@ export async function POST(request: NextRequest) {
   const { ctx } = result
   const supabase = createAdminClient()
 
-  const { map, tomb_x, tomb_y, timestamp } = await request.json()
+  const { map: rawMap, tomb_x, tomb_y, timestamp } = await request.json()
+  const map = resolveMapAlias(rawMap)
 
   if (!map || tomb_x == null || tomb_y == null) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })

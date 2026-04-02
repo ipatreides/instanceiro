@@ -1,5 +1,15 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+// Maps sniffer map names to the canonical map_name used in the mvps table
+const MAP_ALIASES: Record<string, string> = {
+  lhz_dun_n: 'lhz_dun05',
+}
+
+export function resolveMapAlias(map: string | null | undefined): string | null {
+  if (!map || map === 'unknown') return null
+  return MAP_ALIASES[map] ?? map
+}
+
 interface ResolveMvpResult {
   mvpIds: number[]
   ignored: boolean
@@ -12,7 +22,8 @@ export async function resolveMvpIds(
   monsterId: number,
   map: string | null | undefined
 ): Promise<ResolveMvpResult> {
-  const resolvedMap = (map && map !== 'unknown') ? map : null
+  const rawMap = (map && map !== 'unknown') ? map : null
+  const resolvedMap = rawMap ? (MAP_ALIASES[rawMap] ?? rawMap) : null
 
   if (resolvedMap) {
     const { data: mvpRows } = await supabase
