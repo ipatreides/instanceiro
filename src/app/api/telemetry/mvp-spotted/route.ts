@@ -39,6 +39,14 @@ export async function POST(request: NextRequest) {
   const mvpId = mvpIds[0]
   const resolvedMap = (map && map !== 'unknown') ? map : 'unknown'
 
+  // Fetch MVP name for response
+  const { data: mvpRow } = await supabase
+    .from('mvps')
+    .select('name')
+    .eq('id', mvpId)
+    .maybeSingle()
+  const mvpName = mvpRow?.name ?? null
+
   if (dry_run) {
     logTelemetryEvent(supabase, {
       endpoint: 'mvp-spotted',
@@ -52,6 +60,7 @@ export async function POST(request: NextRequest) {
       action: 'dry_run',
       mvp_ids: mvpIds,
       mvp_id: mvpId,
+      mvp_name: mvpName,
       resolved_map: resolvedMap,
     })
   }
@@ -126,5 +135,5 @@ export async function POST(request: NextRequest) {
     payloadSummary: { monster_id, map, x, y },
     result: 'created',
   })
-  return NextResponse.json({ action: 'created', sighting_id: sighting?.id }, { status: 201 })
+  return NextResponse.json({ action: 'created', sighting_id: sighting?.id, mvp_name: mvpName }, { status: 201 })
 }

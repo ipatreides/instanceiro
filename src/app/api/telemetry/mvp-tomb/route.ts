@@ -28,6 +28,12 @@ export async function POST(request: NextRequest) {
 
   const mapMvpIds = mapMvps?.map((m) => m.id) ?? []
 
+  // Fetch MVP name for toast
+  const { data: mvpRow } = mapMvpIds.length > 0
+    ? await supabase.from('mvps').select('name').eq('id', mapMvpIds[0]).maybeSingle()
+    : { data: null }
+  const mvpName = mvpRow?.name ?? null
+
   if (dry_run) {
     logTelemetryEvent(supabase, {
       endpoint: 'mvp-tomb',
@@ -41,6 +47,7 @@ export async function POST(request: NextRequest) {
       action: 'dry_run',
       resolved_map: map,
       map_mvp_ids: mapMvpIds,
+      mvp_name: mvpName,
     })
   }
 
