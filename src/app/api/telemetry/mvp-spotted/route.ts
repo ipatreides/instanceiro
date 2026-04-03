@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       payloadSummary: { monster_id, map, x, y },
       result: 'updated',
     })
-    return NextResponse.json({ action: 'updated', sighting_id: recent[0].id })
+    return NextResponse.json({ action: 'updated', sighting_id: recent[0].id, mvp_name: mvpName })
   }
 
   // Insert new sighting

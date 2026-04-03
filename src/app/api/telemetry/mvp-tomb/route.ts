@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     }
 
     logTelemetryEvent(supabase, { endpoint: 'mvp-tomb', tokenId: ctx.tokenId, characterId: ctx.characterUuid, payloadSummary: { map, tomb_x, tomb_y, created_from_tomb: true }, result: 'created', killId: createResult?.kill_id ?? null })
-    return NextResponse.json({ action: 'created', kill_id: createResult?.kill_id }, { status: 201 })
+    return NextResponse.json({ action: 'created', kill_id: createResult?.kill_id, mvp_name: mvpName }, { status: 201 })
   }
 
   logTelemetryEvent(supabase, {
@@ -125,5 +125,5 @@ export async function POST(request: NextRequest) {
     killId: killId ?? null,
   })
 
-  return NextResponse.json({ action: 'updated', kill_id: killId })
+  return NextResponse.json({ action: 'updated', kill_id: killId, mvp_name: mvpName })
 }
