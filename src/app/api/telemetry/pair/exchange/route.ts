@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
 
   const { data: token, error } = await supabase
     .from('telemetry_tokens')
-    .select('id, temporary_token, exchange_expires_at')
+    .select('id, user_id, temporary_token, exchange_expires_at')
     .eq('exchange_code', exchange_code)
     .is('revoked_at', null)
     .single()
@@ -36,6 +36,14 @@ export async function POST(request: NextRequest) {
       temporary_token: null,
     })
     .eq('id', token.id)
+
+  // Revoke all other tokens for the same user (only the new one survives)
+  await supabase
+    .from('telemetry_tokens')
+    .update({ revoked_at: new Date().toISOString() })
+    .eq('user_id', token.user_id)
+    .neq('id', token.id)
+    .is('revoked_at', null)
 
   return NextResponse.json({ token: apiToken })
 }
