@@ -13,11 +13,12 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient()
 
   const body = await request.json()
-  const { instance_name, timestamp, character_id: bodyCharId, dry_run } = body as {
+  const { instance_name, timestamp, character_id: bodyCharId, dry_run, queue_time_secs } = body as {
     instance_name?: string
     timestamp?: number
     character_id?: number
     dry_run?: boolean
+    queue_time_secs?: number
   }
 
   if (!instance_name || typeof instance_name !== 'string') {
@@ -73,6 +74,7 @@ export async function POST(request: NextRequest) {
       instance_id: mapping.instance_id,
       instance_name,
       session_char_id: sessionCharId,
+      queue_time_secs: queue_time_secs ?? null,
     })
   }
 
@@ -164,7 +166,7 @@ export async function POST(request: NextRequest) {
     endpoint: 'instance-enter',
     tokenId: ctx.tokenId,
     characterId: ctx.characterUuid,
-    payloadSummary: { instance_name, instance_id: mapping.instance_id, session_char_id: sessionCharId },
+    payloadSummary: { instance_name, instance_id: mapping.instance_id, session_char_id: sessionCharId, queue_time_secs: queue_time_secs ?? null },
     result: 'ok',
   })
 
