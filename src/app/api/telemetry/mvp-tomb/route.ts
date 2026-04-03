@@ -65,6 +65,8 @@ export async function POST(request: NextRequest) {
 
   // Bug 4 fix: use telemetry_register_kill with p_update_only: true instead of raw UPDATE.
   // This uses the advisory lock preventing race conditions, and the RPC handles dedup internally.
+  // Use now() for dedup lookup (find recent kill on this map).
+  // The RPC preserves existing killed_at when p_killer_name is null.
   const { data: rpcResult, error: rpcErr } = await supabase.rpc('telemetry_register_kill', {
     p_group_id: ctx.groupId,
     p_mvp_ids: mapMvpIds,
