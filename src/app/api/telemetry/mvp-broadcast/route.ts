@@ -37,10 +37,9 @@ const BIO5_CODES: Record<string, { type: string; mvp?: string }> = {
   fWjm: { type: 'waiting' },
 }
 
-const MAP_TO_COOLDOWN_GROUP: Record<string, string> = {
-  lhz_dun_n: 'bio_lab_5',
-  lhz_dun05: 'bio_lab_5',
-}
+// Bio5 broadcasts are global game messages — the code alone determines the cooldown group.
+// Map is accepted for logging but not required or used for filtering.
+const BIO5_COOLDOWN_GROUP = 'bio_lab_5'
 
 export async function POST(request: NextRequest) {
   const result = await resolveTelemetryContext(request)
@@ -51,18 +50,18 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient()
 
   const body = await request.json()
-  const { code, map } = body
+  const { code, map, dry_run } = body
 
-  if (!code || !map) {
+  if (!code) {
     logTelemetryEvent(supabase, {
       endpoint: 'mvp-broadcast',
       tokenId: ctx.tokenId,
       characterId: ctx.characterUuid,
       payloadSummary: { code, map },
       result: 'error',
-      reason: 'missing_fields',
+      reason: 'missing_code',
     })
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    return NextResponse.json({ error: 'Missing required field: code' }, { status: 400 })
   }
 
   const event = BIO5_CODES[code]
@@ -78,18 +77,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ action: 'ignored', reason: 'unknown_code' })
   }
 
-  const normalizedMap = String(map).replace(/\.gat$/, '')
-  const cooldownGroup = MAP_TO_COOLDOWN_GROUP[normalizedMap]
-  if (!cooldownGroup) {
+  const cooldownGroup = BIO5_COOLDOWN_GROUP
+  const normalizedMap = map ? String(map).replace(/\.gat$/, '') : undefined
+
+  if (dry_run) {
     logTelemetryEvent(supabase, {
       endpoint: 'mvp-broadcast',
       tokenId: ctx.tokenId,
       characterId: ctx.characterUuid,
-      payloadSummary: { code, map: normalizedMap },
+      payloadSummary: { code, map: normalizedMap, cooldown_group: cooldownGroup, dry_run: true },
       result: 'ignored',
-      reason: 'unknown_map',
+      reason: 'dry_run',
     })
-    return NextResponse.json({ action: 'ignored', reason: 'unknown_map' })
+    return NextResponse.json({
+      action: 'dry_run',
+      event_type: event.type,
+      mvp_name: event.mvp ?? null,
+      cooldown_group: cooldownGroup,
+      normalized_map: normalizedMap,
+    })
   }
 
   const { error } = await supabase

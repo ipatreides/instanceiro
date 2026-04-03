@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient()
 
   const body = await request.json()
-  const { monster_id, x, y } = body
+  const { monster_id, x, y, dry_run } = body
   const map = body.map || 'unknown'
 
   if (!monster_id || x == null || y == null) {
@@ -38,6 +38,23 @@ export async function POST(request: NextRequest) {
   const mvpIds = mvpResult.mvpIds
   const mvpId = mvpIds[0]
   const resolvedMap = (map && map !== 'unknown') ? map : 'unknown'
+
+  if (dry_run) {
+    logTelemetryEvent(supabase, {
+      endpoint: 'mvp-spotted',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { monster_id, map, x, y, dry_run: true },
+      result: 'ignored',
+      reason: 'dry_run',
+    })
+    return NextResponse.json({
+      action: 'dry_run',
+      mvp_ids: mvpIds,
+      mvp_id: mvpId,
+      resolved_map: resolvedMap,
+    })
+  }
 
   // Ignore sighting if MVP was killed recently (within 5 minutes)
   const killCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString()

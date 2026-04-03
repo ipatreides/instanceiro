@@ -13,10 +13,11 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient()
 
   const body = await request.json()
-  const { flag, timestamp, character_id: bodyCharId } = body as {
+  const { flag, timestamp, character_id: bodyCharId, dry_run } = body as {
     flag?: number
     timestamp?: number
     character_id?: number
+    dry_run?: boolean
   }
 
   // flag=0 is internal map change, ignore
@@ -51,6 +52,23 @@ export async function POST(request: NextRequest) {
   }
 
   const sessionCharId = bodyCharId ?? parseInt(ctx.characterId, 10) ?? 0
+
+  if (dry_run) {
+    logTelemetryEvent(supabase, {
+      endpoint: 'instance-leave',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { flag, dry_run: true },
+      result: 'ignored',
+      reason: 'dry_run',
+    })
+    return NextResponse.json({
+      action: 'dry_run',
+      flag,
+      session_char_id: sessionCharId,
+      completed_at: completedAt ?? null,
+    })
+  }
 
   // Require character_id — sniffer must know who is leaving
   if (sessionCharId === 0) {

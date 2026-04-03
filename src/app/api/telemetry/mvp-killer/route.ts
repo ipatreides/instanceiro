@@ -13,7 +13,8 @@ export async function POST(request: NextRequest) {
   const { ctx } = result
   const supabase = createAdminClient()
 
-  const { map, tomb_x, tomb_y, killer_name, kill_hour, kill_minute } = await request.json()
+  const body = await request.json()
+  const { map, tomb_x, tomb_y, killer_name, kill_hour, kill_minute, dry_run } = body
 
   if (!killer_name) {
     return NextResponse.json({ error: 'Missing killer_name' }, { status: 400 })
@@ -61,6 +62,25 @@ export async function POST(request: NextRequest) {
   const killerMatch = members?.find(
     (m: any) => m.characters?.name?.toLowerCase() === killer_name?.toLowerCase()
   )
+
+  if (dry_run) {
+    logTelemetryEvent(supabase, {
+      endpoint: 'mvp-killer',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { map, killer_name, kill_hour, kill_minute, dry_run: true },
+      result: 'ignored',
+      reason: 'dry_run',
+    })
+    return NextResponse.json({
+      action: 'dry_run',
+      resolved_map: resolvedMap,
+      match_mvp_ids: matchMvpIds,
+      killed_at: killedAt,
+      killer_resolved: !!killerMatch,
+      killer_name,
+    })
+  }
 
   // Use atomic RPC for kill registration — handles dedup + sighting cleanup
   const { data: rpcResult, error: rpcErr } = await supabase.rpc('telemetry_register_kill', {

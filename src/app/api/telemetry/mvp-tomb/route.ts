@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   const { ctx } = result
   const supabase = createAdminClient()
 
-  const { map: rawMap, tomb_x, tomb_y, timestamp } = await request.json()
+  const { map: rawMap, tomb_x, tomb_y, timestamp, dry_run } = await request.json()
   const map = resolveMapAlias(rawMap)
 
   if (!map || tomb_x == null || tomb_y == null) {
@@ -27,6 +27,22 @@ export async function POST(request: NextRequest) {
     .eq('server_id', ctx.serverId)
 
   const mapMvpIds = mapMvps?.map((m) => m.id) ?? []
+
+  if (dry_run) {
+    logTelemetryEvent(supabase, {
+      endpoint: 'mvp-tomb',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { map, tomb_x, tomb_y, dry_run: true },
+      result: 'ignored',
+      reason: 'dry_run',
+    })
+    return NextResponse.json({
+      action: 'dry_run',
+      resolved_map: map,
+      map_mvp_ids: mapMvpIds,
+    })
+  }
 
   if (mapMvpIds.length === 0) {
     logTelemetryEvent(supabase, {

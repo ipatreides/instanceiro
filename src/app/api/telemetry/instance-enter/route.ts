@@ -13,10 +13,11 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient()
 
   const body = await request.json()
-  const { instance_name, timestamp, character_id: bodyCharId } = body as {
+  const { instance_name, timestamp, character_id: bodyCharId, dry_run } = body as {
     instance_name?: string
     timestamp?: number
     character_id?: number
+    dry_run?: boolean
   }
 
   if (!instance_name || typeof instance_name !== 'string') {
@@ -57,6 +58,23 @@ export async function POST(request: NextRequest) {
   }
 
   const sessionCharId = bodyCharId ?? parseInt(ctx.characterId, 10) ?? 0
+
+  if (dry_run) {
+    logTelemetryEvent(supabase, {
+      endpoint: 'instance-enter',
+      tokenId: ctx.tokenId,
+      characterId: ctx.characterUuid,
+      payloadSummary: { instance_name, dry_run: true },
+      result: 'ignored',
+      reason: 'dry_run',
+    })
+    return NextResponse.json({
+      action: 'dry_run',
+      instance_id: mapping.instance_id,
+      instance_name,
+      session_char_id: sessionCharId,
+    })
+  }
 
   // Require character_id — sniffer must know who is entering
   if (sessionCharId === 0) {
