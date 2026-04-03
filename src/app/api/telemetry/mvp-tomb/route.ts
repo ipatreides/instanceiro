@@ -94,12 +94,31 @@ export async function POST(request: NextRequest) {
   const action = rpcResult?.action ?? 'ignored'
   const killId = rpcResult?.kill_id
 
-  // If no existing kill found, don't create one from tomb alone.
-  // Tomb doesn't know when the MVP died — wait for MvpKiller (tomb click)
-  // which has the real kill_hour/kill_minute from the NPC dialog.
+  // If no existing kill found, create one with sentinel killed_at (epoch 0).
+  // The tomb proves the MVP is dead, but we don't know when.
+  // Frontend shows "hora desconhecida" for epoch 0. MvpKiller (tomb click)
+  // will later update killed_at with the real time.
   if (action === 'ignored') {
-    logTelemetryEvent(supabase, { endpoint: 'mvp-tomb', tokenId: ctx.tokenId, characterId: ctx.characterUuid, payloadSummary: { map, tomb_x, tomb_y }, result: 'ignored', reason: 'no recent kill to update — waiting for killer click' })
-    return NextResponse.json({ action: 'ignored', reason: 'no_recent_kill', mvp_name: mvpName })
+    const sentinel = new Date(0).toISOString() // 1970-01-01T00:00:00.000Z
+    const { data: createResult, error: createErr } = await supabase.rpc('telemetry_register_kill', {
+      p_group_id: ctx.groupId,
+      p_mvp_ids: mapMvpIds,
+      p_killed_at: sentinel,
+      p_tomb_x: tomb_x,
+      p_tomb_y: tomb_y,
+      p_registered_by: ctx.characterUuid,
+      p_source: 'telemetry',
+      p_session_id: null,
+      p_update_only: false,
+    })
+
+    if (createErr) {
+      logTelemetryEvent(supabase, { endpoint: 'mvp-tomb', tokenId: ctx.tokenId, characterId: ctx.characterUuid, payloadSummary: { map, tomb_x, tomb_y }, result: 'error', reason: createErr.message })
+      return NextResponse.json({ error: 'Failed to create kill from tomb' }, { status: 500 })
+    }
+
+    logTelemetryEvent(supabase, { endpoint: 'mvp-tomb', tokenId: ctx.tokenId, characterId: ctx.characterUuid, payloadSummary: { map, tomb_x, tomb_y, unknown_time: true }, result: 'created', killId: createResult?.kill_id ?? null })
+    return NextResponse.json({ action: 'created', kill_id: createResult?.kill_id, mvp_name: mvpName, unknown_time: true }, { status: 201 })
   }
 
   logTelemetryEvent(supabase, {

@@ -93,10 +93,11 @@ export function MvpTimerList({ mvps, activeKills, sightings, broadcasts, search,
   for (const mvp of collapsedMvps) {
     const kill = getEffectiveKill(mvp);
     if (kill) {
-      const killedAtMs = kill.killed_at ? new Date(kill.killed_at).getTime() : 0;
+      const unknownTime = !kill.killed_at || isUnknownKillTime(kill.killed_at);
+      const killedAtMs = unknownTime ? 0 : new Date(kill.killed_at!).getTime();
       const spawnStart = killedAtMs + mvp.respawn_ms;
-      const cardExpiry = kill.killed_at ? spawnStart + 30 * 60 * 1000 : Infinity;
-      if (now < cardExpiry || !kill.killed_at) {
+      const cardExpiry = unknownTime ? Infinity : spawnStart + 30 * 60 * 1000;
+      if (now < cardExpiry || unknownTime) {
         active.push({ mvp, kill });
         activeIds.add(mvp.id);
       }
@@ -336,8 +337,13 @@ function getTimerColor(kill: MvpActiveKill, mvp: Mvp, now: number): string {
 }
 
 // Helper: format timer display for list
+/** Sentinel: killed_at near epoch 0 means "time unknown" (tomb without click) */
+function isUnknownKillTime(killedAt: string): boolean {
+  return new Date(killedAt).getTime() < 86400000
+}
+
 function formatTimer(kill: MvpActiveKill, mvp: Mvp, now: number): string {
-  if (!kill.killed_at) return "?";
+  if (!kill.killed_at || isUnknownKillTime(kill.killed_at)) return "?";
   const spawnStart = new Date(kill.killed_at).getTime() + mvp.respawn_ms;
   const diff = spawnStart - now;
   if (diff <= 0 && mvp.cooldown_group === 'bio_lab_5') {
