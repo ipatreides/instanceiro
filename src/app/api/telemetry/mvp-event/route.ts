@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient()
 
   const body = await request.json()
-  const { monster_id, map, timestamp, tomb_x, tomb_y, killer_name, kill_hour, kill_minute, loots, party_account_ids } = body
+  const { monster_id, map, timestamp, tomb_x, tomb_y, killer_name, kill_hour, kill_minute, loots, party_account_ids, dry_run } = body
 
   if (!monster_id || !map || timestamp == null) {
     logTelemetryEvent(supabase, { endpoint: 'mvp-event', tokenId: ctx.tokenId, characterId: ctx.characterUuid, payloadSummary: { monster_id, map }, result: 'error', reason: 'missing required fields' })
@@ -51,6 +51,19 @@ export async function POST(request: NextRequest) {
       .eq('group_id', ctx.groupId)
     const match = members?.find((m: any) => m.characters?.name?.toLowerCase() === killer_name?.toLowerCase())
     killerCharId = match?.character_id ?? null
+  }
+
+  if (dry_run) {
+    logTelemetryEvent(supabase, { endpoint: 'mvp-event', tokenId: ctx.tokenId, characterId: ctx.characterUuid, payloadSummary: { monster_id, map, kill_hour, kill_minute, killer_name, loot_count: loots?.length ?? 0, dry_run: true }, result: 'ignored', reason: 'dry_run' })
+    return NextResponse.json({
+      action: 'dry_run',
+      mvp_ids: mvpResult.mvpIds,
+      resolved_map: map,
+      killed_at: killedAt,
+      killer_resolved: !!killerCharId,
+      killer_name: killer_name ?? null,
+      loot_count: loots?.length ?? 0,
+    })
   }
 
   const { data: rpcResult, error: rpcErr } = await supabase.rpc('telemetry_register_kill', {
