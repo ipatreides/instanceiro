@@ -234,15 +234,16 @@ function SessionsList({
                 </div>
               </div>
 
-              {tokenSessions.length > 0 ? tokenSessions.map((s) => {
+              {tokenSessions.length > 0 ? tokenSessions.filter((s) => s.character_id !== 0).map((s) => {
                 const health = heartbeatHealth(s.last_heartbeat)
                 const dotColor = health === 'available' ? 'bg-status-available' : health === 'soon' ? 'bg-status-soon' : 'bg-status-error'
+                const location = s.in_instance ? (s.instance_name || 'Instância') : (s.current_map || null)
                 return (
                 <div key={s.id} className="flex items-center gap-2 pl-4">
                   <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotColor}`} title={`Último heartbeat: ${formatRelativeTime(s.last_heartbeat)} atrás`} />
                   <span className="text-xs text-text-secondary">
-                    {s.character_name ?? `Char #${s.character_id}`}
-                    {s.in_instance ? ` · ${s.instance_name || 'Instância'}` : s.current_map ? ` · ${s.current_map}` : ''}
+                    {s.character_name || `Char #${s.character_id}`}
+                    {location && <span className="text-text-secondary/60"> · {location}</span>}
                   </span>
                 </div>
                 )
@@ -435,6 +436,38 @@ function EventLog({ events, loading, filterErrors, onToggleFilter }: {
   )
 }
 
+function UnresolvedCharsList({ chars, onRefresh }: { chars: any[]; onRefresh: () => void }) {
+  if (chars.length === 0) return null;
+
+  return (
+    <div className="bg-surface border border-border rounded-xl p-4 space-y-2">
+      <h4 className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">
+        Personagens não vinculados ({chars.length})
+      </h4>
+      <div className="space-y-1">
+        {chars.map((char) => (
+          <div key={char.game_char_id} className="flex items-center justify-between bg-bg border border-border rounded-md px-3 py-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-status-soon flex-shrink-0" />
+              <span className="text-sm text-text-primary">{char.char_name}</span>
+              {char.char_level && (
+                <span className="text-xs text-text-secondary">Nv. {char.char_level}</span>
+              )}
+            </div>
+            <span className="text-[10px] text-text-secondary">
+              {char.game_account_id ? `Conta #${char.game_account_id}` : 'Conta desconhecida'}
+            </span>
+          </div>
+        ))}
+      </div>
+      <p className="text-[10px] text-text-secondary mt-2">
+        Personagens detectados pelo Claudinho que ainda não estão cadastrados no Instanceiro.
+        Cadastre-os na aba de contas para vincular automaticamente.
+      </p>
+    </div>
+  );
+}
+
 // --- Main Component ---
 
 export function TelemetryTab({ userId }: TelemetryTabProps) {
@@ -446,6 +479,7 @@ export function TelemetryTab({ userId }: TelemetryTabProps) {
   const [eventLog, setEventLog] = useState<TelemetryEventLog[]>([]);
   const [eventLogLoading, setEventLogLoading] = useState(false);
   const [filterErrors, setFilterErrors] = useState(false);
+  const [unresolvedChars, setUnresolvedChars] = useState<any[]>([]);
 
   const fetchTokens = useCallback(async () => {
     const supabase = createClient();
@@ -480,6 +514,16 @@ export function TelemetryTab({ userId }: TelemetryTabProps) {
     }
   }, []);
 
+  const fetchUnresolved = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from('unresolved_game_characters')
+      .select('game_char_id, game_account_id, char_name, char_level, char_class, first_seen_at')
+      .eq('user_id', userId)
+      .order('first_seen_at', { ascending: false });
+    setUnresolvedChars(data ?? []);
+  }, [userId]);
+
   const fetchEventLog = useCallback(async () => {
     setEventLogLoading(true);
     const supabase = createClient();
@@ -499,7 +543,8 @@ export function TelemetryTab({ userId }: TelemetryTabProps) {
     fetchSessions();
     fetchVersion();
     fetchEventLog();
-  }, [fetchTokens, fetchSessions, fetchVersion, fetchEventLog]);
+    fetchUnresolved();
+  }, [fetchTokens, fetchSessions, fetchVersion, fetchEventLog, fetchUnresolved]);
 
   // Poll sessions every 30s
   useEffect(() => {
@@ -539,6 +584,11 @@ export function TelemetryTab({ userId }: TelemetryTabProps) {
         onRevokeRequest={setRevoking}
         onRevokeConfirm={handleRevokeConfirm}
         onRevokeCancel={() => setRevoking(null)}
+      />
+
+      <UnresolvedCharsList
+        chars={unresolvedChars}
+        onRefresh={fetchUnresolved}
       />
 
       <EventLog
