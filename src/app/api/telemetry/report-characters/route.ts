@@ -39,12 +39,20 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     if (existingChar) {
-      // Already resolved
+      // Already resolved — but update account link if missing
       const { data: account } = await supabase
         .from('accounts')
-        .select('game_account_id')
+        .select('id, game_account_id')
         .eq('id', existingChar.account_id)
         .maybeSingle()
+
+      if (account && !account.game_account_id && account_id && account_id !== 0) {
+        await supabase
+          .from('accounts')
+          .update({ game_account_id: account_id })
+          .eq('id', account.id)
+          .is('game_account_id', null)
+      }
 
       resolved.push({
         game_char_id: char.char_id,
