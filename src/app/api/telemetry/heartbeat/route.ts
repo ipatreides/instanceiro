@@ -36,15 +36,8 @@ export async function POST(request: NextRequest) {
 
   const now = new Date().toISOString()
 
-  // If no clients reported, upsert a placeholder session so the token stays "online"
-  const effectiveClients = clientList.length > 0 ? clientList : [{
-    character_id: 0,
-    account_id: 0,
-    map: '',
-    name: '',
-    in_instance: false,
-    instance_name: '',
-  } as HeartbeatClient]
+  // Filter out clients with character_id=0 (unidentified)
+  const effectiveClients = clientList.filter(c => c.character_id !== 0)
 
   // Upsert one session per client
   for (const client of effectiveClients) {
