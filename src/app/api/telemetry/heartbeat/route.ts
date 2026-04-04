@@ -41,6 +41,17 @@ export async function POST(request: NextRequest) {
 
   // Upsert one session per client
   for (const client of effectiveClients) {
+    // Resolve name from game_char_id if sniffer didn't provide one
+    let charName = client.name || null
+    if (!charName && client.character_id) {
+      const { data: resolved } = await supabase
+        .from('characters')
+        .select('name')
+        .eq('game_char_id', client.character_id)
+        .maybeSingle()
+      charName = resolved?.name ?? null
+    }
+
     await supabase
       .from('telemetry_sessions')
       .upsert(
@@ -51,7 +62,7 @@ export async function POST(request: NextRequest) {
           account_id: client.account_id,
           group_id: ctx.groupId,
           current_map: client.in_instance ? null : (client.map || null),
-          character_name: client.name || null,
+          character_name: charName,
           client_version: client_version ?? null,
           in_instance: client.in_instance ?? false,
           instance_name: client.instance_name || null,
