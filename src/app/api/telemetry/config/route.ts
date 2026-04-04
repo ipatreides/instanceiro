@@ -25,10 +25,38 @@ export async function GET(request: NextRequest) {
     .eq('server_id', ctx.serverId)
     .maybeSingle()
 
+  // Resolved game characters (linked to Instanceiro characters)
+  const { data: resolvedChars } = await supabase
+    .from('characters')
+    .select('game_char_id, name, id, accounts!inner(game_account_id)')
+    .eq('user_id', ctx.userId)
+    .not('game_char_id', 'is', null)
+
+  const resolved_characters = (resolvedChars ?? []).map((c: any) => ({
+    game_char_id: c.game_char_id,
+    game_account_id: c.accounts?.game_account_id ?? 0,
+    character_id: c.id,
+    name: c.name,
+  }))
+
+  // Unresolved game characters
+  const { data: unresolvedChars } = await supabase
+    .from('unresolved_game_characters')
+    .select('game_char_id, game_account_id, char_name')
+    .eq('user_id', ctx.userId)
+
+  const unresolved_characters = (unresolvedChars ?? []).map((c: any) => ({
+    game_char_id: c.game_char_id,
+    game_account_id: c.game_account_id ?? 0,
+    char_name: c.char_name,
+  }))
+
   return NextResponse.json({
     config_version: configVersion?.version ?? 1,
     server_id: ctx.serverId,
     group_id: ctx.groupId,
+    resolved_characters,
+    unresolved_characters,
     events: {
       mvp_kill: {
         enabled: true,
