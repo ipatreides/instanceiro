@@ -515,7 +515,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                   <div className="flex gap-3">
                     <div>
                       <span className="text-[9px] text-text-secondary font-semibold">HORA</span>
-                      <div className="text-xs text-text-primary">{selectedKill.killed_at ? formatTimeBRT(selectedKill.killed_at) : "Desconhecida"}</div>
+                      <div className="text-xs text-text-primary">{selectedKill.killed_at && new Date(selectedKill.killed_at).getTime() >= 86400000 ? formatTimeBRT(selectedKill.killed_at) : "Desconhecida"}</div>
                     </div>
                     {selectedMvp.has_tomb && selectedKill.tomb_x != null && (
                       <>
@@ -559,10 +559,10 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                   {killHistory.map((h) => (
                     <div key={h.id} className="flex items-center gap-2 px-2 py-1 rounded text-[10px] bg-surface">
                       <span className="text-text-secondary tabular-nums">
-                        {h.killed_at ? formatDateBRT(h.killed_at) : "—"}
+                        {h.killed_at && new Date(h.killed_at).getTime() >= 86400000 ? formatDateBRT(h.killed_at) : "—"}
                       </span>
                       <span className="text-text-secondary tabular-nums">
-                        {h.killed_at ? formatTimeBRT(h.killed_at) : "Desconhecida"}
+                        {h.killed_at && new Date(h.killed_at).getTime() >= 86400000 ? formatTimeBRT(h.killed_at) : "Desconhecida"}
                       </span>
                       {selectedMvp.cooldown_group && (
                         <span className="text-text-primary font-medium">{mvpNameMap.get(h.mvp_id) ?? "?"}</span>
