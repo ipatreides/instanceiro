@@ -41,4 +41,29 @@ describe('reconstructKilledAt', () => {
   it('returns null if no hour/minute provided', () => {
     expect(reconstructKilledAt(null as any, null as any, new Date())).toBeNull()
   })
+
+  test('rejects time outside respawn window', () => {
+    const reference = new Date('2026-04-04T23:00:00Z') // 20:00 BRT
+    const result = reconstructKilledAt(15, 0, reference, 3600000)
+    expect(result).toBeNull()
+  })
+
+  test('accepts time within respawn window', () => {
+    const reference = new Date('2026-04-04T23:00:00Z') // 20:00 BRT
+    const result = reconstructKilledAt(19, 30, reference, 3600000)
+    expect(result).not.toBeNull()
+  })
+
+  test('crosses midnight within respawn window', () => {
+    const reference = new Date('2026-04-05T03:10:00Z') // 00:10 BRT Apr 5
+    const result = reconstructKilledAt(23, 50, reference, 3600000)
+    expect(result).not.toBeNull()
+    expect(result!.toISOString()).toBe('2026-04-05T02:50:00.000Z')
+  })
+
+  test('backward compat: no respawnMs means no window check', () => {
+    const reference = new Date('2026-04-04T23:00:00Z')
+    const result = reconstructKilledAt(15, 0, reference)
+    expect(result).not.toBeNull()
+  })
 })

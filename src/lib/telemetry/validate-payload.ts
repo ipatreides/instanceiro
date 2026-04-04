@@ -27,7 +27,8 @@ export function validateTimestamp(epochSeconds: number): TimestampResult {
 export function reconstructKilledAt(
   killHour: number | null | undefined,
   killMinute: number | null | undefined,
-  reference: Date
+  reference: Date,
+  respawnMs?: number
 ): Date | null {
   if (killHour == null || killMinute == null || killHour < 0 || killMinute < 0) {
     return null
@@ -49,6 +50,15 @@ export function reconstructKilledAt(
 
   if (result.getTime() > reference.getTime()) {
     result.setDate(result.getDate() - 1)
+  }
+
+  // Validate against respawn window if provided
+  if (respawnMs != null) {
+    const maxAge = respawnMs + 10 * 60 * 1000 // respawn + 10min
+    const age = reference.getTime() - result.getTime()
+    if (age < 0 || age > maxAge) {
+      return null // Time is outside valid window
+    }
   }
 
   return result
