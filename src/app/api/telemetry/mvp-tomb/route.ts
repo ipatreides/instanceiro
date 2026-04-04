@@ -63,72 +63,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ action: 'ignored', reason: 'no MVP on this map' })
   }
 
-  // Bug 4 fix: use telemetry_register_kill with p_update_only: true instead of raw UPDATE.
-  // This uses the advisory lock preventing race conditions, and the RPC handles dedup internally.
-  // Use now() for dedup lookup (find recent kill on this map).
-  // The RPC preserves existing killed_at when p_killer_name is null.
-  const { data: rpcResult, error: rpcErr } = await supabase.rpc('telemetry_register_kill', {
+  const { data: rpcResult, error: rpcErr } = await supabase.rpc('update_kill_from_tomb', {
     p_group_id: ctx.groupId,
     p_mvp_ids: mapMvpIds,
-    p_killed_at: new Date().toISOString(),
     p_tomb_x: tomb_x,
     p_tomb_y: tomb_y,
     p_registered_by: ctx.characterUuid,
-    p_source: 'telemetry',
-    p_session_id: null,
-    p_update_only: true,
   })
 
   if (rpcErr) {
-    logTelemetryEvent(supabase, {
-      endpoint: 'mvp-tomb',
-      tokenId: ctx.tokenId,
-      characterId: ctx.characterUuid,
-      payloadSummary: { map, tomb_x, tomb_y },
-      result: 'error',
-      reason: rpcErr.message,
-    })
-    return NextResponse.json({ error: 'Failed to update tomb' }, { status: 500 })
+    logTelemetryEvent(supabase, { endpoint: 'mvp-tomb', tokenId: ctx.tokenId, characterId: ctx.characterUuid, payloadSummary: { map, tomb_x, tomb_y }, result: 'error', reason: rpcErr.message })
+    return NextResponse.json({ error: 'Failed to process tomb' }, { status: 500 })
   }
 
   const action = rpcResult?.action ?? 'ignored'
   const killId = rpcResult?.kill_id
-
-  // If no existing kill found, create one with sentinel killed_at (epoch 0).
-  // The tomb proves the MVP is dead, but we don't know when.
-  // Frontend shows "hora desconhecida" for epoch 0. MvpKiller (tomb click)
-  // will later update killed_at with the real time.
-  if (action === 'ignored') {
-    const sentinel = new Date(0).toISOString() // 1970-01-01T00:00:00.000Z
-    const { data: createResult, error: createErr } = await supabase.rpc('telemetry_register_kill', {
-      p_group_id: ctx.groupId,
-      p_mvp_ids: mapMvpIds,
-      p_killed_at: sentinel,
-      p_tomb_x: tomb_x,
-      p_tomb_y: tomb_y,
-      p_registered_by: ctx.characterUuid,
-      p_source: 'telemetry',
-      p_session_id: null,
-      p_update_only: false,
-    })
-
-    if (createErr) {
-      logTelemetryEvent(supabase, { endpoint: 'mvp-tomb', tokenId: ctx.tokenId, characterId: ctx.characterUuid, payloadSummary: { map, tomb_x, tomb_y }, result: 'error', reason: createErr.message })
-      return NextResponse.json({ error: 'Failed to create kill from tomb' }, { status: 500 })
-    }
-
-    logTelemetryEvent(supabase, { endpoint: 'mvp-tomb', tokenId: ctx.tokenId, characterId: ctx.characterUuid, payloadSummary: { map, tomb_x, tomb_y, unknown_time: true }, result: 'created', killId: createResult?.kill_id ?? null })
-    return NextResponse.json({ action: 'created', kill_id: createResult?.kill_id, mvp_name: mvpName, unknown_time: true }, { status: 201 })
-  }
+  const wasSentinel = rpcResult?.was_sentinel ?? false
 
   logTelemetryEvent(supabase, {
     endpoint: 'mvp-tomb',
     tokenId: ctx.tokenId,
     characterId: ctx.characterUuid,
-    payloadSummary: { map, tomb_x, tomb_y },
-    result: 'updated',
+    payloadSummary: { map, tomb_x, tomb_y, unknown_time: wasSentinel },
+    result: action,
     killId: killId ?? null,
   })
 
-  return NextResponse.json({ action: 'updated', kill_id: killId, mvp_name: mvpName })
+  return NextResponse.json({ action, kill_id: killId, mvp_name: mvpName, was_sentinel: wasSentinel })
 }
