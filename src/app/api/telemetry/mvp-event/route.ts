@@ -66,17 +66,15 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  const { data: rpcResult, error: rpcErr } = await supabase.rpc('telemetry_register_kill', {
+  const { data: rpcResult, error: rpcErr } = await supabase.rpc('register_kill_from_event', {
     p_group_id: ctx.groupId,
     p_mvp_ids: mvpResult.mvpIds,
     p_killed_at: killedAt,
     p_tomb_x: tomb_x ?? null,
     p_tomb_y: tomb_y ?? null,
-    p_registered_by: ctx.characterUuid,
-    p_source: 'telemetry',
-    p_session_id: null,
     p_killer_name: killer_name ?? null,
     p_killer_char_id: killerCharId,
+    p_registered_by: ctx.characterUuid,
   })
 
   if (rpcErr) {
