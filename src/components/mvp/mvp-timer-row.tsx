@@ -60,7 +60,7 @@ export function MvpTimerRow({ mvp, kill, onEdit, onConfirm, onCorrect, canValida
 
   if (!kill) return null;
 
-  const unknownTime = !kill.killed_at;
+  const unknownTime = !kill.killed_at || new Date(kill.killed_at).getTime() < 86400000;
   const { status, remainingMs } = unknownTime
     ? { status: "cooldown" as MvpTimerStatus, remainingMs: 0 }
     : computeStatus(kill, mvp, now);

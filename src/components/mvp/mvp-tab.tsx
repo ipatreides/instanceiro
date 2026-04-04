@@ -329,7 +329,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
   }, []);
 
   const detailStatus: { remaining: number; isAlive: boolean; countUp: number; mechanicMode: boolean; unknownTime: boolean } | null = selectedMvp && selectedKill ? (() => {
-    if (!selectedKill.killed_at) return { remaining: 0, isAlive: false, countUp: 0, mechanicMode: false, unknownTime: true };
+    if (!selectedKill.killed_at || new Date(selectedKill.killed_at).getTime() < 86400000) return { remaining: 0, isAlive: false, countUp: 0, mechanicMode: false, unknownTime: true };
     const killedAt = new Date(selectedKill.killed_at).getTime();
     const spawnStart = killedAt + selectedMvp.respawn_ms;
     const spawnEnd = spawnStart + selectedMvp.delay_ms;
