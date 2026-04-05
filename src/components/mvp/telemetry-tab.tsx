@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { TelemetryToken } from "@/lib/types";
 import { formatDateTimeBRT } from "@/lib/date-brt";
+import { UserPlus } from "lucide-react";
 
 interface TelemetryEventLog {
   id: string;
@@ -436,8 +437,61 @@ function EventLog({ events, loading, filterErrors, onToggleFilter }: {
   )
 }
 
-function UnresolvedCharsList({ chars, onRefresh }: { chars: any[]; onRefresh: () => void }) {
+function UnresolvedCharsList({ chars, userId, onRefresh }: { chars: any[]; userId: string; onRefresh: () => void }) {
+  const [creating, setCreating] = useState<number | null>(null);
+  const [errors, setErrors] = useState<Record<number, string>>({});
+
   if (chars.length === 0) return null;
+
+  async function handleCreateChar(char: any) {
+    setCreating(char.game_char_id);
+    setErrors((prev) => { const next = { ...prev }; delete next[char.game_char_id]; return next; });
+    try {
+      const supabase = createClient();
+
+      // Fetch user's first account to attach the character to
+      const { data: accounts } = await supabase
+        .from('accounts')
+        .select('id')
+        .eq('user_id', userId)
+        .order('sort_order', { ascending: true })
+        .limit(1);
+
+      if (!accounts || accounts.length === 0) {
+        setErrors((prev) => ({ ...prev, [char.game_char_id]: 'Nenhuma conta cadastrada. Crie uma conta primeiro.' }));
+        return;
+      }
+
+      const accountId = accounts[0].id;
+
+      // Insert character — report-characters will auto-match on next heartbeat via name
+      const { error: insertError } = await supabase
+        .from('characters')
+        .insert({
+          user_id: userId,
+          account_id: accountId,
+          name: char.char_name,
+          class: char.char_class ?? '',
+          class_path: [],
+          level: char.char_level ?? 1,
+        });
+
+      if (insertError) {
+        setErrors((prev) => ({ ...prev, [char.game_char_id]: 'Erro ao criar personagem.' }));
+        return;
+      }
+
+      // Remove from unresolved
+      await supabase
+        .from('unresolved_game_characters')
+        .delete()
+        .eq('game_char_id', char.game_char_id);
+
+      onRefresh();
+    } finally {
+      setCreating(null);
+    }
+  }
 
   return (
     <div className="bg-surface border border-border rounded-xl p-4 space-y-2">
@@ -446,23 +500,44 @@ function UnresolvedCharsList({ chars, onRefresh }: { chars: any[]; onRefresh: ()
       </h4>
       <div className="space-y-1">
         {chars.map((char) => (
-          <div key={char.game_char_id} className="flex items-center justify-between bg-bg border border-border rounded-md px-3 py-2">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-status-soon flex-shrink-0" />
-              <span className="text-sm text-text-primary">{char.char_name}</span>
-              {char.char_level && (
-                <span className="text-xs text-text-secondary">Nv. {char.char_level}</span>
-              )}
+          <div key={char.game_char_id} className="flex flex-col gap-1">
+            <div className="flex items-center justify-between bg-bg border border-border rounded-md px-3 py-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-status-soon flex-shrink-0" />
+                <span className="text-sm text-text-primary">{char.char_name}</span>
+                {char.char_level && (
+                  <span className="text-xs text-text-secondary">Nv. {char.char_level}</span>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] text-text-secondary">
+                  {char.game_account_id ? `Conta #${char.game_account_id}` : 'Conta desconhecida'}
+                </span>
+                <button
+                  onClick={() => handleCreateChar(char)}
+                  disabled={creating === char.game_char_id}
+                  title="Criar personagem"
+                  className="text-text-secondary hover:text-primary transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed flex-shrink-0"
+                >
+                  <UserPlus
+                    size={15}
+                    stroke="var(--primary)"
+                    fill="var(--primary)"
+                    fillOpacity="var(--icon-fill-opacity)"
+                    className={creating === char.game_char_id ? 'opacity-50' : ''}
+                  />
+                </button>
+              </div>
             </div>
-            <span className="text-[10px] text-text-secondary">
-              {char.game_account_id ? `Conta #${char.game_account_id}` : 'Conta desconhecida'}
-            </span>
+            {errors[char.game_char_id] && (
+              <p className="text-[10px] text-status-error-text pl-3">{errors[char.game_char_id]}</p>
+            )}
           </div>
         ))}
       </div>
       <p className="text-[10px] text-text-secondary mt-2">
         Personagens detectados pelo Claudinho que ainda não estão cadastrados no Instanceiro.
-        Cadastre-os na aba de contas para vincular automaticamente.
+        Clique em <UserPlus size={10} className="inline" stroke="var(--primary)" /> para criar e vincular automaticamente.
       </p>
     </div>
   );
@@ -588,6 +663,7 @@ export function TelemetryTab({ userId }: TelemetryTabProps) {
 
       <UnresolvedCharsList
         chars={unresolvedChars}
+        userId={userId}
         onRefresh={fetchUnresolved}
       />
 
