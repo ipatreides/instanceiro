@@ -33,6 +33,7 @@ interface KillHistoryEntry {
   tomb_x: number | null;
   tomb_y: number | null;
   source: string | null;
+  has_damage: boolean;
 }
 
 interface MvpTabProps {
@@ -194,7 +195,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
     const supabase = createClient();
     const query = supabase
       .from("mvp_kills")
-      .select("id, mvp_id, killed_at, tomb_x, tomb_y, killer_character_id, registered_by, source");
+      .select("id, mvp_id, killed_at, tomb_x, tomb_y, killer_character_id, registered_by, source, mvp_kill_damage_hits(count)");
     if (group) query.eq("group_id", group.id);
     else query.is("group_id", null);
     query.order("killed_at", { ascending: false })
@@ -205,7 +206,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
         const charIds = [...new Set(data.flatMap((d) => [d.killer_character_id, d.registered_by].filter(Boolean) as string[]))];
         const { data: names } = await supabase.rpc("get_character_names", { char_ids: charIds });
         const nameMap = new Map(((names ?? []) as { id: string; name: string }[]).map((c) => [c.id, c.name]));
-        setAllKillHistory(data.map((d) => ({
+        setAllKillHistory(data.map((d: any) => ({
           id: d.id,
           mvp_id: d.mvp_id,
           killed_at: d.killed_at,
@@ -214,6 +215,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
           tomb_x: d.tomb_x,
           tomb_y: d.tomb_y,
           source: d.source ?? null,
+          has_damage: (d.mvp_kill_damage_hits?.[0]?.count ?? 0) > 0,
         })));
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -584,15 +586,15 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                 <p className="text-[10px] text-text-secondary font-semibold">HISTÓRICO ({killHistory.length})</p>
                 <div className="flex flex-col gap-0.5 max-h-[200px] overflow-y-auto scrollbar-thin">
                   {killHistory.map((h) => {
-                    const isTelemetry = h.source === 'telemetry';
+                    const hasDamage = h.has_damage;
                     const isExpanded = expandedHistoryKillId === h.id;
                     return (
                       <div key={h.id}>
                         <div
-                          className={`flex items-center gap-2 px-2 py-1 rounded text-[10px] bg-surface ${isTelemetry ? 'cursor-pointer hover:bg-card-hover-bg transition-colors' : ''}`}
-                          onClick={isTelemetry ? () => setExpandedHistoryKillId(isExpanded ? null : h.id) : undefined}
+                          className={`flex items-center gap-2 px-2 py-1 rounded text-[10px] bg-surface ${hasDamage ? 'cursor-pointer hover:bg-card-hover-bg transition-colors' : ''}`}
+                          onClick={hasDamage ? () => setExpandedHistoryKillId(isExpanded ? null : h.id) : undefined}
                         >
-                          {isTelemetry && (
+                          {hasDamage && (
                             <span className="text-text-secondary flex-shrink-0">
                               {isExpanded
                                 ? <ChevronDown size={10} />
@@ -618,7 +620,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                           )}
                           <span className="text-text-secondary ml-auto">por {h.registered_by_name}</span>
                         </div>
-                        {isExpanded && isTelemetry && (
+                        {isExpanded && hasDamage && (
                           <div className="pl-4 pr-1 pb-1">
                             <MvpDamagePanel killId={h.id} />
                           </div>
