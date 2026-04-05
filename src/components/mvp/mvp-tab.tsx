@@ -13,7 +13,7 @@ import { MvpGroupHub } from "./mvp-group-hub";
 import { MvpGroupStats } from "./mvp-group-stats";
 import { TelemetryTab } from "./telemetry-tab";
 import { MvpDamagePanel } from "./mvp-damage-panel";
-import { Navigation } from "lucide-react";
+import { Navigation, ChevronDown, ChevronRight } from "lucide-react";
 import { useMvpSightings } from "@/hooks/use-mvp-sightings";
 import { useMvpBroadcasts } from "@/hooks/use-mvp-broadcasts";
 import { formatTimeBRT, formatDateBRT } from "@/lib/date-brt";
@@ -32,6 +32,7 @@ interface KillHistoryEntry {
   registered_by_name: string;
   tomb_x: number | null;
   tomb_y: number | null;
+  source: string | null;
 }
 
 interface MvpTabProps {
@@ -72,6 +73,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
   const [memberNames, setMemberNames] = useState<Map<string, string>>(new Map());
   const [memberUsernames, setMemberUsernames] = useState<Map<string, string>>(new Map());
   const [witnesses, setWitnesses] = useState<Record<string, string[]>>({}) // kill_id → user_id[]
+  const [expandedHistoryKillId, setExpandedHistoryKillId] = useState<string | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
@@ -192,7 +194,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
     const supabase = createClient();
     const query = supabase
       .from("mvp_kills")
-      .select("id, mvp_id, killed_at, tomb_x, tomb_y, killer_character_id, registered_by");
+      .select("id, mvp_id, killed_at, tomb_x, tomb_y, killer_character_id, registered_by, source");
     if (group) query.eq("group_id", group.id);
     else query.is("group_id", null);
     query.order("killed_at", { ascending: false })
@@ -211,6 +213,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
           registered_by_name: nameMap.get(d.registered_by) ?? "?",
           tomb_x: d.tomb_x,
           tomb_y: d.tomb_y,
+          source: d.source ?? null,
         })));
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -580,28 +583,49 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
               <div className="flex flex-col gap-1 mt-2">
                 <p className="text-[10px] text-text-secondary font-semibold">HISTÓRICO ({killHistory.length})</p>
                 <div className="flex flex-col gap-0.5 max-h-[200px] overflow-y-auto scrollbar-thin">
-                  {killHistory.map((h) => (
-                    <div key={h.id} className="flex items-center gap-2 px-2 py-1 rounded text-[10px] bg-surface">
-                      <span className="text-text-secondary tabular-nums">
-                        {h.killed_at && new Date(h.killed_at).getTime() >= 86400000 ? formatDateBRT(h.killed_at) : "—"}
-                      </span>
-                      <span className="text-text-secondary tabular-nums">
-                        {h.killed_at && new Date(h.killed_at).getTime() >= 86400000 ? formatTimeBRT(h.killed_at) : "Desconhecida"}
-                      </span>
-                      {selectedMvp.cooldown_group && (
-                        <span className="text-text-primary font-medium">{mvpNameMap.get(h.mvp_id) ?? "?"}</span>
-                      )}
-                      {h.killer_name ? (
-                        <span className="text-primary-secondary">{h.killer_name}</span>
-                      ) : (
-                        <span className="text-text-secondary italic">sem killer</span>
-                      )}
-                      {selectedMvp.has_tomb && h.tomb_x != null && (
-                        <span className="text-text-secondary ml-auto">{h.tomb_x},{h.tomb_y}</span>
-                      )}
-                      <span className="text-text-secondary ml-auto">por {h.registered_by_name}</span>
-                    </div>
-                  ))}
+                  {killHistory.map((h) => {
+                    const isTelemetry = h.source === 'telemetry';
+                    const isExpanded = expandedHistoryKillId === h.id;
+                    return (
+                      <div key={h.id}>
+                        <div
+                          className={`flex items-center gap-2 px-2 py-1 rounded text-[10px] bg-surface ${isTelemetry ? 'cursor-pointer hover:bg-card-hover-bg transition-colors' : ''}`}
+                          onClick={isTelemetry ? () => setExpandedHistoryKillId(isExpanded ? null : h.id) : undefined}
+                        >
+                          {isTelemetry && (
+                            <span className="text-text-secondary flex-shrink-0">
+                              {isExpanded
+                                ? <ChevronDown size={10} />
+                                : <ChevronRight size={10} />}
+                            </span>
+                          )}
+                          <span className="text-text-secondary tabular-nums">
+                            {h.killed_at && new Date(h.killed_at).getTime() >= 86400000 ? formatDateBRT(h.killed_at) : "—"}
+                          </span>
+                          <span className="text-text-secondary tabular-nums">
+                            {h.killed_at && new Date(h.killed_at).getTime() >= 86400000 ? formatTimeBRT(h.killed_at) : "Desconhecida"}
+                          </span>
+                          {selectedMvp.cooldown_group && (
+                            <span className="text-text-primary font-medium">{mvpNameMap.get(h.mvp_id) ?? "?"}</span>
+                          )}
+                          {h.killer_name ? (
+                            <span className="text-primary-secondary">{h.killer_name}</span>
+                          ) : (
+                            <span className="text-text-secondary italic">sem killer</span>
+                          )}
+                          {selectedMvp.has_tomb && h.tomb_x != null && (
+                            <span className="text-text-secondary ml-auto">{h.tomb_x},{h.tomb_y}</span>
+                          )}
+                          <span className="text-text-secondary ml-auto">por {h.registered_by_name}</span>
+                        </div>
+                        {isExpanded && isTelemetry && (
+                          <div className="pl-4 pr-1 pb-1">
+                            <MvpDamagePanel killId={h.id} />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
