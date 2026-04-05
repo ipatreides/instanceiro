@@ -449,20 +449,30 @@ function UnresolvedCharsList({ chars, userId, onRefresh }: { chars: any[]; userI
     try {
       const supabase = createClient();
 
-      // Fetch user's first account to attach the character to
-      const { data: accounts } = await supabase
-        .from('accounts')
-        .select('id')
-        .eq('user_id', userId)
-        .order('sort_order', { ascending: true })
-        .limit(1);
-
-      if (!accounts || accounts.length === 0) {
+      // Find the correct account by game_account_id, or fall back to first account
+      let accountId: string | null = null;
+      if (char.game_account_id) {
+        const { data: matched } = await supabase
+          .from('accounts')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('game_account_id', char.game_account_id)
+          .maybeSingle();
+        accountId = matched?.id ?? null;
+      }
+      if (!accountId) {
+        const { data: fallback } = await supabase
+          .from('accounts')
+          .select('id')
+          .eq('user_id', userId)
+          .order('sort_order', { ascending: true })
+          .limit(1);
+        accountId = fallback?.[0]?.id ?? null;
+      }
+      if (!accountId) {
         setErrors((prev) => ({ ...prev, [char.game_char_id]: 'Nenhuma conta cadastrada. Crie uma conta primeiro.' }));
         return;
       }
-
-      const accountId = accounts[0].id;
 
       // Insert character — report-characters will auto-match on next heartbeat via name
       const { error: insertError } = await supabase
