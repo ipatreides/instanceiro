@@ -103,6 +103,14 @@ export async function POST(request: NextRequest) {
       .eq('character_id', 0)
   }
 
+  // Clean up stale instance sessions for this user
+  await supabase
+    .from('telemetry_sessions')
+    .update({ current_instance_id: null, in_instance: false, instance_name: null })
+    .eq('user_id', ctx.userId)
+    .not('current_instance_id', 'is', null)
+    .or('in_instance.eq.false,last_heartbeat.lt.' + new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString())
+
   // Get current config version from server version table
   const { data: configVersionRow } = await supabase
     .from('telemetry_config_versions')
