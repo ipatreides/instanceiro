@@ -468,14 +468,15 @@ function UnresolvedCharsList({ chars, userId, onRefresh }: { chars: any[]; userI
         return;
       }
 
-      // Insert character — report-characters will auto-match on next heartbeat via name
+      // Insert character with name + level. Class left empty for user to fill.
+      // report-characters will auto-match on next heartbeat via name.
       const { error: insertError } = await supabase
         .from('characters')
         .insert({
           user_id: userId,
           account_id: accountId,
           name: char.char_name,
-          class: char.char_class ?? '',
+          class: '',
           class_path: [],
           level: char.char_level ?? 1,
         });
