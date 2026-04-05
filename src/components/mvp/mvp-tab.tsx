@@ -250,6 +250,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
   const handleSelectMvp = useCallback((mvp: Mvp) => {
     setSelectedMvp(mvp);
     setConfirmingDelete(false);
+    setExpandedHistoryKillId(null);
   }, []);
 
   const handleKillNow = useCallback(() => {
