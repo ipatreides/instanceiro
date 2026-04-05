@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(rustc --version)",
+      "Bash(cargo --version)",
+      "Bash(npx vercel:*)"
     ]
   }
 }

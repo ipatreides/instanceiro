@@ -1,0 +1,404 @@
+[2026-03-31 23:11:00] [MONSTER] ID: 3452 | Lv: 145 | Pos: prt_q.gat (136,237) | Name: tYwB
+[2026-03-31 23:11:00] [MONSTER] ID: 1036 | Lv: 61 | Pos: prt_q.gat (129,242) | Name: w4YB
+[2026-03-31 23:11:00] [MONSTER] ID: 3452 | Lv: 145 | Pos: prt_q.gat (130,243) | Name: tYwB
+[2026-03-31 23:11:00] [MONSTER] ID: 3451 | Lv: 158 | Pos: prt_q.gat (136,240) | Name: tIwB
+[2026-03-31 23:11:00] [MONSTER] ID: 3452 | Lv: 145 | Pos: prt_q.gat (136,237) | Name: tYwB
+[2026-03-31 23:11:00] [MONSTER] ID: 3452 | Lv: 145 | Pos: prt_q.gat (130,243) | Name: tYwB
+[2026-03-31 23:11:00] [MONSTER] ID: 3451 | Lv: 158 | Pos: prt_q.gat (129,242) | Name: tIwB
+[2026-03-31 23:11:00] [MONSTER] ID: 1036 | Lv: 61 | Pos: prt_q.gat (129,242) | Name: w4YB
+
+[2026-03-31 23:11:01] [MONSTER] ID: 1036 | Lv: 61 | Pos: prt_q.gat (131,244) | Name: w4YB
+
+[2026-03-31 23:11:01] [MONSTER] ID: 3451 | Lv: 158 | Pos: prt_q.gat (134,243) | Name: tIwB
+[2026-03-31 23:11:01] [MONSTER] ID: 3451 | Lv: 158 | Pos: prt_q.gat (136,243) | Name: tIwB
+[2026-03-31 23:11:02] [MONSTER] ID: 1036 | Lv: 61 | Pos: prt_q.gat (134,244) | Name: w4YB
+[2026-03-31 23:11:02] [MONSTER] ID: 3452 | Lv: 145 | Pos: prt_q.gat (134,243) | Name: tYwB
+[2026-03-31 23:11:02] [MONSTER] ID: 3451 | Lv: 158 | Pos: prt_q.gat (136,245) | Name: tIwB
+[2026-03-31 23:11:02] [MONSTER] ID: 3451 | Lv: 158 | Pos: prt_q.gat (139,240) | Name: tIwB
+[2026-03-31 23:11:02] [MONSTER] ID: 3452 | Lv: 145 | Pos: prt_q.gat (145,58) | Name: tYwB
+[2026-03-31 23:11:02] [MONSTER] ID: 3452 | Lv: 145 | Pos: prt_q.gat (144,60) | Name: tYwB
+[2026-03-31 23:11:02] [MONSTER] ID: 3451 | Lv: 158 | Pos: prt_q.gat (161,48) | Name: tIwB
+[2026-03-31 23:11:02] [MONSTER] ID: 3452 | Lv: 145 | Pos: prt_q.gat (145,58) | Name: tYwB
+[2026-03-31 23:11:02] [MONSTER] ID: 3451 | Lv: 158 | Pos: prt_q.gat (161,48) | Name: tIwB
+[2026-03-31 23:11:03] [MONSTER] ID: 3452 | Lv: 145 | Pos: prt_q.gat (162,52) | Name: tYwB
+[2026-03-31 23:11:03] [MONSTER] ID: 3451 | Lv: 158 | Pos: prt_q.gat (155,40) | Name: tIwB
+[2026-03-31 23:11:03] [MONSTER] ID: 3452 | Lv: 145 | Pos: prt_q.gat (162,52) | Name: tYwB
+[2026-03-31 23:11:03] [MONSTER] ID: 3451 | Lv: 158 | Pos: prt_q.gat (158,51) | Name: tIwB
+[2026-03-31 23:11:04] [MONSTER] ID: 3451 | Lv: 158 | Pos: prt_q.gat (154,41) | Name: tIwB
+[2026-03-31 23:11:04] [MONSTER] ID: 3451 | Lv: 158 | Pos: prt_q.gat (155,40) | Name: tIwB
+[2026-03-31 23:11:04] [MONSTER] ID: 3452 | Lv: 145 | Pos: prt_q.gat (163,53) | Name: tYwB
+[2026-03-31 23:11:05] [MONSTER] ID: 3452 | Lv: 145 | Pos: prt_q.gat (189,38) | Name: tYwB
+[2026-03-31 23:11:05] [MONSTER] ID: 3452 | Lv: 145 | Pos: prt_q.gat (189,38) | Name: tYwB
+[2026-03-31 23:11:07] [MONSTER] ID: 3452 | Lv: 145 | Pos: prt_q.gat (189,40) | Name: tYwB
+[2026-04-01 21:44:57] [MONSTER] ID: 1739 | Lv: 115 | Pos:  (194,273) | Name: YETkBw
+[2026-04-01 21:44:57] [MONSTER] ID: 1739 | Lv: 115 | Pos:  (194,279) | Name: YETkBw
+[2026-04-01 21:58:29] [MONSTER] ID: 20630 | Lv: 145 | Pos: ba_maison.gat (106,317) | Name: Z5AB
+[2026-04-01 21:58:29] [MONSTER] ID: 20630 | Lv: 145 | Pos: ba_maison.gat (106,317) | Name: Z5AB
+[2026-04-01 21:58:45] [MONSTER] ID: 20630 | Lv: 145 | Pos: ba_maison.gat (100,317) | Name: Z5AB
+[2026-04-01 21:58:45] [MONSTER] ID: 20630 | Lv: 145 | Pos: ba_maison.gat (99,317) | Name: Z5AB
+[2026-04-01 21:58:45] [MONSTER] ID: 20630 | Lv: 145 | Pos: ba_maison.gat (99,316) | Name: Z5AB
+[2026-04-01 21:58:47] [MONSTER] ID: 20630 | Lv: 145 | Pos: ba_maison.gat (100,312) | Name: Z5AB
+[2026-04-01 21:58:48] [MONSTER] ID: 20630 | Lv: 145 | Pos: ba_maison.gat (100,312) | Name: Z5AB
+[2026-04-01 21:58:50] [MONSTER] ID: 20630 | Lv: 145 | Pos: ba_maison.gat (104,305) | Name: Z5AB
+[2026-04-01 21:58:52] [MONSTER] ID: 20630 | Lv: 145 | Pos: ba_maison.gat (114,315) | Name: Z5AB
+[2026-04-01 21:58:52] [MONSTER] ID: 20630 | Lv: 145 | Pos: ba_maison.gat (115,315) | Name: Z5AB
+[2026-04-01 21:58:56] [MONSTER] ID: 20679 | Lv: 130 | Pos: ba_maison.gat (230,108) | Name: cpAB
+[2026-04-01 21:59:05] [MONSTER] ID: 20679 | Lv: 130 | Pos: ba_maison.gat (112,269) | Name: cpAB
+[2026-04-01 22:00:56] [MONSTER] ID: 20683 | Lv: 141 | Pos: ba_maison.gat (147,290) | Name: b5AB
+[2026-04-01 22:00:58] [MONSTER] ID: 20683 | Lv: 141 | Pos: ba_maison.gat (142,290) | Name: b5AB
+[2026-04-01 22:00:59] [MONSTER] ID: 20683 | Lv: 141 | Pos: ba_maison.gat (142,290) | Name: b5AB
+[2026-04-01 22:02:00] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (55,197) | Name: McrlBw1
+[2026-04-01 22:02:00] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (55,197) | Name: McrlBw1
+[2026-04-01 22:02:00] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (58,219) | Name: McrlBw3
+[2026-04-01 22:02:00] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (55,191) | Name: McrlBw2
+[2026-04-01 22:02:01] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (63,218) | Name: McrlBw7
+[2026-04-01 22:02:01] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (63,218) | Name: McrlBw7
+[2026-04-01 22:02:01] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (58,218) | Name: McrlBw8
+[2026-04-01 22:02:01] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (55,204) | Name: McrlBw1
+[2026-04-01 22:02:01] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (60,216) | Name: McrlBw9
+[2026-04-01 22:02:01] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (60,216) | Name: McrlBw9
+[2026-04-01 22:02:01] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (59,214) | Name: McrlBw3
+[2026-04-01 22:02:01] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (58,218) | Name: McrlBw8
+[2026-04-01 22:02:01] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (58,218) | Name: McrlBw8
+[2026-04-01 22:02:01] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (58,215) | Name: McrlBw3
+[2026-04-01 22:02:01] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (60,218) | Name: McrlBw13
+[2026-04-01 22:02:01] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (60,218) | Name: McrlBw13
+[2026-04-01 22:02:02] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (57,218) | Name: McrlBw12
+[2026-04-01 22:02:02] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (58,217) | Name: McrlBw7
+[2026-04-01 22:02:02] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (57,218) | Name: McrlBw12
+[2026-04-01 22:02:02] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (57,217) | Name: McrlBw12
+[2026-04-01 22:02:02] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (58,217) | Name: McrlBw13
+[2026-04-01 22:02:03] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (57,218) | Name: McrlBw16
+[2026-04-01 22:02:03] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (57,218) | Name: McrlBw16
+[2026-04-01 22:02:03] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (57,218) | Name: McrlBw16
+[2026-04-01 22:02:04] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (55,191) | Name: McrlBw2
+[2026-04-01 22:02:05] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (57,218) | Name: McrlBw15
+[2026-04-01 22:02:05] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (57,218) | Name: McrlBw15
+[2026-04-01 22:02:05] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (57,218) | Name: McrlBw15
+[2026-04-01 22:02:05] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (57,218) | Name: McrlBw15
+[2026-04-01 22:02:05] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (57,217) | Name: McrlBw15
+[2026-04-01 22:02:06] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (53,199) | Name: McrlBw2
+[2026-04-01 22:02:06] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (55,201) | Name: McrlBw2
+[2026-04-01 22:02:46] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (62,201) | Name: McrlBw6
+[2026-04-01 22:02:47] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (59,201) | Name: McrlBw6
+[2026-04-01 22:02:47] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (67,207) | Name: McrlBw10
+[2026-04-01 22:02:47] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (67,207) | Name: McrlBw10
+[2026-04-01 22:02:47] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (67,207) | Name: McrlBw10
+[2026-04-01 22:02:47] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (67,206) | Name: McrlBw10
+[2026-04-01 22:02:47] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (67,207) | Name: McrlBw10
+[2026-04-01 22:02:47] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (67,207) | Name: McrlBw10
+[2026-04-01 22:02:47] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (57,204) | Name: McrlBw6
+[2026-04-01 22:02:47] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (57,205) | Name: McrlBw6
+[2026-04-01 22:02:47] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (78,200) | Name: McrlBw5
+[2026-04-01 22:02:47] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (78,200) | Name: McrlBw5
+[2026-04-01 22:02:48] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (76,199) | Name: McrlBw5
+[2026-04-01 22:02:48] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (76,199) | Name: McrlBw5
+[2026-04-01 22:02:48] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (76,199) | Name: McrlBw5
+[2026-04-01 22:02:48] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (73,199) | Name: McrlBw5
+[2026-04-01 22:02:50] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (84,203) | Name: McrlBw11
+[2026-04-01 22:02:50] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (86,197) | Name: McrlBw4
+[2026-04-01 22:02:51] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (83,202) | Name: McrlBw11
+[2026-04-01 22:03:11] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (114,230) | Name: McrlBw14
+[2026-04-01 22:03:11] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (114,230) | Name: McrlBw14
+[2026-04-01 22:03:11] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (115,226) | Name: McrlBw17
+[2026-04-01 22:03:13] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (110,231) | Name: McrlBw17
+[2026-04-01 22:03:13] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (108,232) | Name: McrlBw17
+[2026-04-01 22:03:15] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (119,214) | Name: McrlBw18
+[2026-04-01 22:03:15] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (119,214) | Name: McrlBw18
+[2026-04-01 22:03:16] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (117,221) | Name: McrlBw18
+[2026-04-01 22:03:17] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (118,222) | Name: McrlBw18
+[2026-04-01 22:03:17] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (118,222) | Name: McrlBw18
+[2026-04-01 22:03:19] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (133,211) | Name: McrlBw15
+[2026-04-01 22:03:19] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (133,211) | Name: McrlBw3
+
+[2026-04-01 22:03:20] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (131,212) | Name: McrlBw15
+[2026-04-01 22:03:20] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (133,209) | Name: McrlBw20
+[2026-04-01 22:03:20] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (131,212) | Name: McrlBw15
+[2026-04-01 22:03:20] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (133,205) | Name: McrlBw13
+[2026-04-01 22:03:21] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (131,212) | Name: McrlBw3
+[2026-04-01 22:03:21] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (132,207) | Name: McrlBw13
+[2026-04-01 22:03:21] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (132,212) | Name: McrlBw3
+[2026-04-01 22:03:21] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (132,207) | Name: McrlBw13
+[2026-04-01 22:03:21] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (133,210) | Name: McrlBw3
+[2026-04-01 22:03:21] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (133,208) | Name: McrlBw13
+[2026-04-01 22:03:21] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (134,210) | Name: McrlBw19
+[2026-04-01 22:03:21] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (133,209) | Name: McrlBw20
+[2026-04-01 22:03:22] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (135,208) | Name: McrlBw1
+[2026-04-01 22:03:22] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (135,208) | Name: McrlBw5
+[2026-04-01 22:03:22] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (135,210) | Name: McrlBw16
+[2026-04-01 22:03:24] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (144,209) | Name: McrlBw12
+[2026-04-01 22:03:33] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (135,208) | Name: McrlBw5
+[2026-04-01 22:03:38] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (135,208) | Name: McrlBw5
+[2026-04-01 22:03:39] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (139,208) | Name: McrlBw5
+[2026-04-01 22:03:42] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (174,220) | Name: McrlBw21
+[2026-04-01 22:03:42] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (174,220) | Name: McrlBw21
+[2026-04-01 22:03:43] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (172,221) | Name: McrlBw10
+[2026-04-01 22:03:43] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (172,221) | Name: McrlBw10
+[2026-04-01 22:04:03] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (205,199) | Name: McrlBw6
+[2026-04-01 22:04:03] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (205,199) | Name: McrlBw6
+[2026-04-01 22:04:03] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (205,199) | Name: McrlBw6
+[2026-04-01 22:04:03] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (205,199) | Name: McrlBw6
+[2026-04-01 22:04:04] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (211,203) | Name: McrlBw2
+[2026-04-01 22:04:04] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (211,205) | Name: McrlBw22
+[2026-04-01 22:04:04] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (215,192) | Name: McrlBw26
+[2026-04-01 22:04:05] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (217,196) | Name: McrlBw7
+[2026-04-01 22:04:05] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (217,204) | Name: McrlBw15
+2026-04-01 22:04:05] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (217,209) | Name: McrlBw4
+[2026-04-01 22:04:05] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (219,200) | Name: McrlBw19
+[2026-04-01 22:04:05] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (210,205) | Name: McrlBw22
+[2026-04-01 22:04:05] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (209,204) | Name: McrlBw22
+[2026-04-01 22:04:06] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (208,203) | Name: McrlBw22
+[2026-04-01 22:04:06] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (208,201) | Name: McrlBw21
+[2026-04-01 22:04:06] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (208,203) | Name: McrlBw22
+[2026-04-01 22:04:06] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (212,195) | Name: McrlBw26
+[2026-04-01 22:04:06] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (207,201) | Name: McrlBw21
+[2026-04-01 22:04:06] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (208,203) | Name: McrlBw22
+[2026-04-01 22:04:06] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (212,195) | Name: McrlBw26
+[2026-04-01 22:04:06] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (207,201) | Name: McrlBw21
+[2026-04-01 22:04:06] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (207,201) | Name: McrlBw21
+[2026-04-01 22:04:06] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (211,196) | Name: McrlBw26
+[2026-04-01 22:04:06] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (207,203) | Name: McrlBw22
+[2026-04-01 22:04:06] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (207,203) | Name: McrlBw22
+[2026-04-01 22:04:06] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (206,203) | Name: McrlBw22
+[2026-04-01 22:04:06] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (217,194) | Name: McrlBw5
+
+[2026-04-01 22:04:06] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (217,204) | Name: McrlBw15
+[2026-04-01 22:04:07] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (206,203) | Name: McrlBw22
+[2026-04-01 22:04:07] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (209,198) | Name: McrlBw26
+[2026-04-01 22:04:07] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (204,203) | Name: McrlBw22
+[2026-04-01 22:04:07] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (217,192) | Name: McrlBw8
+[2026-04-01 22:04:08] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (207,200) | Name: McrlBw26
+[2026-04-01 22:04:08] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (217,196) | Name: McrlBw7
+[2026-04-01 22:04:08] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (213,197) | Name: McrlBw5
+[2026-04-01 22:04:08] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (212,202) | Name: McrlBw15
+[2026-04-01 22:04:08] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (208,202) | Name: McrlBw4
+[2026-04-01 22:04:08] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (208,200) | Name: McrlBw16[2026-04-01 22:04:08] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (211,201) | Name: McrlBw15
+[2026-04-01 22:04:09] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (219,207) | Name: McrlBw3
+[2026-04-01 22:04:09] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (219,207) | Name: McrlBw3
+[2026-04-01 22:04:09] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (219,207) | Name: McrlBw3
+[2026-04-01 22:04:09] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (210,202) | Name: McrlBw15
+[2026-04-01 22:04:09] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (219,200) | Name: McrlBw19
+[2026-04-01 22:04:09] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (219,207) | Name: McrlBw3
+[2026-04-01 22:04:09] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (219,207) | Name: McrlBw3
+[2026-04-01 22:04:09] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (219,207) | Name: McrlBw3
+[2026-04-01 22:04:09] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (218,206) | Name: McrlBw3
+[2026-04-01 22:04:09] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (218,206) | Name: McrlBw3
+[2026-04-01 22:04:09] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (218,206) | Name: McrlBw3
+[2026-04-01 22:04:09] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (218,206) | Name: McrlBw3
+[2026-04-01 22:04:09] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (218,206) | Name: McrlBw3
+[2026-04-01 22:04:09] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (217,205) | Name: McrlBw3
+[2026-04-01 22:04:09] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (217,205) | Name: McrlBw3
+[2026-04-01 22:04:09] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (217,205) | Name: McrlBw3
+[2026-04-01 22:04:09] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (208,202) | Name: McrlBw4
+[2026-04-01 22:04:09] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (209,203) | Name: McrlBw15
+[2026-04-01 22:04:09] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (219,196) | Name: McrlBw19
+[2026-04-01 22:04:09] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (219,196) | Name: McrlBw19
+[2026-04-01 22:04:09] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (218,196) | Name: McrlBw19
+[2026-04-01 22:04:10] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (218,196) | Name: McrlBw19
+[2026-04-01 22:04:10] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (215,203) | Name: McrlBw3
+[2026-04-01 22:04:10] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (217,196) | Name: McrlBw19
+[2026-04-01 22:04:10] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (215,203) | Name: McrlBw3
+[2026-04-01 22:04:10] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (215,203) | Name: McrlBw3
+[2026-04-01 22:04:10] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (215,203) | Name: McrlBw3
+[2026-04-01 22:04:10] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (209,201) | Name: McrlBw7
+
+[2026-04-01 22:04:10] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (215,196) | Name: McrlBw19
+[2026-04-01 22:04:10] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (219,194) | Name: McrlBw18
+[2026-04-01 22:04:10] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (215,196) | Name: McrlBw19
+[2026-04-01 22:04:10] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (208,202) | Name: McrlBw4
+[2026-04-01 22:04:10] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (209,200) | Name: McrlBw7
+[2026-04-01 22:04:10] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (209,198) | Name: McrlBw7
+[2026-04-01 22:04:10] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (209,199) | Name: McrlBw7
+[2026-04-01 22:04:10] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (212,196) | Name: McrlBw19
+[2026-04-01 22:04:10] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (216,196) | Name: McrlBw18
+[2026-04-01 22:04:10] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (211,196) | Name: McrlBw19
+[2026-04-01 22:04:10] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (211,196) | Name: McrlBw19
+[2026-04-01 22:04:11] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (212,197) | Name: McrlBw18
+[2026-04-01 22:04:18] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (244,212) | Name: McrlBw13
+[2026-04-01 22:04:19] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (244,212) | Name: McrlBw13
+[2026-04-01 22:04:19] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (248,211) | Name: McrlBw12
+[2026-04-01 22:04:19] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (243,211) | Name: McrlBw13
+[2026-04-01 22:04:19] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (243,211) | Name: McrlBw13
+[2026-04-01 22:04:19] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (242,211) | Name: McrlBw13
+[2026-04-01 22:04:19] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (250,212) | Name: McrlBw24
+[2026-04-01 22:04:20] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (250,212) | Name: McrlBw23
+[2026-04-01 22:04:20] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (241,211) | Name: McrlBw13
+[2026-04-01 22:04:20] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (241,211) | Name: McrlBw13
+[2026-04-01 22:04:20] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (245,211) | Name: McrlBw12
+[2026-04-01 22:04:20] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (244,210) | Name: McrlBw12
+[2026-04-01 22:04:21] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (243,211) | Name: McrlBw24
+[2026-04-01 22:04:21] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (245,210) | Name: McrlBw23
+[2026-04-01 22:04:21] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (244,210) | Name: McrlBw20
+[2026-04-01 22:04:21] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (244,210) | Name: McrlBw20
+[2026-04-01 22:04:21] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (244,210) | Name: McrlBw23
+[2026-04-01 22:04:21] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (243,210) | Name: McrlBw24
+[2026-04-01 22:04:21] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (243,210) | Name: McrlBw17
+[2026-04-01 22:04:21] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (244,209) | Name: McrlBw20
+[2026-04-01 22:04:21] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (244,209) | Name: McrlBw23
+[2026-04-01 22:04:21] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (242,210) | Name: McrlBw24
+[2026-04-01 22:04:21] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (240,210) | Name: McrlBw24
+[2026-04-01 22:04:21] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (240,210) | Name: McrlBw17
+[2026-04-01 22:04:22] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (242,210) | Name: McrlBw20
+[2026-04-01 22:04:22] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (238,210) | Name: McrlBw24
+[2026-04-01 22:04:22] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (237,210) | Name: McrlBw24
+[2026-04-01 22:04:22] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (237,210) | Name: McrlBw17
+[2026-04-01 22:04:22] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (239,210) | Name: McrlBw23
+[2026-04-01 22:04:22] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (239,210) | Name: McrlBw20
+[2026-04-01 22:04:22] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (238,210) | Name: McrlBw20
+[2026-04-01 22:04:22] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (237,210) | Name: McrlBw20
+[2026-04-01 22:04:42] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (290,215) | Name: McrlBw9
+[2026-04-01 22:04:42] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (290,215) | Name: McrlBw9
+[2026-04-01 22:04:42] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (287,216) | Name: McrlBw25
+[2026-04-01 22:04:42] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (287,216) | Name: McrlBw25
+[2026-04-01 22:04:42] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (287,216) | Name: McrlBw25
+[2026-04-01 22:04:42] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (290,213) | Name: McrlBw23
+[2026-04-01 22:04:43] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (290,215) | Name: McrlBw24
+[2026-04-01 22:04:43] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (286,213) | Name: McrlBw9
+[2026-04-01 22:04:43] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (287,213) | Name: McrlBw23
+[2026-04-01 22:04:43] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (285,214) | Name: McrlBw25
+[2026-04-01 22:04:43] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (290,213) | Name: McrlBw27
+[2026-04-01 22:04:43] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (285,213) | Name: McrlBw9
+[2026-04-01 22:04:43] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (287,213) | Name: McrlBw23
+[2026-04-01 22:04:43] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (290,215) | Name: McrlBw24
+[2026-04-01 22:04:43] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (290,213) | Name: McrlBw27
+[2026-04-01 22:04:43] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (285,213) | Name: McrlBw9
+[2026-04-01 22:04:43] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (285,214) | Name: McrlBw25
+[2026-04-01 22:04:43] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (285,214) | Name: McrlBw25
+[2026-04-01 22:04:43] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (285,214) | Name: McrlBw25
+[2026-04-01 22:04:43] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (285,213) | Name: McrlBw25
+[2026-04-01 22:04:43] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (287,213) | Name: McrlBw24
+[2026-04-01 22:04:43] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (287,213) | Name: McrlBw27
+[2026-04-01 22:04:44] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (286,213) | Name: McrlBw24
+[2026-04-01 22:04:44] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (286,213) | Name: McrlBw27
+[2026-04-01 22:04:44] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (286,213) | Name: McrlBw24
+[2026-04-01 22:04:44] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (286,213) | Name: McrlBw27
+[2026-04-01 22:04:44] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (286,213) | Name: McrlBw24
+[2026-04-01 22:04:44] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (285,213) | Name: McrlBw24
+[2026-04-01 22:04:44] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (282,213) | Name: McrlBw27
+[2026-04-01 22:04:44] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (282,213) | Name: McrlBw24
+[2026-04-01 22:04:47] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (293,216) | Name: McrlBw13
+[2026-04-01 22:04:47] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (283,228) | Name: McrlBw17
+[2026-04-01 22:04:47] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (289,216) | Name: McrlBw13
+[2026-04-01 22:04:48] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (283,230) | Name: McrlBw1
+[2026-04-01 22:04:48] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (283,230) | Name: McrlBw10
+[2026-04-01 22:04:48] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (281,230) | Name: McrlBw21
+[2026-04-01 22:04:48] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (283,228) | Name: McrlBw1
+[2026-04-01 22:04:48] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (283,228) | Name: McrlBw10
+[2026-04-01 22:04:48] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (283,227) | Name: McrlBw17
+[2026-04-01 22:04:48] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (283,226) | Name: McrlBw1
+
+[2026-04-01 22:04:48] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (283,227) | Name: McrlBw10
+[2026-04-01 22:04:48] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (281,228) | Name: McrlBw21
+[2026-04-01 22:04:49] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (282,227) | Name: McrlBw21
+[2026-04-01 22:04:49] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (285,224) | Name: McrlBw1
+[2026-04-01 22:04:49] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (285,225) | Name: McrlBw10
+[2026-04-01 22:04:49] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (285,225) | Name: McrlBw17
+[2026-04-01 22:04:49] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (283,226) | Name: McrlBw21
+[2026-04-01 22:04:49] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (285,224) | Name: McrlBw1
+
+[2026-04-01 22:04:49] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (286,223) | Name: McrlBw1
+[2026-04-01 22:04:49] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (286,224) | Name: McrlBw10
+[2026-04-01 22:04:49] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (286,224) | Name: McrlBw17
+[2026-04-01 22:04:49] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (284,225) | Name: McrlBw21
+[2026-04-01 22:04:49] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (287,222) | Name: McrlBw1
+[2026-04-01 22:04:49] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (287,223) | Name: McrlBw10
+[2026-04-01 22:04:49] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (287,223) | Name: McrlBw17
+[2026-04-01 22:04:49] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (285,224) | Name: McrlBw21
+[2026-04-01 22:04:49] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (287,223) | Name: McrlBw10
+[2026-04-01 22:04:49] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (287,221) | Name: McrlBw1
+[2026-04-01 22:04:49] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (287,223) | Name: McrlBw10
+[2026-04-01 22:04:49] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (287,222) | Name: McrlBw17
+[2026-04-01 22:04:49] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (285,224) | Name: McrlBw21
+[2026-04-01 22:04:49] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (288,222) | Name: McrlBw17
+[2026-04-01 22:04:50] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (288,219) | Name: McrlBw1
+[2026-04-01 22:04:50] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (288,219) | Name: McrlBw1
+[2026-04-01 22:04:50] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (306,219) | Name: McrlBw31
+[2026-04-01 22:04:50] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (308,214) | Name: McrlBw8
+[2026-04-01 22:04:50] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (309,219) | Name: McrlBw18
+[2026-04-01 22:04:50] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (309,215) | Name: McrlBw29
+[2026-04-01 22:04:50] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (288,219) | Name: McrlBw10
+[2026-04-01 22:04:51] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (306,219) | Name: McrlBw31
+[2026-04-01 22:04:52] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (309,215) | Name: McrlBw29
+[2026-04-01 22:04:52] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (308,214) | Name: McrlBw8
+[2026-04-01 22:04:53] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (302,215) | Name: McrlBw31
+[2026-04-01 22:04:53] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (302,215) | Name: McrlBw31
+[2026-04-01 22:04:53] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (302,215) | Name: McrlBw31
+[2026-04-01 22:04:53] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (302,213) | Name: McrlBw8
+[2026-04-01 22:04:53] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (303,213) | Name: McrlBw29
+[2026-04-01 22:04:53] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (301,214) | Name: McrlBw31
+[2026-04-01 22:04:53] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (309,219) | Name: McrlBw18
+[2026-04-01 22:04:54] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (299,213) | Name: McrlBw8
+[2026-04-01 22:04:54] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (299,213) | Name: McrlBw29
+[2026-04-01 22:04:54] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (308,218) | Name: McrlBw18
+[2026-04-01 22:04:55] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (284,226) | Name: McrlBw20
+[2026-04-01 22:04:55] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (288,218) | Name: McrlBw10
+[2026-04-01 22:04:55] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (288,218) | Name: McrlBw10
+[2026-04-01 22:04:56] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (303,213) | Name: McrlBw18
+[2026-04-01 22:04:58] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (289,217) | Name: McrlBw10
+[2026-04-01 22:04:58] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (289,217) | Name: McrlBw10
+[2026-04-01 22:04:59] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (290,216) | Name: McrlBw10
+[2026-04-01 22:04:59] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (290,216) | Name: McrlBw10
+[2026-04-01 22:04:59] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (290,216) | Name: McrlBw10
+[2026-04-01 22:04:59] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (290,215) | Name: McrlBw10
+[2026-04-01 22:04:59] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (291,215) | Name: McrlBw10
+[2026-04-01 22:04:59] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (291,214) | Name: McrlBw10
+[2026-04-01 22:04:59] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (294,232) | Name: McrlBw3
+[2026-04-01 22:05:00] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (294,232) | Name: McrlBw3
+[2026-04-01 22:05:00] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (300,234) | Name: McrlBw12
+[2026-04-01 22:05:00] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (300,234) | Name: McrlBw12
+[2026-04-01 22:05:00] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (298,237) | Name: McrlBw6
+[2026-04-01 22:05:00] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (302,238) | Name: McrlBw15
+[2026-04-01 22:05:00] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (299,235) | Name: McrlBw15
+[2026-04-01 22:05:00] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (299,235) | Name: McrlBw15
+[2026-04-01 22:05:01] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (295,234) | Name: McrlBw6
+[2026-04-01 22:05:01] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (295,234) | Name: McrlBw6
+[2026-04-01 22:05:01] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (299,233) | Name: McrlBw15
+[2026-04-01 22:05:01] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (296,233) | Name: McrlBw6
+[2026-04-01 22:05:01] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (296,233) | Name: McrlBw6
+[2026-04-01 22:05:01] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (296,232) | Name: McrlBw6
+[2026-04-01 22:05:03] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (299,249) | Name: McrlBw28
+[2026-04-01 22:05:03] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (293,249) | Name: McrlBw7
+[2026-04-01 22:05:03] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (299,249) | Name: McrlBw28
+[2026-04-01 22:05:03] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (295,254) | Name: McrlBw26
+[2026-04-01 22:05:03] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (298,256) | Name: McrlBw5
+[2026-04-01 22:05:03] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (297,257) | Name: McrlBw22
+[2026-04-01 22:05:03] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (293,258) | Name: McrlBw30
+[2026-04-01 22:05:03] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (295,254) | Name: McrlBw26
+[2026-04-01 22:05:03] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (298,256) | Name: McrlBw5
+[2026-04-01 22:05:04] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (299,245) | Name: McrlBw28
+[2026-04-01 22:05:04] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (298,245) | Name: McrlBw28
+[2026-04-01 22:05:04] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (298,245) | Name: McrlBw28
+[2026-04-01 22:05:05] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (298,246) | Name: McrlBw26
+[2026-04-01 22:05:05] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (298,246) | Name: McrlBw26
+[2026-04-01 22:05:05] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (299,257) | Name: McrlBw19
+[2026-04-01 22:05:05] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (297,257) | Name: McrlBw22
+[2026-04-01 22:05:05] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (293,258) | Name: McrlBw30
+[2026-04-01 22:05:05] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (296,255) | Name: McrlBw30
+[2026-04-01 22:05:06] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (296,254) | Name: McrlBw30
+[2026-04-01 22:05:06] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (298,253) | Name: McrlBw19
+[2026-04-01 22:05:06] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (297,254) | Name: McrlBw22
+[2026-04-01 22:05:06] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (297,254) | Name: McrlBw22
+[2026-04-01 22:05:06] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (298,255) | Name: McrlBw14
+[2026-04-01 22:05:07] [MONSTER] ID: 20625 | Lv: 190 | Pos: 00v1@herbs.gat (297,248) | Name: McrlBw19
+[2026-04-01 22:05:07] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (296,248) | Name: McrlBw30
+[2026-04-01 22:05:07] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (297,250) | Name: McrlBw22
+[2026-04-01 22:05:07] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (297,251) | Name: McrlBw14
+[2026-04-01 22:05:08] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (296,250) | Name: McrlBw14
+[2026-04-01 22:05:08] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (296,250) | Name: McrlBw14
+[2026-04-01 22:05:08] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (296,250) | Name: McrlBw14
+[2026-04-01 22:05:08] [MONSTER] ID: 20627 | Lv: 193 | Pos: 00v1@herbs.gat (296,250) | Name: McrlBw14
+[2026-04-01 22:05:08] [MONSTER] ID: 20623 | Lv: 187 | Pos: 00v1@herbs.gat (296,247) | Name: McrlBw30
+[2026-04-01 22:06:29] [MONSTER] ID: 20621 | Lv: 185 | Pos: 00v1@herbs.gat (275,80) | Name: Ramda
+[2026-04-01 22:06:29] [MONSTER] ID: 20621 | Lv: 185 | Pos: 00v1@herbs.gat (275,80) | Name: Ramda
+[2026-04-01 22:06:31] [MONSTER] ID: 20621 | Lv: 185 | Pos: 00v1@herbs.gat (275,80) | Name: Ramda
+[2026-04-01 22:06:33] [MONSTER] ID: 20621 | Lv: 185 | Pos: 00v1@herbs.gat (275,80) | Name: Ramda
+[2026-04-01 22:06:39] [MONSTER] ID: 20679 | Lv: 130 | Pos: 00v1@herbs.gat (272,64) | Name: 0lDnBw
+[2026-04-01 22:06:45] [MONSTER] ID: 20621 | Lv: 185 | Pos: 00v1@herbs.gat (275,80) | Name: Ramda
+[2026-04-01 22:06:46] [MONSTER] ID: 20679 | Lv: 130 | Pos: 00v1@herbs.gat (299,64) | Name: 0lDnBw
+[2026-04-01 22:06:50] [MONSTER] ID: 20679 | Lv: 130 | Pos: 00v1@herbs.gat (299,95) | Name: 0lDnBw
+[2026-04-01 22:06:53] [MONSTER] ID: 20621 | Lv: 185 | Pos: 00v1@herbs.gat (275,80) | Name: Ramda
+[2026-04-01 22:06:53] [MONSTER] ID: 20679 | Lv: 130 | Pos: 00v1@herbs.gat (272,95) | Name: 0lDnBw
+[2026-04-01 22:10:03] [MONSTER] ID: 20679 | Lv: 130 | Pos: ba_maison.gat (126,296) | Name: cpAB
+[2026-04-01 22:10:12] [MONSTER] ID: 20679 | Lv: 130 | Pos: ba_maison.gat (126,296) | Name: cpAB
+[2026-04-01 22:10:57] [MONSTER] ID: 20630 | Lv: 145 | Pos: ba_maison.gat (128,312) | Name: Z5AB
+[2026-04-01 22:10:58] [MONSTER] ID: 20630 | Lv: 145 | Pos: ba_maison.gat (122,310) | Name: Z5AB

@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx supabase:*)",
+      "Bash(cmd.exe /c \"tasklist /FI \\\\\"IMAGENAME eq ROSniffer.exe\\\\\" /FI \\\\\"IMAGENAME eq Claudinho.exe\\\\\"\" 2>&1)",
+      "Bash(cd:*)",
+      "Bash(cmake -S . -B build-release -G \"Visual Studio 17 2022\" -DCMAKE_BUILD_TYPE=Release -DCLAUDINHO_TRAY=ON)",
+      "Bash(cmake -S . -B build -G \"Visual Studio 17 2022\" -DCMAKE_BUILD_TYPE=Debug)",
+      "Bash(cmake --build build-release --config Release)",
+      "Bash(cmake --build build --config Debug)",
+      "Bash(\"C:/Program Files \\(x86\\)/Inno Setup 6/ISCC.exe\" \"D:/rag/RO-PacketSniffer-CPP/installer/claudinho.iss\")",
+      "Bash(DOWNLOAD_URL=\"https://swgnctajsbiyhqxstrnx.supabase.co/storage/v1/object/public/installers/Claudinho-1.5.0-setup.exe\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} — Size: %{size_download} bytes\" \"$DOWNLOAD_URL\")",
+      "Bash(printf \"1.5.0\")",
+      "Bash(npx vercel:*)",
+      "Bash(printf \"https://swgnctajsbiyhqxstrnx.supabase.co/storage/v1/object/public/installers/Claudinho-1.5.0-setup.exe\")",
+      "Bash(printf \"feat: instance enter/leave telemetry tracking\")",
+      "Bash(gh release:*)",
+      "Bash(curl:*)"
+    ]
+  }
+}

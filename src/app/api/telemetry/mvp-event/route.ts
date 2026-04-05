@@ -129,6 +129,7 @@ export async function POST(request: NextRequest) {
   // Insert damage hits if provided (even if kill was deduplicated — allows multi-sniffer aggregation)
   if (killId && Array.isArray(body.damage_hits) && body.damage_hits.length > 0) {
     const hits = body.damage_hits.map((h: {
+      source_id: number
       source_name: string
       damage: number
       server_tick: number
@@ -136,6 +137,7 @@ export async function POST(request: NextRequest) {
       skill_id?: number | null
     }) => ({
       kill_id: killId,
+      source_id: h.source_id,
       source_name: h.source_name,
       damage: h.damage,
       server_tick: h.server_tick,
@@ -146,7 +148,7 @@ export async function POST(request: NextRequest) {
 
     const { error: hitsError } = await supabase
       .from('mvp_kill_damage_hits')
-      .upsert(hits, { onConflict: 'kill_id,source_name,server_tick,damage', ignoreDuplicates: true })
+      .upsert(hits, { onConflict: 'kill_id,source_id,server_tick,damage', ignoreDuplicates: true })
 
     if (hitsError) {
       console.error('Failed to insert damage hits:', hitsError.message)
