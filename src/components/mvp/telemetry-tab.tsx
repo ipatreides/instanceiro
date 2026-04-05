@@ -235,7 +235,7 @@ function SessionsList({
                 </div>
               </div>
 
-              {tokenSessions.length > 0 ? tokenSessions.filter((s) => s.character_id !== 0).map((s) => {
+              {tokenSessions.length > 0 ? tokenSessions.filter((s) => s.character_id !== 0 && Date.now() - new Date(s.last_heartbeat).getTime() < 30 * 60 * 1000).map((s) => {
                 const health = heartbeatHealth(s.last_heartbeat)
                 const dotColor = health === 'available' ? 'bg-status-available' : health === 'soon' ? 'bg-status-soon' : 'bg-status-error'
                 const location = s.in_instance ? (s.instance_name || 'Instância') : (s.current_map || null)
