@@ -189,7 +189,7 @@ function SessionsList({
   return (
     <div className="bg-surface border border-border rounded-xl p-4 space-y-2">
       <h4 className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">
-        Sniffers Ativos
+        Personagens Ativos
       </h4>
       <div className="space-y-2">
         {tokens.map((token) => {
