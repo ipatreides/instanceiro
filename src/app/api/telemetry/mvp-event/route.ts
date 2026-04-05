@@ -126,7 +126,43 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  logTelemetryEvent(supabase, { endpoint: 'mvp-event', tokenId: ctx.tokenId, characterId: ctx.characterUuid, payloadSummary: { monster_id, map, has_tomb: !!tomb_x, has_killer: !!killer_name, loot_count: loots?.length ?? 0 }, result: action, killId })
+  // Insert damage hits if provided (even if kill was deduplicated — allows multi-sniffer aggregation)
+  if (killId && Array.isArray(body.damage_hits) && body.damage_hits.length > 0) {
+    const hits = body.damage_hits.map((h: {
+      source_name: string
+      damage: number
+      server_tick: number
+      elapsed_ms: number
+      skill_id?: number | null
+    }) => ({
+      kill_id: killId,
+      source_name: h.source_name,
+      damage: h.damage,
+      server_tick: h.server_tick,
+      elapsed_ms: h.elapsed_ms,
+      skill_id: h.skill_id ?? null,
+      reported_by: null,
+    }))
+
+    const { error: hitsError } = await supabase
+      .from('mvp_kill_damage_hits')
+      .upsert(hits, { onConflict: 'kill_id,source_name,server_tick,damage', ignoreDuplicates: true })
+
+    if (hitsError) {
+      console.error('Failed to insert damage hits:', hitsError.message)
+    }
+  }
+
+  // Update first_hitter_name if provided and not yet set
+  if (killId && body.first_hitter_name) {
+    await supabase
+      .from('mvp_kills')
+      .update({ first_hitter_name: body.first_hitter_name })
+      .eq('id', killId)
+      .is('first_hitter_name', null)
+  }
+
+  logTelemetryEvent(supabase, { endpoint: 'mvp-event', tokenId: ctx.tokenId, characterId: ctx.characterUuid, payloadSummary: { monster_id, map, has_tomb: !!tomb_x, has_killer: !!killer_name, loot_count: loots?.length ?? 0, damage_hits: body.damage_hits?.length ?? 0 }, result: action, killId })
 
   return NextResponse.json({ action, kill_id: killId }, { status: action === 'created' ? 201 : 200 })
 }
