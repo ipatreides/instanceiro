@@ -12,6 +12,7 @@ import { MvpMapPicker } from "./mvp-map-picker";
 import { MvpGroupHub } from "./mvp-group-hub";
 import { MvpGroupStats } from "./mvp-group-stats";
 import { TelemetryTab } from "./telemetry-tab";
+import { MvpDamagePanel } from "./mvp-damage-panel";
 import { useMvpSightings } from "@/hooks/use-mvp-sightings";
 import { useMvpBroadcasts } from "@/hooks/use-mvp-broadcasts";
 import { formatTimeBRT, formatDateBRT } from "@/lib/date-brt";
@@ -550,6 +551,11 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                 </div>
               )}
             </div>
+
+            {/* Damage breakdown (telemetry kills only) */}
+            {selectedKill && selectedKill.source === 'telemetry' && (
+              <MvpDamagePanel killId={selectedKill.kill_id} />
+            )}
 
             {/* Kill history */}
             {killHistory.length > 0 && (
