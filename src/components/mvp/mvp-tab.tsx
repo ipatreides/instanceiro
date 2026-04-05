@@ -13,7 +13,7 @@ import { MvpGroupHub } from "./mvp-group-hub";
 import { MvpGroupStats } from "./mvp-group-stats";
 import { TelemetryTab } from "./telemetry-tab";
 import { MvpDamagePanel } from "./mvp-damage-panel";
-import { Navigation, ChevronDown, ChevronRight } from "lucide-react";
+import { Navigation, ChevronRight, Swords } from "lucide-react";
 import { useMvpSightings } from "@/hooks/use-mvp-sightings";
 import { useMvpBroadcasts } from "@/hooks/use-mvp-broadcasts";
 import { formatTimeBRT, formatDateBRT } from "@/lib/date-brt";
@@ -606,9 +606,13 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                             onClick={hasDamage ? () => setExpandedHistoryKillId(h.id) : undefined}
                           >
                             {hasDamage && (
-                              <span className="text-text-secondary flex-shrink-0">
-                                <ChevronRight size={10} />
-                              </span>
+                              <Swords
+                                size={12}
+                                stroke="var(--primary)"
+                                fill="var(--primary)"
+                                fillOpacity="var(--icon-fill-opacity)"
+                                className="flex-shrink-0"
+                              />
                             )}
                             <span className="text-text-secondary tabular-nums">
                               {h.killed_at && new Date(h.killed_at).getTime() >= 86400000 ? formatDateBRT(h.killed_at) : "—"}
