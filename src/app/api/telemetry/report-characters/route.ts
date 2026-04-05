@@ -39,7 +39,12 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     if (existingChar) {
-      // Already resolved — but update account link if missing
+      // Already resolved — update level if provided
+      if (char.level && char.level > 0) {
+        await supabase.from('characters').update({ level: char.level }).eq('id', existingChar.id)
+      }
+
+      // Update account link if missing
       const { data: account } = await supabase
         .from('accounts')
         .select('id, game_account_id')
@@ -73,10 +78,12 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     if (matchedChar) {
-      // Name match — resolve
+      // Name match — resolve + update level
+      const updateFields: Record<string, any> = { game_char_id: char.char_id }
+      if (char.level && char.level > 0) updateFields.level = char.level
       await supabase
         .from('characters')
-        .update({ game_char_id: char.char_id })
+        .update(updateFields)
         .eq('id', matchedChar.id)
 
       // Link account if we have account_id
