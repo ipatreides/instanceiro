@@ -75,6 +75,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
   const [memberUsernames, setMemberUsernames] = useState<Map<string, string>>(new Map());
   const [witnesses, setWitnesses] = useState<Record<string, string[]>>({}) // kill_id → user_id[]
   const [expandedHistoryKillId, setExpandedHistoryKillId] = useState<string | null>(null);
+  const [showActiveDamage, setShowActiveDamage] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
@@ -575,9 +576,32 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
               )}
             </div>
 
-            {/* Damage breakdown (telemetry kills only) */}
+            {/* Damage breakdown toggle */}
             {selectedKill && selectedKill.source === 'telemetry' && (
-              <MvpDamagePanel killId={selectedKill.kill_id} />
+              showActiveDamage ? (
+                <div className="flex flex-col gap-1 mt-2">
+                  <button
+                    className="text-[10px] text-primary hover:text-text-primary cursor-pointer transition-colors flex items-center gap-1"
+                    onClick={() => setShowActiveDamage(false)}
+                  >
+                    <ChevronRight size={10} className="rotate-180" /> Fechar breakdown
+                  </button>
+                  <MvpDamagePanel killId={selectedKill.kill_id} />
+                </div>
+              ) : (
+                <button
+                  className="flex items-center gap-1.5 mt-2 text-[10px] text-text-secondary hover:text-primary cursor-pointer transition-colors"
+                  onClick={() => setShowActiveDamage(true)}
+                >
+                  <Swords
+                    size={12}
+                    stroke="var(--primary)"
+                    fill="var(--primary)"
+                    fillOpacity="var(--icon-fill-opacity)"
+                  />
+                  Ver breakdown de dano
+                </button>
+              )
             )}
 
             {/* Kill history */}
