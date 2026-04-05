@@ -449,7 +449,7 @@ function UnresolvedCharsList({ chars, userId, onRefresh }: { chars: any[]; userI
     try {
       const supabase = createClient();
 
-      // Find the correct account by game_account_id, or fall back to first account
+      // Find the correct account by game_account_id
       let accountId: string | null = null;
       if (char.game_account_id) {
         const { data: matched } = await supabase
@@ -461,16 +461,10 @@ function UnresolvedCharsList({ chars, userId, onRefresh }: { chars: any[]; userI
         accountId = matched?.id ?? null;
       }
       if (!accountId) {
-        const { data: fallback } = await supabase
-          .from('accounts')
-          .select('id')
-          .eq('user_id', userId)
-          .order('sort_order', { ascending: true })
-          .limit(1);
-        accountId = fallback?.[0]?.id ?? null;
-      }
-      if (!accountId) {
-        setErrors((prev) => ({ ...prev, [char.game_char_id]: 'Nenhuma conta cadastrada. Crie uma conta primeiro.' }));
+        const msg = char.game_account_id
+          ? `Conta do jogo #${char.game_account_id} não encontrada. Cadastre a conta primeiro na aba de personagens.`
+          : 'Conta desconhecida. Cadastre o personagem manualmente na aba de personagens.';
+        setErrors((prev) => ({ ...prev, [char.game_char_id]: msg }));
         return;
       }
 
