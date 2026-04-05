@@ -13,6 +13,7 @@ import { MvpGroupHub } from "./mvp-group-hub";
 import { MvpGroupStats } from "./mvp-group-stats";
 import { TelemetryTab } from "./telemetry-tab";
 import { MvpDamagePanel } from "./mvp-damage-panel";
+import { Navigation } from "lucide-react";
 import { useMvpSightings } from "@/hooks/use-mvp-sightings";
 import { useMvpBroadcasts } from "@/hooks/use-mvp-broadcasts";
 import { formatTimeBRT, formatDateBRT } from "@/lib/date-brt";
@@ -528,6 +529,23 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                           <span className="text-[9px] text-text-secondary font-semibold">Y</span>
                           <div className="text-xs text-text-primary">{selectedKill.tomb_y}</div>
                         </div>
+                        <button
+                          className="self-end hover:text-primary transition-colors cursor-pointer"
+                          title="Copiar /navi"
+                          onClick={() => {
+                            const map = selectedMvp.map_name;
+                            const x = selectedKill.tomb_x;
+                            const y = selectedKill.tomb_y;
+                            navigator.clipboard.writeText(`/navi ${map} ${x}/${y}`);
+                          }}
+                        >
+                          <Navigation
+                            size={14}
+                            stroke="var(--primary)"
+                            fill="var(--primary)"
+                            fillOpacity="var(--icon-fill-opacity)"
+                          />
+                        </button>
                       </>
                     )}
                   </div>
