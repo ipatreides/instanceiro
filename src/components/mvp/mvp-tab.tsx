@@ -589,46 +589,43 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                     const hasDamage = h.has_damage;
                     const isExpanded = expandedHistoryKillId === h.id;
                     return (
-                      <div key={h.id}>
-                        <div
-                          className={`flex items-center gap-2 px-2 py-1 rounded text-[10px] bg-surface ${hasDamage ? 'cursor-pointer hover:bg-card-hover-bg transition-colors' : ''}`}
-                          onClick={hasDamage ? () => setExpandedHistoryKillId(isExpanded ? null : h.id) : undefined}
-                        >
-                          {hasDamage && (
-                            <span className="text-text-secondary flex-shrink-0">
-                              {isExpanded
-                                ? <ChevronDown size={10} />
-                                : <ChevronRight size={10} />}
-                            </span>
-                          )}
-                          <span className="text-text-secondary tabular-nums">
-                            {h.killed_at && new Date(h.killed_at).getTime() >= 86400000 ? formatDateBRT(h.killed_at) : "—"}
+                      <div
+                        key={h.id}
+                        className={`flex items-center gap-2 px-2 py-1 rounded text-[10px] ${isExpanded ? 'bg-card-hover-bg' : 'bg-surface'} ${hasDamage ? 'cursor-pointer hover:bg-card-hover-bg transition-colors' : ''}`}
+                        onClick={hasDamage ? () => setExpandedHistoryKillId(isExpanded ? null : h.id) : undefined}
+                      >
+                        {hasDamage && (
+                          <span className="text-text-secondary flex-shrink-0">
+                            {isExpanded
+                              ? <ChevronDown size={10} />
+                              : <ChevronRight size={10} />}
                           </span>
-                          <span className="text-text-secondary tabular-nums">
-                            {h.killed_at && new Date(h.killed_at).getTime() >= 86400000 ? formatTimeBRT(h.killed_at) : "Desconhecida"}
-                          </span>
-                          {selectedMvp.cooldown_group && (
-                            <span className="text-text-primary font-medium">{mvpNameMap.get(h.mvp_id) ?? "?"}</span>
-                          )}
-                          {h.killer_name ? (
-                            <span className="text-primary-secondary">{h.killer_name}</span>
-                          ) : (
-                            <span className="text-text-secondary italic">sem killer</span>
-                          )}
-                          {selectedMvp.has_tomb && h.tomb_x != null && (
-                            <span className="text-text-secondary ml-auto">{h.tomb_x},{h.tomb_y}</span>
-                          )}
-                          <span className="text-text-secondary ml-auto">por {h.registered_by_name}</span>
-                        </div>
-                        {isExpanded && hasDamage && (
-                          <div className="pl-4 pr-1 pb-1">
-                            <MvpDamagePanel killId={h.id} />
-                          </div>
                         )}
+                        <span className="text-text-secondary tabular-nums">
+                          {h.killed_at && new Date(h.killed_at).getTime() >= 86400000 ? formatDateBRT(h.killed_at) : "—"}
+                        </span>
+                        <span className="text-text-secondary tabular-nums">
+                          {h.killed_at && new Date(h.killed_at).getTime() >= 86400000 ? formatTimeBRT(h.killed_at) : "Desconhecida"}
+                        </span>
+                        {selectedMvp.cooldown_group && (
+                          <span className="text-text-primary font-medium">{mvpNameMap.get(h.mvp_id) ?? "?"}</span>
+                        )}
+                        {h.killer_name ? (
+                          <span className="text-primary-secondary">{h.killer_name}</span>
+                        ) : (
+                          <span className="text-text-secondary italic">sem killer</span>
+                        )}
+                        {selectedMvp.has_tomb && h.tomb_x != null && (
+                          <span className="text-text-secondary ml-auto">{h.tomb_x},{h.tomb_y}</span>
+                        )}
+                        <span className="text-text-secondary ml-auto">por {h.registered_by_name}</span>
                       </div>
                     );
                   })}
                 </div>
+                {expandedHistoryKillId && (
+                  <MvpDamagePanel killId={expandedHistoryKillId} />
+                )}
               </div>
             )}
 
