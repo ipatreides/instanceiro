@@ -360,3 +360,24 @@ export interface TelemetryConfig {
     heartbeat: { interval_ms: number }
   }
 }
+
+export interface MvpDamageAttacker {
+  name: string
+  total_damage: number
+  pct: number
+  is_first_hitter: boolean
+}
+
+export interface MvpDamageTimelinePoint {
+  elapsed_ms: number
+  [attackerName: string]: number
+}
+
+export interface MvpDamageResponse {
+  kill_id: string
+  first_hitter: string | null
+  duration_ms: number
+  sniffer_count: number
+  attackers: MvpDamageAttacker[]
+  timeline: MvpDamageTimelinePoint[]
+}
