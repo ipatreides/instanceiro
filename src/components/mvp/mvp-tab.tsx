@@ -576,33 +576,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
               )}
             </div>
 
-            {/* Damage breakdown toggle */}
-            {selectedKill && selectedKill.source === 'telemetry' && (
-              showActiveDamage ? (
-                <div className="flex flex-col gap-1 mt-2">
-                  <button
-                    className="text-[10px] text-primary hover:text-text-primary cursor-pointer transition-colors flex items-center gap-1"
-                    onClick={() => setShowActiveDamage(false)}
-                  >
-                    <ChevronRight size={10} className="rotate-180" /> Fechar breakdown
-                  </button>
-                  <MvpDamagePanel killId={selectedKill.kill_id} />
-                </div>
-              ) : (
-                <button
-                  className="flex items-center gap-1.5 mt-2 text-[10px] text-text-secondary hover:text-primary cursor-pointer transition-colors"
-                  onClick={() => setShowActiveDamage(true)}
-                >
-                  <Swords
-                    size={12}
-                    stroke="var(--primary)"
-                    fill="var(--primary)"
-                    fillOpacity="var(--icon-fill-opacity)"
-                  />
-                  Ver breakdown de dano
-                </button>
-              )
-            )}
+            {/* Damage breakdown is accessed via kill history Swords icon */}
 
             {/* Kill history */}
             {killHistory.length > 0 && (
