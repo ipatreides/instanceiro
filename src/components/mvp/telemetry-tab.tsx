@@ -205,7 +205,7 @@ function SessionsList({
                       anyOnline ? "bg-status-available animate-pulse" : "bg-text-secondary"
                     }`}
                   />
-                  <span className="text-sm text-text-primary">{token.name ?? "Sniffer"}</span>
+                  <span className="text-sm text-text-primary">{token.name ?? "Claudinho"}</span>
                 </div>
 
                 <div className="flex-shrink-0">
