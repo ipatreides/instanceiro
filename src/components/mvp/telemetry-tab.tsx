@@ -573,14 +573,15 @@ export function TelemetryTab({ userId }: TelemetryTabProps) {
   }, [userId]);
 
   const fetchSessions = useCallback(async () => {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("telemetry_sessions")
-      .select("id, token_id, current_map, client_version, last_heartbeat, started_at, character_id, character_name, in_instance, instance_name")
-      .eq("user_id", userId)
-      .order("last_heartbeat", { ascending: false });
-    setSessions(data ?? []);
-  }, [userId]);
+    try {
+      const res = await fetch("/api/telemetry/sessions");
+      if (!res.ok) return;
+      const data = await res.json();
+      setSessions(data ?? []);
+    } catch {
+      // ignore fetch errors
+    }
+  }, []);
 
   const fetchVersion = useCallback(async () => {
     try {

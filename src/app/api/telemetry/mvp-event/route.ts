@@ -129,21 +129,41 @@ export async function POST(request: NextRequest) {
   // Insert damage hits if provided (even if kill was deduplicated — allows multi-sniffer aggregation)
   if (killId && Array.isArray(body.damage_hits) && body.damage_hits.length > 0) {
     // Resolve "actor_NNNNN" names from account_name_cache before saving
-    const unresolvedIds = [...new Set(
+    const unresolvedActorIds = [...new Set(
       body.damage_hits
         .filter((h: { source_name: string }) => h.source_name?.startsWith('actor_'))
         .map((h: { source_name: string }) => Number(h.source_name.replace('actor_', '')))
         .filter((n: number) => !isNaN(n))
     )]
     const nameCache = new Map<number, string>()
-    if (unresolvedIds.length > 0) {
+    if (unresolvedActorIds.length > 0) {
       const { data: cached } = await supabase
         .from('account_name_cache')
         .select('account_id, name')
         .eq('server_id', ctx.serverId)
-        .in('account_id', unresolvedIds)
+        .in('account_id', unresolvedActorIds)
       for (const c of cached ?? []) {
-        nameCache.set(c.account_id, c.name)
+        if (!c.name.startsWith('char_') && !c.name.startsWith('actor_')) {
+          nameCache.set(c.account_id, c.name)
+        }
+      }
+    }
+
+    // Resolve "char_NNNNN" names from characters table by game_char_id
+    const unresolvedCharIds = [...new Set(
+      body.damage_hits
+        .filter((h: { source_name: string }) => h.source_name?.startsWith('char_'))
+        .map((h: { source_name: string }) => Number(h.source_name.replace('char_', '')))
+        .filter((n: number) => !isNaN(n))
+    )]
+    const charNameCache = new Map<number, string>()
+    if (unresolvedCharIds.length > 0) {
+      const { data: chars } = await supabase
+        .from('characters')
+        .select('game_char_id, name')
+        .in('game_char_id', unresolvedCharIds)
+      for (const c of chars ?? []) {
+        if (c.game_char_id && c.name) charNameCache.set(c.game_char_id, c.name)
       }
     }
 
@@ -157,7 +177,11 @@ export async function POST(request: NextRequest) {
     }) => ({
       kill_id: killId,
       source_id: h.source_id,
-      source_name: nameCache.get(Number(h.source_name?.replace('actor_', ''))) ?? h.source_name,
+      source_name: h.source_name?.startsWith('actor_')
+        ? (nameCache.get(Number(h.source_name.replace('actor_', ''))) ?? h.source_name)
+        : h.source_name?.startsWith('char_')
+        ? (charNameCache.get(Number(h.source_name.replace('char_', ''))) ?? h.source_name)
+        : h.source_name,
       damage: h.damage,
       server_tick: h.server_tick,
       elapsed_ms: h.elapsed_ms,
@@ -176,7 +200,7 @@ export async function POST(request: NextRequest) {
     // Populate account name cache from resolved names (source_id = account_id for players)
     const resolvedNames = new Map<number, string>()
     for (const h of body.damage_hits) {
-      if (h.source_name && !h.source_name.startsWith('actor_')) {
+      if (h.source_name && !h.source_name.startsWith('actor_') && !h.source_name.startsWith('char_')) {
         resolvedNames.set(h.source_id, h.source_name)
       }
     }
@@ -194,12 +218,13 @@ export async function POST(request: NextRequest) {
 
       // Backfill unresolved names in existing damage hits for this kill
       for (const [sourceId, name] of resolvedNames) {
+        // Update hits with actor_N or char_N placeholders
         await supabase
           .from('mvp_kill_damage_hits')
           .update({ source_name: name })
           .eq('kill_id', killId)
           .eq('source_id', sourceId)
-          .like('source_name', 'actor_%')
+          .or('source_name.like.actor_%,source_name.like.char_%')
       }
     }
   }
@@ -217,10 +242,24 @@ export async function POST(request: NextRequest) {
           .eq('account_id', fhAccountId)
           .eq('server_id', ctx.serverId)
           .maybeSingle()
-        if (fhCached?.name) firstHitter = fhCached.name
+        if (fhCached?.name && !fhCached.name.startsWith('char_') && !fhCached.name.startsWith('actor_')) {
+          firstHitter = fhCached.name
+        }
       }
     }
-    if (!firstHitter.startsWith('actor_')) {
+    // Resolve "char_NNNNN" via characters table
+    if (firstHitter.startsWith('char_')) {
+      const fhCharId = Number(firstHitter.replace('char_', ''))
+      if (!isNaN(fhCharId)) {
+        const { data: fhChar } = await supabase
+          .from('characters')
+          .select('name')
+          .eq('game_char_id', fhCharId)
+          .maybeSingle()
+        if (fhChar?.name) firstHitter = fhChar.name
+      }
+    }
+    if (!firstHitter.startsWith('actor_') && !firstHitter.startsWith('char_')) {
       await supabase
         .from('mvp_kills')
         .update({ first_hitter_name: firstHitter })

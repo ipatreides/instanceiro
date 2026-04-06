@@ -38,6 +38,9 @@ export async function POST(request: NextRequest) {
 
   // Filter out clients with character_id=0 (unidentified)
   const effectiveClients = clientList.filter(c => c.character_id !== 0)
+  if (effectiveClients.length === 0 && clientList.length > 0) {
+    console.warn(`[heartbeat] token=${ctx.tokenId} has ${clientList.length} clients but all character_id=0. client_version=${client_version ?? 'unknown'}`)
+  }
 
   // Upsert one session per client
   for (const client of effectiveClients) {
