@@ -8,6 +8,7 @@ interface KillStat {
   mvp_id: number;
   killed_at: string;
   killer_character_id: string | null;
+  killer_name_raw: string | null;
   registered_by: string;
   mvp_name: string;
   killer_name: string | null;
@@ -36,10 +37,38 @@ export function MvpGroupStats({ groupId }: MvpGroupStatsProps) {
     if (!groupId) { setKills([]); setLoading(false); return; }
     setLoading(true);
     const supabase = createClient();
-    supabase.rpc("get_group_kill_stats", { p_group_id: groupId }).then(({ data }) => {
-      setKills((data ?? []) as KillStat[]);
+    (async () => {
+      const { data } = await supabase
+        .from("mvp_kills")
+        .select("id, mvp_id, killed_at, killer_character_id, killer_name_raw, registered_by, source")
+        .eq("group_id", groupId)
+        .order("killed_at", { ascending: false })
+        .limit(500);
+      if (!data || data.length === 0) { setKills([]); setLoading(false); return; }
+
+      // Resolve character names and MVP names
+      const charIds = [...new Set(data.flatMap((d) => [d.killer_character_id, d.registered_by].filter(Boolean) as string[]))];
+      const mvpIds = [...new Set(data.map((d) => d.mvp_id))];
+      const [namesRes, mvpsRes] = await Promise.all([
+        supabase.rpc("get_character_names", { char_ids: charIds }),
+        supabase.from("mvps").select("id, name").in("id", mvpIds),
+      ]);
+      const nameMap = new Map(((namesRes.data ?? []) as { id: string; name: string }[]).map((c) => [c.id, c.name]));
+      const mvpMap = new Map((mvpsRes.data ?? []).map((m: any) => [m.id, m.name]));
+
+      setKills(data.map((d: any) => ({
+        id: d.id,
+        mvp_id: d.mvp_id,
+        killed_at: d.killed_at,
+        killer_character_id: d.killer_character_id,
+        killer_name_raw: d.killer_name_raw,
+        registered_by: d.registered_by,
+        mvp_name: mvpMap.get(d.mvp_id) ?? `MVP #${d.mvp_id}`,
+        killer_name: d.killer_character_id ? nameMap.get(d.killer_character_id) ?? d.killer_name_raw ?? null : d.killer_name_raw ?? null,
+        registered_by_name: nameMap.get(d.registered_by) ?? "?",
+      })));
       setLoading(false);
-    });
+    })();
   }, [groupId]);
 
   const filtered = useMemo(() => {
@@ -49,14 +78,15 @@ export function MvpGroupStats({ groupId }: MvpGroupStatsProps) {
 
   // Stats computations
   const totalKills = filtered.length;
-  const killsWithKiller = filtered.filter((k) => k.killer_character_id).length;
-  const killsInfoOnly = totalKills - killsWithKiller;
+  const killsByGroup = filtered.filter((k) => k.killer_character_id).length;
+  const killsByExternal = filtered.filter((k) => !k.killer_character_id && k.killer_name_raw).length;
+  const killsInfoOnly = totalKills - killsByGroup - killsByExternal;
 
-  // Per user (killer)
+  // Per user (killer) — only group members
   const killerRanking = useMemo(() => {
     const map = new Map<string, { name: string; count: number }>();
     for (const k of filtered) {
-      if (!k.killer_name) continue;
+      if (!k.killer_character_id || !k.killer_name) continue;
       const existing = map.get(k.killer_name);
       if (existing) existing.count++;
       else map.set(k.killer_name, { name: k.killer_name, count: 1 });
@@ -75,9 +105,9 @@ export function MvpGroupStats({ groupId }: MvpGroupStatsProps) {
         map.set(k.mvp_name, { name: k.mvp_name, count: 1, topKiller: k.killer_name });
       }
     }
-    // Recalculate top killer per MVP
+    // Recalculate top killer per MVP — only group members
     for (const [mvpName, stat] of map) {
-      const mvpKills = filtered.filter((k) => k.mvp_name === mvpName && k.killer_name);
+      const mvpKills = filtered.filter((k) => k.mvp_name === mvpName && k.killer_character_id && k.killer_name);
       const killerMap = new Map<string, number>();
       for (const k of mvpKills) {
         killerMap.set(k.killer_name!, (killerMap.get(k.killer_name!) ?? 0) + 1);
@@ -124,14 +154,18 @@ export function MvpGroupStats({ groupId }: MvpGroupStatsProps) {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-4 gap-2">
         <div className="bg-surface border border-border rounded-lg p-3 text-center">
           <div className="text-lg font-bold text-text-primary">{totalKills}</div>
-          <div className="text-[10px] text-text-secondary">Total Kills</div>
+          <div className="text-[10px] text-text-secondary">Total</div>
         </div>
         <div className="bg-surface border border-border rounded-lg p-3 text-center">
-          <div className="text-lg font-bold text-status-available-text">{killsWithKiller}</div>
-          <div className="text-[10px] text-text-secondary">Com Killer</div>
+          <div className="text-lg font-bold text-status-available-text">{killsByGroup}</div>
+          <div className="text-[10px] text-text-secondary">Nosso Grupo</div>
+        </div>
+        <div className="bg-surface border border-border rounded-lg p-3 text-center">
+          <div className="text-lg font-bold text-text-secondary">{killsByExternal}</div>
+          <div className="text-[10px] text-text-secondary">Externo</div>
         </div>
         <div className="bg-surface border border-border rounded-lg p-3 text-center">
           <div className="text-lg font-bold text-text-secondary">{killsInfoOnly}</div>

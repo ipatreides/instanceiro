@@ -20,6 +20,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing killer_name' }, { status: 400 })
   }
 
+  // Resolve "actor_NNNNN" killer names via account_name_cache
+  let resolvedKillerName = killer_name
+  if (killer_name.startsWith('actor_')) {
+    const accountId = Number(killer_name.replace('actor_', ''))
+    if (!isNaN(accountId)) {
+      const { data: cached } = await supabase
+        .from('account_name_cache')
+        .select('name')
+        .eq('account_id', accountId)
+        .eq('server_id', ctx.serverId)
+        .maybeSingle()
+      if (cached?.name) {
+        resolvedKillerName = cached.name
+      }
+    }
+  }
+
   // Bug 2 fix: resolve MVP by map only. If no MVPs on map, return ignored instead of [0].
   const resolvedMap = resolveMapAlias(map)
   let matchMvpIds: number[] = []
@@ -67,7 +84,7 @@ export async function POST(request: NextRequest) {
     .eq('group_id', ctx.groupId)
 
   const killerMatch = members?.find(
-    (m: any) => m.characters?.name?.toLowerCase() === killer_name?.toLowerCase()
+    (m: any) => m.characters?.name?.toLowerCase() === resolvedKillerName?.toLowerCase()
   )
 
   if (dry_run) {
@@ -105,7 +122,7 @@ export async function POST(request: NextRequest) {
     p_group_id: ctx.groupId,
     p_mvp_ids: matchMvpIds,
     p_killed_at: killedAt,
-    p_killer_name: killer_name,
+    p_killer_name: resolvedKillerName,
     p_killer_char_id: killerMatch?.character_id ?? null,
     p_tomb_x: tomb_x ?? null,
     p_tomb_y: tomb_y ?? null,

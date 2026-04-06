@@ -29,6 +29,7 @@ interface KillHistoryEntry {
   mvp_id: number;
   killed_at: string;
   killer_name: string | null;
+  killer_is_member: boolean;
   registered_by_name: string;
   tomb_x: number | null;
   tomb_y: number | null;
@@ -192,35 +193,66 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
 
   // Kill history — fetch ALL group kills once, filter per MVP locally
   const [allKillHistory, setAllKillHistory] = useState<KillHistoryEntry[]>([]);
-  useEffect(() => {
+  const fetchKillHistory = useCallback(async () => {
     const supabase = createClient();
     const query = supabase
       .from("mvp_kills")
-      .select("id, mvp_id, killed_at, tomb_x, tomb_y, killer_character_id, registered_by, source, mvp_kill_damage_hits(count)");
+      .select("id, mvp_id, killed_at, tomb_x, tomb_y, killer_character_id, killer_name_raw, registered_by, source, mvp_kill_damage_hits(count)");
     if (group) query.eq("group_id", group.id);
     else query.is("group_id", null);
     query.order("killed_at", { ascending: false })
       .limit(200);
-    query
-      .then(async ({ data }) => {
-        if (!data || data.length === 0) { setAllKillHistory([]); return; }
-        const charIds = [...new Set(data.flatMap((d) => [d.killer_character_id, d.registered_by].filter(Boolean) as string[]))];
-        const { data: names } = await supabase.rpc("get_character_names", { char_ids: charIds });
-        const nameMap = new Map(((names ?? []) as { id: string; name: string }[]).map((c) => [c.id, c.name]));
-        setAllKillHistory(data.map((d: any) => ({
-          id: d.id,
-          mvp_id: d.mvp_id,
-          killed_at: d.killed_at,
-          killer_name: d.killer_character_id ? nameMap.get(d.killer_character_id) ?? null : null,
-          registered_by_name: nameMap.get(d.registered_by) ?? "?",
-          tomb_x: d.tomb_x,
-          tomb_y: d.tomb_y,
-          source: d.source ?? null,
-          has_damage: (d.mvp_kill_damage_hits?.[0]?.count ?? 0) > 0,
-        })));
-      });
+    const { data } = await query;
+    if (!data || data.length === 0) { setAllKillHistory([]); return; }
+    const charIds = [...new Set(data.flatMap((d) => [d.killer_character_id, d.registered_by].filter(Boolean) as string[]))];
+    const { data: names } = await supabase.rpc("get_character_names", { char_ids: charIds });
+    const nameMap = new Map(((names ?? []) as { id: string; name: string }[]).map((c) => [c.id, c.name]));
+    setAllKillHistory(data.map((d: any) => ({
+      id: d.id,
+      mvp_id: d.mvp_id,
+      killed_at: d.killed_at,
+      killer_name: d.killer_character_id ? nameMap.get(d.killer_character_id) ?? d.killer_name_raw ?? null : d.killer_name_raw ?? null,
+      killer_is_member: !!d.killer_character_id,
+      registered_by_name: nameMap.get(d.registered_by) ?? "?",
+      tomb_x: d.tomb_x,
+      tomb_y: d.tomb_y,
+      source: d.source ?? null,
+      has_damage: (d.mvp_kill_damage_hits?.[0]?.count ?? 0) > 0,
+    })));
+  }, [group]);
+  useEffect(() => { fetchKillHistory(); }, [fetchKillHistory]);
+
+  // Realtime: update kill history when new kills arrive or existing kills are updated
+  useEffect(() => {
+    if (!group?.id) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`mvp-kills-history-${group.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'mvp_kills',
+        filter: `group_id=eq.${group.id}`,
+      }, async (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const newKill = payload.new as any;
+          // Refetch history (damage hits arrive ~2s after kill)
+          await new Promise(r => setTimeout(r, 2000));
+          await fetchKillHistory();
+          // Auto-open damage panel if this kill is for the selected MVP
+          if (selectedMvp && newKill.mvp_id === selectedMvp.id) {
+            setExpandedHistoryKillId(newKill.id);
+          }
+        } else if (payload.eventType === 'UPDATE') {
+          fetchKillHistory();
+        } else if (payload.eventType === 'DELETE') {
+          setAllKillHistory((prev) => prev.filter((k) => k.id !== (payload.old as any).id));
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [group?.id]);
+  }, [group?.id, fetchKillHistory, selectedMvp?.id]);
 
   // Build MVP name lookup map
   const mvpNameMap = useMemo(() => {
@@ -559,13 +591,19 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                   <div className="text-[10px] text-text-secondary">
                     por <span className="text-primary-secondary">{selectedKill.edited_by_name ? `${selectedKill.edited_by_name} (editado)` : selectedKill.registered_by_name}</span>
                   </div>
-                  {selectedKill.killer_name && (
+                  {(selectedKill.killer_name || selectedKill.killer_name_raw) && (
                     <div>
                       <span className="text-[9px] text-text-secondary font-semibold">KILLER</span>
                       <div className="mt-0.5">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] bg-[color-mix(in_srgb,var(--primary)_20%,transparent)] border border-primary text-text-primary">
-                          {selectedKill.killer_name}
-                        </span>
+                        {selectedKill.killer_character_id ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-[color-mix(in_srgb,var(--primary)_20%,transparent)] border border-primary text-text-primary">
+                            {selectedKill.killer_name}
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-surface border border-border text-text-secondary">
+                            {selectedKill.killer_name_raw}
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -623,7 +661,11 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
                               <span className="text-text-primary font-medium">{mvpNameMap.get(h.mvp_id) ?? "?"}</span>
                             )}
                             {h.killer_name ? (
-                              <span className="text-primary-secondary">{h.killer_name}</span>
+                              h.killer_is_member ? (
+                                <span className="text-primary-secondary">{h.killer_name}</span>
+                              ) : (
+                                <span className="text-text-secondary">{h.killer_name}</span>
+                              )
                             ) : (
                               <span className="text-text-secondary italic">sem killer</span>
                             )}
@@ -710,8 +752,7 @@ export function MvpTab({ selectedCharId, characters, accounts, userId }: MvpTabP
           killerKillCounts={(() => {
             const map = new Map<string, number>();
             for (const h of killHistory) {
-              if (h.killer_name) {
-                // Find character_id by name from memberNames
+              if (h.killer_name && h.killer_is_member) {
                 for (const [charId, name] of memberNames) {
                   if (name === h.killer_name) map.set(charId, (map.get(charId) ?? 0) + 1);
                 }

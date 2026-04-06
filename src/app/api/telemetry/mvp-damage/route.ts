@@ -29,14 +29,48 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(null)
   }
 
+  // Resolve "actor_NNNNN" names from cache (actor_id = account_id for players)
+  const unresolvedIds = [...new Set(
+    hits.filter(h => h.source_name.startsWith('actor_')).map(h => h.source_name.replace('actor_', ''))
+  )].map(Number).filter(n => !isNaN(n))
+
+  const nameMap = new Map<string, string>()
+  if (unresolvedIds.length > 0) {
+    // Get server_id from kill's group
+    const { data: killGroup } = await supabase
+      .from('mvp_kills')
+      .select('mvp_entries!inner(server_id)')
+      .eq('id', killId)
+      .single()
+    const serverId = (killGroup as any)?.mvp_entries?.server_id
+
+    if (serverId) {
+      const { data: cached } = await supabase
+        .from('account_name_cache')
+        .select('account_id, name')
+        .eq('server_id', serverId)
+        .in('account_id', unresolvedIds)
+
+      for (const c of cached ?? []) {
+        nameMap.set(`actor_${c.account_id}`, c.name)
+      }
+    }
+  }
+
+  // Apply resolved names to hits
+  const resolvedHits = hits.map(h => ({
+    ...h,
+    source_name: nameMap.get(h.source_name) ?? h.source_name,
+  }))
+
   // Aggregate by source
   const damageBySource = new Map<string, number>()
-  for (const hit of hits) {
+  for (const hit of resolvedHits) {
     damageBySource.set(hit.source_name, (damageBySource.get(hit.source_name) ?? 0) + hit.damage)
   }
 
   const totalDamage = Array.from(damageBySource.values()).reduce((a, b) => a + b, 0)
-  const durationMs = Math.max(...hits.map(h => h.elapsed_ms))
+  const durationMs = Math.max(...resolvedHits.map(h => h.elapsed_ms))
 
   const attackers = Array.from(damageBySource.entries())
     .map(([name, total_damage]) => ({
@@ -58,7 +92,7 @@ export async function GET(request: NextRequest) {
   }
 
   const bucketedHits = new Map<number, Map<string, number>>()
-  for (const hit of hits) {
+  for (const hit of resolvedHits) {
     if (!timelineAttackers.has(hit.source_name)) continue
     const bucket = Math.floor(hit.elapsed_ms / bucketMs)
     if (!bucketedHits.has(bucket)) bucketedHits.set(bucket, new Map())
@@ -79,7 +113,7 @@ export async function GET(request: NextRequest) {
     timeline.push(point)
   }
 
-  const snifferCount = new Set(hits.map(h => h.reported_by).filter(Boolean)).size
+  const snifferCount = new Set(resolvedHits.map(h => h.reported_by).filter(Boolean)).size
 
   return NextResponse.json({
     kill_id: killId,

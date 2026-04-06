@@ -42,14 +42,25 @@ export async function POST(request: NextRequest) {
   // Upsert one session per client
   for (const client of effectiveClients) {
     // Resolve name from game_char_id if sniffer didn't provide one
+    // Filter by user_id first (same account), fallback to any match
     let charName = client.name || null
     if (!charName && client.character_id) {
       const { data: resolved } = await supabase
         .from('characters')
         .select('name')
         .eq('game_char_id', client.character_id)
+        .eq('user_id', ctx.userId)
         .maybeSingle()
-      charName = resolved?.name ?? null
+      if (resolved?.name) {
+        charName = resolved.name
+      } else {
+        const { data: fallback } = await supabase
+          .from('characters')
+          .select('name')
+          .eq('game_char_id', client.character_id)
+          .maybeSingle()
+        charName = fallback?.name ?? null
+      }
     }
 
     await supabase

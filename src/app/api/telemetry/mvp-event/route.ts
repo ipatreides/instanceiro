@@ -128,6 +128,25 @@ export async function POST(request: NextRequest) {
 
   // Insert damage hits if provided (even if kill was deduplicated — allows multi-sniffer aggregation)
   if (killId && Array.isArray(body.damage_hits) && body.damage_hits.length > 0) {
+    // Resolve "actor_NNNNN" names from account_name_cache before saving
+    const unresolvedIds = [...new Set(
+      body.damage_hits
+        .filter((h: { source_name: string }) => h.source_name?.startsWith('actor_'))
+        .map((h: { source_name: string }) => Number(h.source_name.replace('actor_', '')))
+        .filter((n: number) => !isNaN(n))
+    )]
+    const nameCache = new Map<number, string>()
+    if (unresolvedIds.length > 0) {
+      const { data: cached } = await supabase
+        .from('account_name_cache')
+        .select('account_id, name')
+        .eq('server_id', ctx.serverId)
+        .in('account_id', unresolvedIds)
+      for (const c of cached ?? []) {
+        nameCache.set(c.account_id, c.name)
+      }
+    }
+
     const hits = body.damage_hits.map((h: {
       source_id: number
       source_name: string
@@ -138,7 +157,7 @@ export async function POST(request: NextRequest) {
     }) => ({
       kill_id: killId,
       source_id: h.source_id,
-      source_name: h.source_name,
+      source_name: nameCache.get(Number(h.source_name?.replace('actor_', ''))) ?? h.source_name,
       damage: h.damage,
       server_tick: h.server_tick,
       elapsed_ms: h.elapsed_ms,
@@ -153,15 +172,61 @@ export async function POST(request: NextRequest) {
     if (hitsError) {
       console.error('Failed to insert damage hits:', hitsError.message)
     }
+
+    // Populate account name cache from resolved names (source_id = account_id for players)
+    const resolvedNames = new Map<number, string>()
+    for (const h of body.damage_hits) {
+      if (h.source_name && !h.source_name.startsWith('actor_')) {
+        resolvedNames.set(h.source_id, h.source_name)
+      }
+    }
+
+    if (resolvedNames.size > 0) {
+      const cacheRows = Array.from(resolvedNames.entries()).map(([account_id, name]: [number, string]) => ({
+        account_id,
+        server_id: ctx.serverId,
+        name,
+        updated_at: new Date().toISOString(),
+      }))
+      await supabase
+        .from('account_name_cache')
+        .upsert(cacheRows, { onConflict: 'account_id,server_id' })
+
+      // Backfill unresolved names in existing damage hits for this kill
+      for (const [sourceId, name] of resolvedNames) {
+        await supabase
+          .from('mvp_kill_damage_hits')
+          .update({ source_name: name })
+          .eq('kill_id', killId)
+          .eq('source_id', sourceId)
+          .like('source_name', 'actor_%')
+      }
+    }
   }
 
   // Update first_hitter_name if provided and not yet set
   if (killId && body.first_hitter_name) {
-    await supabase
-      .from('mvp_kills')
-      .update({ first_hitter_name: body.first_hitter_name })
-      .eq('id', killId)
-      .is('first_hitter_name', null)
+    let firstHitter = body.first_hitter_name
+    // Resolve "actor_NNNNN" via account_name_cache
+    if (firstHitter.startsWith('actor_')) {
+      const fhAccountId = Number(firstHitter.replace('actor_', ''))
+      if (!isNaN(fhAccountId)) {
+        const { data: fhCached } = await supabase
+          .from('account_name_cache')
+          .select('name')
+          .eq('account_id', fhAccountId)
+          .eq('server_id', ctx.serverId)
+          .maybeSingle()
+        if (fhCached?.name) firstHitter = fhCached.name
+      }
+    }
+    if (!firstHitter.startsWith('actor_')) {
+      await supabase
+        .from('mvp_kills')
+        .update({ first_hitter_name: firstHitter })
+        .eq('id', killId)
+        .is('first_hitter_name', null)
+    }
   }
 
   logTelemetryEvent(supabase, { endpoint: 'mvp-event', tokenId: ctx.tokenId, characterId: ctx.characterUuid, payloadSummary: { monster_id, map, has_tomb: !!tomb_x, has_killer: !!killer_name, loot_count: loots?.length ?? 0, damage_hits: body.damage_hits?.length ?? 0 }, result: action, killId })
