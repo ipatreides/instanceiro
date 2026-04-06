@@ -26,12 +26,18 @@ export async function resolveMvpIds(
   const resolvedMap = rawMap ? (MAP_ALIASES[rawMap] ?? rawMap) : null
 
   if (resolvedMap) {
-    const { data: mvpRows } = await supabase
+    let query = supabase
       .from('mvps')
       .select('id')
-      .eq('monster_id', monsterId)
       .eq('server_id', serverId)
       .eq('map_name', resolvedMap)
+
+    // monster_id=0 means resolve by map only (e.g. Convex Mirror)
+    if (monsterId > 0) {
+      query = query.eq('monster_id', monsterId)
+    }
+
+    const { data: mvpRows } = await query
 
     if (!mvpRows || mvpRows.length === 0) {
       return { mvpIds: [], ignored: true, reason: 'map not in mvps whitelist (likely instance)' }

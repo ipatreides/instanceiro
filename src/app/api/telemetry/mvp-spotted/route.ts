@@ -13,15 +13,18 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient()
 
   const body = await request.json()
-  const { monster_id, x, y, dry_run } = body
+  const { monster_id, x, y, dry_run, source } = body
   const map = body.map || 'unknown'
 
-  if (!monster_id || x == null || y == null) {
+  // mirror sightings send monster_id=0 — resolve from map
+  const effectiveMonster = monster_id || 0
+
+  if (x == null || y == null) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  // Resolve monster_id → mvp_ids via shared lib
-  const mvpResult = await resolveMvpIds(supabase, ctx.serverId, monster_id, map)
+  // Resolve monster_id → mvp_ids via shared lib (monster_id=0 resolves by map only)
+  const mvpResult = await resolveMvpIds(supabase, ctx.serverId, effectiveMonster, map)
 
   if (mvpResult.ignored) {
     logTelemetryEvent(supabase, {
@@ -101,7 +104,7 @@ export async function POST(request: NextRequest) {
     // Update position instead of inserting
     await supabase
       .from('mvp_sightings')
-      .update({ map_name: resolvedMap, x, y, spotted_at: new Date().toISOString() })
+      .update({ map_name: resolvedMap, x, y, spotted_at: new Date().toISOString(), source: source || 'sniffer' })
       .eq('id', recent[0].id)
 
     logTelemetryEvent(supabase, {
@@ -123,6 +126,7 @@ export async function POST(request: NextRequest) {
       map_name: resolvedMap,
       x,
       y,
+      source: source || 'sniffer',
       telemetry_session_id: null,
     })
     .select('id')

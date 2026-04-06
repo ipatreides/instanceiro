@@ -10,6 +10,7 @@ export interface MvpSighting {
   x: number
   y: number
   spotted_at: string
+  source: string | null
 }
 
 /**
@@ -29,7 +30,7 @@ export function useMvpSightings(groupId: string | null) {
       const cutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString()
       const { data } = await supabase
         .from('mvp_sightings')
-        .select('id, mvp_id, map_name, x, y, spotted_at')
+        .select('id, mvp_id, map_name, x, y, spotted_at, source')
         .eq('group_id', groupId)
         .gte('spotted_at', cutoff)
         .order('spotted_at', { ascending: false })

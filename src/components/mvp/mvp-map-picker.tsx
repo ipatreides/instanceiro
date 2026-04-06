@@ -4,6 +4,7 @@ import { useRef, useCallback, useEffect, useState } from "react";
 import simpleheat from "simpleheat";
 import type { MvpMapMeta } from "@/lib/types";
 import { formatTimeBRT } from "@/lib/date-brt";
+import { ShieldIcon } from "@/components/ui/shield-icon";
 
 const HEATMAP_OPACITY_KEY = "heatmap-opacity";
 const DEFAULT_OPACITY = 0.4;
@@ -22,6 +23,7 @@ interface MvpSightingPoint {
   x: number;
   y: number;
   spotted_at: string;
+  source?: string | null;
 }
 
 interface MvpMapPickerProps {
@@ -130,21 +132,46 @@ export function MvpMapPicker({ mapName, mapMeta, tombX, tombY, onCoordsChange, r
           style={{ opacity, zIndex: 1 }}
         />
       )}
-      {/* MVP sighting: live position (green pulsing dot) */}
-      {sighting && mapMeta && (
-        <div
-          className="absolute w-4 h-4 rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none animate-pulse"
-          style={{
-            left: `${(sighting.x / mapMeta.width) * 100}%`,
-            top: `${((mapMeta.height - sighting.y) / mapMeta.height) * 100}%`,
-            backgroundColor: "var(--status-available)",
-            border: "2px solid var(--status-available-text)",
-            boxShadow: "0 0 12px color-mix(in srgb, var(--status-available) 60%, transparent)",
-            zIndex: 10,
-          }}
-          title={`MVP visto aqui — ${formatTimeBRT(sighting.spotted_at)}`}
-        />
-      )}
+      {/* MVP sighting: live position */}
+      {sighting && mapMeta && (() => {
+        const isMirror = sighting.source === 'mirror';
+        const label = isMirror ? "Espelho Convexo" : "MVP visto aqui";
+        return (
+          <div
+            className={`absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none ${isMirror ? '' : 'animate-pulse'}`}
+            style={{
+              left: `${(sighting.x / mapMeta.width) * 100}%`,
+              top: `${((mapMeta.height - sighting.y) / mapMeta.height) * 100}%`,
+              zIndex: 10,
+            }}
+            title={`${label} — ${formatTimeBRT(sighting.spotted_at)}`}
+          >
+            {isMirror ? (
+              <svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+                  fill="var(--status-error)"
+                  stroke="var(--status-error-text)"
+                  strokeWidth="2"
+                  strokeLinejoin="round"
+                  filter="drop-shadow(0 0 4px var(--status-error))"
+                >
+                  <animate attributeName="fill-opacity" values="0.2;0.8;0.2" dur="2s" repeatCount="indefinite" />
+                </path>
+              </svg>
+            ) : (
+              <div
+                className="w-4 h-4 rounded-full"
+                style={{
+                  backgroundColor: "var(--status-available)",
+                  border: "2px solid var(--status-available-text)",
+                  boxShadow: "0 0 12px color-mix(in srgb, var(--status-available) 60%, transparent)",
+                }}
+              />
+            )}
+          </div>
+        );
+      })()}
       {/* Current tomb position — hidden when MVP is alive (sighting active) */}
       {dotStyle && !sighting && (
         <div
