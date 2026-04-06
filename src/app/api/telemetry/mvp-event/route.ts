@@ -42,14 +42,42 @@ export async function POST(request: NextRequest) {
     killedAt = tsResult.date.toISOString()
   }
 
+  // Resolve killer name placeholders before matching
+  let resolvedKillerName = killer_name ?? null
+  if (resolvedKillerName?.startsWith('actor_')) {
+    const accountId = Number(resolvedKillerName.replace('actor_', ''))
+    if (!isNaN(accountId)) {
+      const { data: cached } = await supabase
+        .from('account_name_cache')
+        .select('name')
+        .eq('account_id', accountId)
+        .eq('server_id', ctx.serverId)
+        .maybeSingle()
+      if (cached?.name && !cached.name.startsWith('char_') && !cached.name.startsWith('actor_')) {
+        resolvedKillerName = cached.name
+      }
+    }
+  }
+  if (resolvedKillerName?.startsWith('char_')) {
+    const charId = Number(resolvedKillerName.replace('char_', ''))
+    if (!isNaN(charId)) {
+      const { data: charRow } = await supabase
+        .from('characters')
+        .select('name')
+        .eq('game_char_id', charId)
+        .maybeSingle()
+      if (charRow?.name) resolvedKillerName = charRow.name
+    }
+  }
+
   // Resolve killer character
   let killerCharId: string | null = null
-  if (killer_name) {
+  if (resolvedKillerName) {
     const { data: members } = await supabase
       .from('mvp_group_members')
       .select('character_id, characters!inner(name)')
       .eq('group_id', ctx.groupId)
-    const match = members?.find((m: any) => m.characters?.name?.toLowerCase() === killer_name?.toLowerCase())
+    const match = members?.find((m: any) => m.characters?.name?.toLowerCase() === resolvedKillerName?.toLowerCase())
     killerCharId = match?.character_id ?? null
   }
 

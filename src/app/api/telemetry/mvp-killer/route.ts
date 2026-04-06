@@ -31,8 +31,22 @@ export async function POST(request: NextRequest) {
         .eq('account_id', accountId)
         .eq('server_id', ctx.serverId)
         .maybeSingle()
-      if (cached?.name) {
+      if (cached?.name && !cached.name.startsWith('char_') && !cached.name.startsWith('actor_')) {
         resolvedKillerName = cached.name
+      }
+    }
+  }
+  // Resolve "char_NNNNN" killer names via characters table
+  if (resolvedKillerName.startsWith('char_')) {
+    const charId = Number(resolvedKillerName.replace('char_', ''))
+    if (!isNaN(charId)) {
+      const { data: charRow } = await supabase
+        .from('characters')
+        .select('name')
+        .eq('game_char_id', charId)
+        .maybeSingle()
+      if (charRow?.name) {
+        resolvedKillerName = charRow.name
       }
     }
   }
