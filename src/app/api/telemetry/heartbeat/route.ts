@@ -147,10 +147,21 @@ export async function POST(request: NextRequest) {
     })
   }
 
+  // Check if client needs a version update
+  const latestVersion = process.env.CLAUDINHO_VERSION ?? null
+  const updateAvailable = client_version && latestVersion && client_version !== latestVersion
+
   return NextResponse.json({
     status: 'ok',
     config_version: serverConfigVersion,
     config_stale: configStale,
+    ...(updateAvailable ? {
+      update_available: {
+        version: latestVersion,
+        download_url: process.env.CLAUDINHO_DOWNLOAD_URL ?? '',
+        changelog: process.env.CLAUDINHO_CHANGELOG ?? '',
+      },
+    } : {}),
   })
   } catch (e: any) {
     try {
