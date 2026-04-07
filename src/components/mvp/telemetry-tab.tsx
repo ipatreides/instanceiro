@@ -486,12 +486,6 @@ function UnresolvedCharsList({ chars, userId, onRefresh }: { chars: any[]; userI
         return;
       }
 
-      // Remove from unresolved
-      await supabase
-        .from('unresolved_game_characters')
-        .delete()
-        .eq('game_char_id', char.game_char_id);
-
       onRefresh();
     } finally {
       setCreating(null);
@@ -598,12 +592,25 @@ export function TelemetryTab({ userId }: TelemetryTabProps) {
   const fetchUnresolved = useCallback(async () => {
     const supabase = createClient();
     const { data } = await supabase
-      .from('unresolved_game_characters')
-      .select('game_char_id, game_account_id, char_name, char_level, char_class, first_seen_at')
-      .eq('user_id', userId)
-      .order('first_seen_at', { ascending: false });
-    setUnresolvedChars(data ?? []);
-  }, [userId]);
+      .from('game_characters')
+      .select('char_id, account_id, name, level, class_id')
+      .eq('server_id', 2)
+      .order('updated_at', { ascending: false });
+
+    if (!data) { setUnresolvedChars([]); return; }
+    // Filter out chars already linked in Instanceiro
+    const { data: linked } = await supabase
+      .from('characters')
+      .select('game_char_id')
+      .not('game_char_id', 'is', null);
+    const linkedIds = new Set((linked ?? []).map((c: any) => c.game_char_id));
+    setUnresolvedChars(data.filter((c: any) => !linkedIds.has(c.char_id)).map((c: any) => ({
+      game_char_id: c.char_id,
+      game_account_id: c.account_id,
+      char_name: c.name,
+      char_level: c.level,
+    })));
+  }, []);
 
   const fetchEventLog = useCallback(async () => {
     setEventLogLoading(true);
