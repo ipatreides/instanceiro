@@ -20,36 +20,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing killer_name' }, { status: 400 })
   }
 
-  // Resolve "actor_NNNNN" killer names via account_name_cache
+  // Save killer_name as-is — backfill triggers resolve placeholders
   let resolvedKillerName = killer_name
-  if (killer_name.startsWith('actor_')) {
-    const accountId = Number(killer_name.replace('actor_', ''))
-    if (!isNaN(accountId)) {
-      const { data: cached } = await supabase
-        .from('account_name_cache')
-        .select('name')
-        .eq('account_id', accountId)
-        .eq('server_id', ctx.serverId)
-        .maybeSingle()
-      if (cached?.name && !cached.name.startsWith('char_') && !cached.name.startsWith('actor_')) {
-        resolvedKillerName = cached.name
-      }
-    }
-  }
-  // Resolve "char_NNNNN" killer names via characters table
-  if (resolvedKillerName.startsWith('char_')) {
-    const charId = Number(resolvedKillerName.replace('char_', ''))
-    if (!isNaN(charId)) {
-      const { data: charRow } = await supabase
-        .from('characters')
-        .select('name')
-        .eq('game_char_id', charId)
-        .maybeSingle()
-      if (charRow?.name) {
-        resolvedKillerName = charRow.name
-      }
-    }
-  }
 
   // Bug 2 fix: resolve MVP by map only. If no MVPs on map, return ignored instead of [0].
   const resolvedMap = resolveMapAlias(map)
@@ -97,9 +69,9 @@ export async function POST(request: NextRequest) {
     .select('character_id, characters!inner(name)')
     .eq('group_id', ctx.groupId)
 
-  const killerMatch = members?.find(
-    (m: any) => m.characters?.name?.toLowerCase() === resolvedKillerName?.toLowerCase()
-  )
+  const killerMatch = (!resolvedKillerName.startsWith('actor_') && !resolvedKillerName.startsWith('char_'))
+    ? members?.find((m: any) => m.characters?.name?.toLowerCase() === resolvedKillerName?.toLowerCase())
+    : null
 
   if (dry_run) {
     logTelemetryEvent(supabase, {
