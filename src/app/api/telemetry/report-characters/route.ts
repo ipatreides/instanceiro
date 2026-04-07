@@ -31,6 +31,17 @@ export async function POST(request: NextRequest) {
   for (const char of characters) {
     if (!char.char_id || !char.name) continue
 
+    // Always populate game identity store (triggers backfill placeholders)
+    await supabase.from('game_characters').upsert({
+      char_id: char.char_id,
+      server_id: ctx.serverId,
+      account_id: account_id && account_id !== 0 ? account_id : null,
+      name: char.name,
+      level: char.level ?? null,
+      class_id: char.class_id ?? null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'char_id,server_id' })
+
     // Check if already resolved
     const { data: existingChar } = await supabase
       .from('characters')
@@ -120,34 +131,27 @@ export async function POST(request: NextRequest) {
         game_account_id: account?.game_account_id ?? account_id ?? 0,
       })
 
-      // Remove from unresolved if was there
-      await supabase
-        .from('unresolved_game_characters')
-        .delete()
-        .eq('game_char_id', char.char_id)
-
       continue
     }
 
-    // No match — create/update unresolved
-    await supabase
-      .from('unresolved_game_characters')
-      .upsert({
-        game_char_id: char.char_id,
-        game_account_id: account_id && account_id !== 0 ? account_id : null,
-        char_name: char.name,
-        char_level: char.level ?? null,
-        char_class: char.class_id?.toString() ?? null,
-        user_id: ctx.userId,
-        group_id: ctx.groupId,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'game_char_id' })
-
+    // No match in Instanceiro — char exists in game_characters (already upserted above)
     unresolved.push({
       game_char_id: char.char_id,
       char_name: char.name,
       game_account_id: account_id && account_id !== 0 ? account_id : null,
     })
+  }
+
+  // Populate game_accounts with the first character's name
+  if (account_id && account_id !== 0 && characters.length > 0) {
+    const firstChar = characters.find(c => c.name) ?? characters[0]
+    await supabase.from('game_accounts').upsert({
+      account_id,
+      server_id: ctx.serverId,
+      name: firstChar.name,
+      last_active_char_id: firstChar.char_id,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'account_id,server_id' })
   }
 
   logTelemetryEvent(supabase, {
