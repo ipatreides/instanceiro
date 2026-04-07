@@ -373,6 +373,15 @@ export interface MvpDamageTimelinePoint {
   [attackerName: string]: number
 }
 
+export interface MvpDamageRawHit {
+  source_name: string
+  damage: number
+  cumulative: number
+  hit_index: number
+  elapsed_ms: number
+  skill_id: number | null
+}
+
 export interface MvpDamageResponse {
   kill_id: string
   first_hitter: string | null
@@ -380,4 +389,5 @@ export interface MvpDamageResponse {
   sniffer_count: number
   attackers: MvpDamageAttacker[]
   timeline: MvpDamageTimelinePoint[]
+  raw_hits: MvpDamageRawHit[]
 }
