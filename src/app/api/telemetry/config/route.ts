@@ -39,17 +39,20 @@ export async function GET(request: NextRequest) {
     name: c.name,
   }))
 
-  // Unresolved game characters
+  // Unresolved game characters (from game_characters not yet linked in Instanceiro)
   const { data: unresolvedChars } = await supabase
-    .from('unresolved_game_characters')
-    .select('game_char_id, game_account_id, char_name')
-    .eq('user_id', ctx.userId)
+    .from('game_characters')
+    .select('char_id, account_id, name')
+    .eq('server_id', ctx.serverId)
 
-  const unresolved_characters = (unresolvedChars ?? []).map((c: any) => ({
-    game_char_id: c.game_char_id,
-    game_account_id: c.game_account_id ?? 0,
-    char_name: c.char_name,
-  }))
+  const linkedCharIds = new Set(resolved_characters.map((c: any) => c.game_char_id).filter(Boolean))
+  const unresolved_characters = (unresolvedChars ?? [])
+    .filter((c: any) => !linkedCharIds.has(c.char_id))
+    .map((c: any) => ({
+      game_char_id: c.char_id,
+      game_account_id: c.account_id ?? 0,
+      char_name: c.name,
+    }))
 
   return NextResponse.json({
     config_version: configVersion?.version ?? 1,

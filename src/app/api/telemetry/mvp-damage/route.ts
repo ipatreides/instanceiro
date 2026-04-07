@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
 
     if (serverId) {
       const { data: cached } = await supabase
-        .from('account_name_cache')
+        .from('game_accounts')
         .select('account_id, name')
         .eq('server_id', serverId)
         .in('account_id', unresolvedIds)
@@ -115,6 +115,27 @@ export async function GET(request: NextRequest) {
 
   const snifferCount = new Set(resolvedHits.map(h => h.reported_by).filter(Boolean)).size
 
+  // Build raw hits with per-attacker hit_index and cumulative damage
+  const cumulativeBySource = new Map<string, number>()
+  const hitIndexBySource = new Map<string, number>()
+  const rawHits = resolvedHits
+    .filter(h => timelineAttackers.has(h.source_name))
+    .map(h => {
+      const prevCum = cumulativeBySource.get(h.source_name) ?? 0
+      const cumulative = prevCum + h.damage
+      cumulativeBySource.set(h.source_name, cumulative)
+      const idx = (hitIndexBySource.get(h.source_name) ?? 0) + 1
+      hitIndexBySource.set(h.source_name, idx)
+      return {
+        source_name: h.source_name,
+        damage: h.damage,
+        cumulative,
+        hit_index: idx,
+        elapsed_ms: h.elapsed_ms,
+        skill_id: h.skill_id,
+      }
+    })
+
   return NextResponse.json({
     kill_id: killId,
     first_hitter: kill.first_hitter_name,
@@ -122,5 +143,6 @@ export async function GET(request: NextRequest) {
     sniffer_count: Math.max(snifferCount, 1),
     attackers,
     timeline,
+    raw_hits: rawHits,
   })
 }
